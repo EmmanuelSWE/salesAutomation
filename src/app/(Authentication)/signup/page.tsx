@@ -1,7 +1,7 @@
 'use client'
 import { Input, Button } from "antd";
 import Link from "next/link";
-import { useSignupStyles } from "../../components/signup.module";
+import { useSignupStyles } from "../../components/signup/signup.module";
 
 const Signup = () => {
     const { styles } = useSignupStyles();
