@@ -3,6 +3,7 @@ import Link from "next/link";
 
 
 export default function Home() {
+ 
   return (
  <main style={{backgroundColor : 'white'}}>
     <h1> Hello world</h1>

@@ -62,7 +62,7 @@ export async function getDashboardData(): Promise<DashboardData> {
   //   return res.json();
 
   // Simulated async delay (remove in prod)
-  await new Promise((r) => setTimeout(r, 300));
+  await new Promise((r) => setTimeout(r, 5000));
 
   return {
     kpis: {
