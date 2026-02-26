@@ -18,6 +18,14 @@ export default function Home() {
         <li><Link href="/notes/create">Create Note</Link></li>
       </ul>
     </div>
+    <div style={{ padding: 32 }}>
+      <h1>List Pages</h1>
+      <ul>
+        <li><Link href="/clients">Clients List</Link></li>
+        <li><Link href="/staff">Staff List</Link></li>
+        <li><Link href="/activities">Activities List</Link></li>
+      </ul>
+    </div>
  </main>
   );
 }

@@ -1,0 +1,7 @@
+import StaffList from "@/app/components/loggedIn/staff/staffList"
+
+const StaffListPage = () => {
+    return <StaffList />;
+};
+
+export default StaffListPage;
