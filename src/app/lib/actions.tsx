@@ -288,7 +288,7 @@ export async function loginAction(
   // TODO: Call login API with email and password
   // TODO: Store auth token in cookies
   // On success, redirect to dashboard
-  redirect("/admin");
+  redirect("/admin/dashboard");
 }
 
 
