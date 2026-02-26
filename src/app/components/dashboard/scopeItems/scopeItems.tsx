@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { useSubmitProposalStyles } from "../submitProposal/submitProposal.module";
+import { useSubmitProposalStyles } from "../../loggedIn/submitProposal/submitProposal.module";
 
 interface ScopeItem { id: number; value: string; }
 

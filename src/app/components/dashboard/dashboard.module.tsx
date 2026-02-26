@@ -30,7 +30,7 @@ export const useDashboardStyles = createStyles(({ css }) => ({
     flex-direction: row;
     width: 100%;
     max-width: 1440px;
-    min-height: 100vh;
+    min-height: calc(100vh - 48px);
     background: #2a2a2a;
     border-radius: 20px;
     overflow: hidden;
@@ -43,8 +43,7 @@ export const useDashboardStyles = createStyles(({ css }) => ({
   sider: css`
     &.ant-layout-sider {
       background: #252525 !important;
-      min-height: 100vh;
-
+      min-height: 100%;
     }
   `,
 
@@ -71,10 +70,10 @@ export const useDashboardStyles = createStyles(({ css }) => ({
   /* Scrollable right-hand content column */
   content: css`
     flex: 1;
-    padding: 20px 24px;
+    padding: 24px 28px;
     display: flex;
     flex-direction: column;
-    gap: 20px;
+    gap: 28px;
     overflow-y: auto;
     min-width: 0;
   `,
