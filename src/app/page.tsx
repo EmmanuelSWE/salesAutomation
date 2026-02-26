@@ -8,6 +8,16 @@ export default function Home() {
     <h1> Hello world</h1>
    <Link href='login'> login</Link>
       <Link href='signup'> signup</Link>
+       <div style={{ padding: 32 }}>
+      <h1>Create Pages</h1>
+      <ul>
+        <li><Link href="/pricingRequests/create">Create Pricing Request</Link></li>
+        <li><Link href="/contracts/create">Create Contract</Link></li>
+        <li><Link href="/contracts/EXAMPLE_CONTRACT_ID/createRenewal">Create Renewal (example)</Link></li>
+        <li><Link href="/activities/create">Create Activity</Link></li>
+        <li><Link href="/notes/create">Create Note</Link></li>
+      </ul>
+    </div>
  </main>
   );
 }
