@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { IUser } from "./providers/context";
 
 export type ProposalFormState = {
   status: "idle" | "success" | "error";
@@ -281,4 +282,39 @@ export async function loginAction(
 
   // Pass credentials back to client so the provider's loginUser can call the API with them
   return { status: "success", email, password };
+}
+
+
+export type RegisterFormState = {
+  status: "idle" | "success" | "error";
+  message?: string;
+  user?: IUser;
+  errors?: Partial<Record<string, string>>;
+};
+
+export async function registerAction(
+  _prev: RegisterFormState,
+  formData: FormData
+): Promise<RegisterFormState> {
+  const firstName       = formData.get("firstName")       as string;
+  const lastName        = formData.get("lastName")        as string;
+  const email           = formData.get("email")           as string;
+  const phoneNumber     = formData.get("phoneNumber")     as string;
+  const password        = formData.get("password")        as string;
+  const confirmPassword = formData.get("confirmPassword") as string;
+
+  const errors: Partial<Record<string, string>> = {};
+  if (!firstName?.trim())  errors.firstName = "First name is required.";
+  if (!lastName?.trim())   errors.lastName  = "Last name is required.";
+  if (!email?.trim())      errors.email     = "Email is required.";
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = "Enter a valid email.";
+  if (!password?.trim())   errors.password  = "Password is required.";
+  if (password && password.length < 8) errors.password = "Password must be at least 8 characters.";
+  if (password !== confirmPassword)    errors.confirmPassword = "Passwords do not match.";
+  if (Object.keys(errors).length) return { status: "error", errors };
+
+  return {
+    status: "success",
+    user: { firstName, lastName, email, phoneNumber, password },
+  };
 }
