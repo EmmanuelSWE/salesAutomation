@@ -11,24 +11,28 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
-import type { DashboardTurnaround } from "@/app/lib/placeholderdata";
-import { useTurnaroundStyles} from './turnaroundchart.module'
+import type { DashboardRevenue } from "../../../lib/placeholderdata";
+import { useRevenueTrendStyles } from "./revenueChart.module";
 
 ChartJS.register(LineElement, PointElement, CategoryScale, LinearScale, Tooltip, Legend);
 
-interface TurnaroundChartProps {
-  data: DashboardTurnaround;
+function fmtK(n: number) {
+  return n >= 1000 ? `$${(n / 1000).toFixed(0)}K` : `$${n}`;
 }
 
-export default function TurnaroundChart({ data }: TurnaroundChartProps) {
-  const { styles } = useTurnaroundStyles();
+interface RevenueTrendChartProps {
+  data: DashboardRevenue;
+}
+
+export default function RevenueTrendChart({ data }: RevenueTrendChartProps) {
+  const { styles } = useRevenueTrendStyles();
 
   const chartData = {
     labels: data.labels,
     datasets: [
       {
-        label: "SnowUI",
-        data: data.snowui,
+        label: "Actual",
+        data: data.thisMonthLine,
         borderColor: "#ef5350",
         backgroundColor: "transparent",
         tension: 0.4,
@@ -37,8 +41,8 @@ export default function TurnaroundChart({ data }: TurnaroundChartProps) {
         borderWidth: 2,
       },
       {
-        label: "Dashboard",
-        data: data.dashboard,
+        label: "Target",
+        data: data.targetLine,
         borderColor: "#888",
         borderDash: [4, 4],
         backgroundColor: "transparent",
@@ -55,7 +59,12 @@ export default function TurnaroundChart({ data }: TurnaroundChartProps) {
     maintainAspectRatio: false,
     plugins: {
       legend: { display: false },
-      tooltip: { enabled: true },
+      tooltip: {
+        callbacks: {
+          label: (ctx: { dataset: { label: string }; raw: unknown }) =>
+            ` ${ctx.dataset.label}: ${fmtK(ctx.raw as number)}`,
+        },
+      },
     },
     scales: {
       x: {
@@ -67,24 +76,42 @@ export default function TurnaroundChart({ data }: TurnaroundChartProps) {
   } as const;
 
   return (
-    <section className={styles.card} aria-label="Turn around rate">
+    <section className={styles.card} aria-label="Revenue trend">
       <div className={styles.header}>
-        <div className={styles.title}>Turn around rate</div>
+        <div className={styles.left}>
+          <div className={styles.title}>Revenue Trend</div>
+        </div>
         <div className={styles.legendGroup}>
           <span className={styles.legendItem}>
             <span className={styles.legendLine} style={{ background: "#ef5350" }} />
-            SnowUI
+            Actual
           </span>
           <span className={styles.legendItem}>
             <span className={styles.legendLine} style={{ background: "#888" }} />
-            Dashboard
+            Target
           </span>
           <div className={styles.moreBtn}><MoreOutlined /></div>
         </div>
       </div>
 
+      {/* Revenue stat pills */}
+      <div className={styles.statRow}>
+        <div className={styles.stat}>
+          <span className={styles.statLabel}>This Month</span>
+          <span className={styles.statValue}>{fmtK(data.thisMonth)}</span>
+        </div>
+        <div className={styles.stat}>
+          <span className={styles.statLabel}>This Quarter</span>
+          <span className={styles.statValue}>{fmtK(data.thisQuarter)}</span>
+        </div>
+        <div className={styles.stat}>
+          <span className={styles.statLabel}>This Year</span>
+          <span className={styles.statValue}>{fmtK(data.thisYear)}</span>
+        </div>
+      </div>
+
       <div className={styles.chartWrap}>
-        <Line data={chartData} options={options} />
+        <Line data={chartData} />
       </div>
     </section>
   );

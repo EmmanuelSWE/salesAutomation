@@ -1,4 +1,4 @@
-import SubmitProposal from "@/app/components/dashboard/submitProposal/submitProposal"
+import SubmitProposal from "@/app/components/loggedIn/submitProposal/submitProposal"
 
 const submitProposalPage = () => {
     return (

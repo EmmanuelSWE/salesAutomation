@@ -1,122 +1,141 @@
+/* ═══════════════════════════════════════════════
+   TYPES  —  matching GET /api/dashboard/* shape
+═══════════════════════════════════════════════ */
 
+/* GET /api/dashboard/overview → opportunities + contracts */
 export interface DashboardKpis {
-  clients: number;
-  clientsTrend: number;
-  staff: number;
-  staffTrend: number;
+  totalOpportunities: number;
+  winRate:            number;
+  pipelineValue:      number;
+  activeContracts:    number;
+  wonCount:           number;
+  expiringThisMonth:  number;
 }
 
-export interface DashboardUsers {
-  total: number;
-  bars: number[];
-  oldPct: number;
-  newPct: number;
-  lowPct: number;
+/* GET /api/dashboard/pipeline-metrics */
+export interface PipelineStage {
+  label:         string;
+  count:         number;
+  value:         number;
+  weightedValue: number;
 }
 
-export interface DashboardStaffPerformance {
-  labels: string[];
-  data: number[];
+export interface DashboardPipeline {
+  stages:        PipelineStage[];
+  weightedTotal: number;
+}
+
+/* GET /api/dashboard/sales-performance */
+export interface SalesRep {
+  name:     string;
+  dealsWon: number;
+  revenue:  number;
+}
+
+export interface DashboardSalesPerformance {
+  reps:   SalesRep[];
   colors: string[];
 }
 
-export interface DashboardProposalOverview {
-  labels: string[];
-  data: number[];
-  colors: string[];
-  center: string;
+/* GET /api/dashboard/activities-summary */
+export interface DashboardActivities {
+  upcoming:       number;
+  overdue:        number;
+  completedToday: number;
+  labels:      string[];
+  data:        number[];
+  colors:      string[];
+  center:      string;
   centerLabel: string;
 }
 
-export interface DashboardTurnaround {
-  labels: string[];
-  snowui: number[];
-  dashboard: number[];
+/* GET /api/dashboard/overview → revenue */
+export interface DashboardRevenue {
+  labels:        string[];
+  thisMonthLine: number[];
+  targetLine:    number[];
+  thisMonth:     number;
+  thisQuarter:   number;
+  thisYear:      number;
 }
 
-export interface DashboardIncome {
-  labels: string[];
-  data: number[];
-  highlightIndex: number;
-}
-
+/* Root shape returned by getDashboardData() */
 export interface DashboardData {
-  kpis: DashboardKpis;
-  users: DashboardUsers;
-  staffPerformance: DashboardStaffPerformance;
-  proposalOverview: DashboardProposalOverview;
-  turnaround: DashboardTurnaround;
-  income: DashboardIncome;
+  kpis:             DashboardKpis;
+  pipeline:         DashboardPipeline;
+  salesPerformance: DashboardSalesPerformance;
+  activities:       DashboardActivities;
+  revenue:          DashboardRevenue;
 }
 
-
-/**
- * Simulates a server-side fetch with a small delay.
- * Replace each sub-fetch with your real API / DB calls.
- * Because this runs in a Server Component, it can use
- * fetch(), ORM calls, or any Node-only library safely.
- */
+/* ═══════════════════════════════════════════════
+   DATA FETCHER
+   Replace each block with your real API call:
+     fetch("/api/dashboard/overview")
+     fetch("/api/dashboard/pipeline-metrics")
+     fetch("/api/dashboard/sales-performance")
+     fetch("/api/dashboard/activities-summary")
+═══════════════════════════════════════════════ */
 export async function getDashboardData(): Promise<DashboardData> {
-  // In production, replace with e.g.:
-  //   const res = await fetch("https://api.example.com/dashboard", { next: { revalidate: 60 } });
-  //   return res.json();
-
-  // Simulated async delay (remove in prod)
-  await new Promise((r) => setTimeout(r, 5000));
+  // Simulated delay — remove in production
+  await new Promise((r) => setTimeout(r, 300));
 
   return {
+    /* ── GET /api/dashboard/overview ── */
     kpis: {
-      clients: 7265,
-      clientsTrend: 11.01,
-      staff: 3671,
-      staffTrend: -0.03,
+      totalOpportunities: 42,
+      wonCount:           8,
+      winRate:            19.05,
+      pipelineValue:      1250000,
+      activeContracts:    15,
+      expiringThisMonth:  2,
     },
-    users: {
-      total: 37235128,
-      bars: [
-        30, 45, 28, 55, 38, 65, 42, 70, 50, 58,
-        40, 62, 35, 80, 55, 90, 60, 75, 48, 68,
-        52, 78, 45, 85, 58, 72, 44, 66, 50, 88,
-        62, 92, 55, 76, 49, 82, 57, 70, 46, 78,
+
+    /* ── GET /api/dashboard/pipeline-metrics ── */
+    pipeline: {
+      weightedTotal: 430000,
+      stages: [
+        { label: "Prospecting",   count: 12, value: 320000,  weightedValue: 48000  },
+        { label: "Qualification", count: 9,  value: 275000,  weightedValue: 82500  },
+        { label: "Proposal",      count: 7,  value: 410000,  weightedValue: 123000 },
+        { label: "Negotiation",   count: 5,  value: 290000,  weightedValue: 116000 },
+        { label: "Closed Won",    count: 8,  value: 380000,  weightedValue: 380000 },
+        { label: "Closed Lost",   count: 6,  value: 195000,  weightedValue: 0      },
       ],
-      oldPct: 52,
-      newPct: 18,
-      lowPct: 30,
     },
-    staffPerformance: {
-      labels: ["United States", "Canada", "Mexico", "Other"],
-      data: [53.5, 32.8, 9.2, 4.5],
-      colors: ["#f5a623", "#03a9f4", "#4caf50", "#9e9e9e"],
-    },
-    proposalOverview: {
-      labels: ["Windows", "MacOS", "Other"],
-      data: [17, 60, 23],
-      colors: ["#9e9e9e", "#00c853", "#2979ff"],
-      center: "17%",
-      centerLabel: "Windows",
-    },
-    turnaround: {
-      labels: ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
-      snowui:    [18, 28, 35, 55, 48, 60],
-      dashboard: [10, 22, 30, 40, 45, 55],
-    },
-    income: {
-      labels: [
-        "Jan", "", "", "", "", "", "",
-        "Feb", "", "", "", "", "", "",
-        "Mar", "", "", "", "", "", "",
-        "Apr", "", "", "", "", "", "",
-        "May", "", "", "", "", "", "",
-        "Jun",
+
+    /* ── GET /api/dashboard/sales-performance ── */
+    salesPerformance: {
+      colors: ["#f5a623", "#03a9f4", "#4caf50", "#9e9e9e", "#e91e63"],
+      reps: [
+        { name: "Alice M.",  dealsWon: 14, revenue: 420000 },
+        { name: "James T.",  dealsWon: 11, revenue: 310000 },
+        { name: "Sara K.",   dealsWon: 9,  revenue: 270000 },
+        { name: "David R.",  dealsWon: 7,  revenue: 185000 },
+        { name: "Nina P.",   dealsWon: 5,  revenue: 115000 },
       ],
-      data: [
-        40, 55, 35, 60, 45, 70, 50,
-        40, 65, 42, 55, 38, 62, 48,
-        45, 70, 52, 42, 60, 50, 38,
-        243, 55, 42, 65, 48, 58, 45,
-        42, 68, 52, 60, 45, 70, 55, 42,
-      ],
-      highlightIndex: 21,
+    },
+
+    /* ── GET /api/dashboard/activities-summary ── */
+    activities: {
+      upcoming:       12,
+      overdue:        3,
+      completedToday: 5,
+      labels:  ["Upcoming", "Overdue", "Completed"],
+      data:    [12, 3, 5],
+      colors:  ["#2979ff", "#ef5350", "#4caf50"],
+      center:  "20",
+      centerLabel: "Total",
+    },
+
+    /* ── GET /api/dashboard/overview → revenue ── */
+    revenue: {
+      thisMonth:     180000,
+      thisQuarter:   520000,
+      thisYear:      1100000,
+      labels:        ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
+      thisMonthLine: [95000, 112000, 130000, 158000, 145000, 180000],
+      targetLine:    [100000, 110000, 120000, 140000, 155000, 170000],
     },
   };
 }

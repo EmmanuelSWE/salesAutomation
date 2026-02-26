@@ -2,7 +2,7 @@
 
 import { createStyles } from "antd-style";
 
-export const useStaffProposalStyles = createStyles(({ css }) => ({
+export const useSalesActivitiesStyles = createStyles(({ css }) => ({
   grid: css`
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -19,25 +19,31 @@ export const useStaffProposalStyles = createStyles(({ css }) => ({
     min-width: 0;
   `,
 
-  /* ── Staff ── */
   titleOrange: css`
     font-size: 13px;
     font-weight: 600;
     color: #f5a623;
   `,
 
-  staffBody: css`
+  titleBlue: css`
+    font-size: 13px;
+    font-weight: 600;
+    color: #4d9fff;
+  `,
+
+  /* Sales — doughnut + legend */
+  salesBody: css`
     display: flex;
     align-items: center;
     gap: 16px;
   `,
 
-  staffChartWrap: css`
+  chartWrap: css`
     flex: 0 0 130px;
     height: 130px;
   `,
 
-  staffLegend: css`
+  legend: css`
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -71,16 +77,11 @@ export const useStaffProposalStyles = createStyles(({ css }) => ({
     color: #fff;
     font-weight: 500;
     flex-shrink: 0;
+    font-size: 11px;
   `,
 
-  /* ── Proposal ── */
-  titleBlue: css`
-    font-size: 13px;
-    font-weight: 600;
-    color: #4d9fff;
-  `,
-
-  proposalBody: css`
+  /* Activities — gauge + stat pills */
+  activitiesBody: css`
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -88,26 +89,56 @@ export const useStaffProposalStyles = createStyles(({ css }) => ({
     position: relative;
   `,
 
-  proposalChartWrap: css`
+  gaugeWrap: css`
     width: 100%;
     height: 130px;
   `,
 
-  proposalCenter: css`
-    margin-top: -56px;
+  gaugeCenter: css`
+    margin-top: -52px;
     text-align: center;
     pointer-events: none;
-    z-index: 1;
   `,
 
-  proposalCenterValue: css`
+  gaugeCenterValue: css`
     font-size: 22px;
     font-weight: 700;
     color: #fff;
   `,
 
-  proposalCenterLabel: css`
+  gaugeCenterLabel: css`
     font-size: 11px;
     color: #777;
+  `,
+
+  statsRow: css`
+    display: flex;
+    gap: 12px;
+    margin-top: 14px;
+    width: 100%;
+    justify-content: center;
+  `,
+
+  statPill: css`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    background: #252525;
+    border-radius: 10px;
+    padding: 8px 14px;
+    min-width: 64px;
+  `,
+
+  statValue: css`
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+  `,
+
+  statLabel: css`
+    font-size: 10px;
+    color: #777;
+    text-align: center;
   `,
 }));

@@ -2,7 +2,7 @@
 
 import { createStyles } from "antd-style";
 
-export const useTurnaroundStyles = createStyles(({ css }) => ({
+export const usePipelineChartStyles = createStyles(({ css }) => ({
   card: css`
     background: #2e2e2e;
     border-radius: 14px;
@@ -22,27 +22,7 @@ export const useTurnaroundStyles = createStyles(({ css }) => ({
   title: css`
     font-size: 13px;
     font-weight: 600;
-    color: #ef5350;
-  `,
-
-  legendGroup: css`
-    display: flex;
-    gap: 14px;
-    align-items: center;
-    font-size: 12px;
-    color: #aaa;
-  `,
-
-  legendItem: css`
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  `,
-
-  legendLine: css`
-    width: 20px;
-    height: 2px;
-    border-radius: 1px;
+    color: #7c85ff;
   `,
 
   moreBtn: css`

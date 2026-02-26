@@ -1,26 +1,11 @@
-
-/**
- * app/dashboard/page.tsx
- *
- * Server Component — layout shell only.
- * Async data-fetching lives in ./sections.tsx.
- */
-
 import { Suspense } from "react";
-
-import Sidebar  from "../../../components/loggedIn/sideBar";
-import TopBar   from "../../../components/dashboard/topBar/topBar";
-
-
 import {
   KpiSection,
-  UsersSection,
-  StaffProposalSection,
-  TurnaroundSection,
-  IncomeSection,
+  PipelineSection,
+  SalesActivitiesSection,
+  RevenueTrendSection,
 } from "../../../components/dashboard/sections/sections";
 
-/* ── Skeleton placeholder shown while a section streams in ── */
 function CardSkeleton({ height = 200 }: { height?: number }) {
   return (
     <div
@@ -36,49 +21,38 @@ function CardSkeleton({ height = 200 }: { height?: number }) {
 }
 
 export default function DashboardPage() {
-  
-
   return (
-  
-       
-<>
+    <>
+      {/* ── 4 KPI cards ── */}
+      <Suspense fallback={
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16 }}>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <CardSkeleton key={i} height={100} />
+          ))}
+        </div>
+      }>
+        <KpiSection />
+      </Suspense>
 
-          {/* KPI cards */}
-          <Suspense fallback={
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-              <CardSkeleton height={100} />
-              <CardSkeleton height={100} />
-            </div>
-          }>
-            <KpiSection />
-          </Suspense>
+      {/* ── Pipeline by stage — full width bar chart ── */}
+      <Suspense fallback={<CardSkeleton height={300} />}>
+        <PipelineSection />
+      </Suspense>
 
-          {/* Users bar chart */}
-          <Suspense fallback={<CardSkeleton height={260} />}>
-            <UsersSection />
-          </Suspense>
+      {/* ── Sales + Activities side by side ── */}
+      <Suspense fallback={
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+          <CardSkeleton height={260} />
+          <CardSkeleton height={260} />
+        </div>
+      }>
+        <SalesActivitiesSection />
+      </Suspense>
 
-          {/* Staff performance + Proposal overview */}
-          <Suspense fallback={
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-              <CardSkeleton height={220} />
-              <CardSkeleton height={220} />
-            </div>
-          }>
-            <StaffProposalSection />
-          </Suspense>
-
-          {/* Turn around rate */}
-          <Suspense fallback={<CardSkeleton height={270} />}>
-            <TurnaroundSection />
-          </Suspense>
-
-          {/* Income */}
-          <Suspense fallback={<CardSkeleton height={270} />}>
-            <IncomeSection />
-          </Suspense>
-
-          {/* Footer */}
-      </>
+      {/* ── Revenue trend — always full width ── */}
+      <Suspense fallback={<CardSkeleton height={300} />}>
+        <RevenueTrendSection />
+      </Suspense>
+    </>
   );
 }
