@@ -54,3 +54,60 @@ export async function submitProposalAction(
   revalidatePath("/submitProposal");
   return { status: "success", message: "Proposal submitted successfully!" };
 }
+
+
+
+
+
+export type CreateClientFormState = {
+  status: "idle" | "success" | "error";
+  message?: string;
+  errors?: Partial<Record<string, string>>;
+};
+
+export async function createClientAction(
+  _prevState: CreateClientFormState,
+  formData: FormData
+): Promise<CreateClientFormState> {
+  /* ── Extract fields ── */
+  const name           = formData.get("name")           as string;
+  const industry       = formData.get("industry")       as string;
+  const clientType     = formData.get("clientType")     as string;
+  const website        = formData.get("website")        as string;
+  const billingAddress = formData.get("billingAddress") as string;
+  const taxNumber      = formData.get("taxNumber")      as string;
+  const companySize    = formData.get("companySize")    as string;
+
+  /* ── Validation ── */
+  const errors: Partial<Record<string, string>> = {};
+  if (!name?.trim())           errors.name           = "Company name is required.";
+  if (!industry?.trim())       errors.industry       = "Industry is required.";
+  if (!clientType)             errors.clientType     = "Client type is required.";
+  if (!billingAddress?.trim()) errors.billingAddress = "Billing address is required.";
+
+  if (website && !/^https?:\/\/.+/.test(website)) {
+    errors.website = "Website must start with http:// or https://";
+  }
+
+  if (Object.keys(errors).length > 0) {
+    return { status: "error", errors };
+  }
+
+  /* ── POST to /api/clients ── */
+  // TODO: replace with your real fetch:
+  // const res = await fetch(`${process.env.API_BASE_URL}/api/clients`, {
+  //   method: "POST",
+  //   headers: { "Content-Type": "application/json" },
+  //   body: JSON.stringify({ name, industry, clientType: Number(clientType), website, billingAddress, taxNumber, companySize }),
+  // });
+  // if (!res.ok) return { status: "error", message: "Failed to create client." };
+
+  console.log("Creating client:", {
+    name, industry,
+    clientType: Number(clientType),
+    website, billingAddress, taxNumber, companySize,
+  });
+
+  revalidatePath("/admin/clients");
+  return { status: "success", message: `Client "${name}" created successfully!` };
+}
