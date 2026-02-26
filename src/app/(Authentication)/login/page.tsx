@@ -1,6 +1,6 @@
 'use client'
 import { Input, Button } from "antd";
-import {useLoginStyles} from "../../components/login.module";
+import {useLoginStyles} from "../../components/login/login.module";
 // If you plan to use a Server Action later, import it and set it on action={loginAction}
 // import { loginAction } from "./actions";
 
