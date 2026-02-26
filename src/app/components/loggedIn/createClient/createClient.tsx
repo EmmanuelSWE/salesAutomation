@@ -1,11 +1,11 @@
 "use client";
 
 import { useActionState } from "react";
-import { createClientAction, type CreateClientFormState } from "../../../lib/providers/actions";
+import { createClientAction, type FormState } from "../../../lib/providers/actions";
 import { CreateClientSubmitButton } from "./submitButton/submitButton";
 import { useCreateClientStyles } from "./createClient.module";
 
-const initialState: CreateClientFormState = { status: "idle" };
+const initialState: FormState = { status: "idle" };
 
 const CLIENT_TYPES = [
   { value: "1", label: "Direct"     },
