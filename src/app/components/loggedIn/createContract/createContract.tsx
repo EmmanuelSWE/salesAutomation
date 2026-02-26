@@ -1,6 +1,6 @@
 "use client";
 import { useActionState } from "react";
-import { createContractAction, type FormState } from "../../../lib/providers/actions";
+import { createContractAction, type FormState } from "../../../lib/actions";
 import { SubmitButton } from "../form/submitButton";
 import { useFormStyles } from "../form/form.module";
 
