@@ -1,40 +1,48 @@
 'use client'
-import { Input, Button } from "antd";
-import {useLoginStyles} from "../../components/login/login.module";
-// If you plan to use a Server Action later, import it and set it on action={loginAction}
-// import { loginAction } from "./actions";
+
+import { Input } from "antd";
+import { useActionState } from "react";
+import { useEffect } from "react";
+import { useLoginStyles } from "../../components/login/login.module";
+import { useUserAction } from "../../lib/providers/index";
+import { loginAction } from "../../lib/actions";
+import {SubmitButton} from "../../components/loggedIn/form/submitButton";
 
 const Login = () => {
-    const {styles} = useLoginStyles();
+  const { styles } = useLoginStyles();
+  const { loginUser } = useUserAction();
+  const [state, formAction] = useActionState(loginAction, { status: "idle" });
+
+  useEffect(() => {
+    if (state.status === "success" && state.email && state.password) {
+      loginUser(state.email, state.password);
+    }
+  }, [state.status]);
+
   return (
     <div className={styles.container}>
       <div className={styles.card}>
         <h1 className={styles.title}>Login</h1>
 
-        {/* Native HTML form (no AntD <Form/>) */}
-        <form
-          // EITHER post to an API route:
-          action="/api/login"
-          method="post"
+        {state.status === "error" && (
+          <p style={{ color: "red", marginBottom: 12 }}>
+            {state.message ?? "Invalid credentials."}
+          </p>
+        )}
 
-          // OR (when ready) post to a Server Action:
-          // action={loginAction}
-
-          // Optional: add a class if you want extra spacing
-          // className={styles.form}
-        >
-          {/* Username */}
+        <form action={formAction}>
           <div style={{ marginBottom: 16 }}>
             <Input
-              name="username"
-              placeholder="Username"
+              name="email"
+              placeholder="Email"
               className={styles.input}
-              // autoComplete helps the browser fill the field
-              autoComplete="username"
+              autoComplete="email"
             />
+            {state.errors?.email && (
+              <p style={{ color: "red", fontSize: 12 }}>{state.errors.email}</p>
+            )}
           </div>
 
-          {/* Password */}
           <div style={{ marginBottom: 16 }}>
             <Input.Password
               name="password"
@@ -42,16 +50,12 @@ const Login = () => {
               className={styles.input}
               autoComplete="current-password"
             />
+            {state.errors?.password && (
+              <p style={{ color: "red", fontSize: 12 }}>{state.errors.password}</p>
+            )}
           </div>
 
-          {/* Submit */}
-          <Button
-            type="primary"
-            htmlType="submit"
-            className={`${styles.button} globalButton`}
-          >
-            LOGIN
-          </Button>
+          <SubmitButton label="Login" pendingLabel="Logging in…" />
         </form>
       </div>
     </div>

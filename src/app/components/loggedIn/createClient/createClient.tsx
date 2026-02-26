@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { createClientAction, type FormState } from "../../../lib/providers/actions";
+import { createClientAction, type FormState } from "../../../lib/actions";
 import { CreateClientSubmitButton } from "./submitButton/submitButton";
 import { useCreateClientStyles } from "./createClient.module";
 

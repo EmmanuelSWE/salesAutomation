@@ -11,7 +11,7 @@
  */
 
 import { useActionState } from "react";
-import { submitProposalAction, type ProposalFormState } from "../../../lib/providers/actions";
+import { submitProposalAction, type ProposalFormState } from "../../../lib/actions";
 import { ScopeItems }   from "../../dashboard/scopeItems/scopeItems";
 import { SubmitButton } from "../submitButton/submitButton";
 import { useSubmitProposalStyles } from "./submitProposal.module";
