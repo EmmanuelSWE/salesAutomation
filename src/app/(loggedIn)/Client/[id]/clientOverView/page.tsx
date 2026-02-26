@@ -1,9 +1,13 @@
 "use client";
 
+import { useContext, useEffect } from "react";
+import { useParams } from "next/navigation";
 import ClientOverviewCard  from "../../../../components/loggedIn/clientOverview/clientOverviewCard/clientOverViewCard";
 import ClientContactDetails from "../../../../components/loggedIn/clientOverview/clientContactDetails/clientContactDetails";
 import ClientDocumentHistory from "../../../../components/loggedIn/clientOverview/clientDocumentHistory/clientDocumentHistory";
 import ClientOpportunities  from "../../../../components/loggedIn/clientOverview/clientOpportunities/clientOpportunites";
+
+import { ClientStateContext, ClientActionsContext } from "../../../../lib/providers/context";
 
 import type { ProposalStep }   from "../../../../components/loggedIn/clientOverview/clientOverviewCard/clientOverViewCard";
 import type { ContactCard }    from "../../../../components/loggedIn/clientOverview/clientContactDetails/clientContactDetails";
@@ -44,6 +48,20 @@ const OPPORTUNITIES: OpportunityRow[] = [
 ];
 
 export default function ClientOverview() {
+  const params = useParams();
+  const clientId = params.id as string;
+  
+  const clientState = useContext(ClientStateContext);
+  const clientActions = useContext(ClientActionsContext);
+
+  useEffect(() => {
+    if (clientId && clientActions?.getOneClient) {
+      clientActions.getOneClient(clientId);
+    }
+  }, [clientId, clientActions]);
+
+  const clientName = clientState?.client?.name || "Loading...";
+
   return (
     <div
       style={{
@@ -58,7 +76,7 @@ export default function ClientOverview() {
     >
       {/* 1. Client name + project steps + active date + pricing + alert */}
       <ClientOverviewCard
-        clientName="Acme Corp"
+        clientName={clientName}
         steps={STEPS}
         activeUntil="Dec 9, 2026"
         subscriptionNote="We will send you a notification upon Subscription expiration."

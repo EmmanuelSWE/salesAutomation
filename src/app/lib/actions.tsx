@@ -308,6 +308,9 @@ export async function registerAction(
   const email           = formData.get("email")           as string;
   const password        = formData.get("password")        as string;
   const confirmPassword = formData.get("confirmPassword") as string;
+  const tenantName      = (formData.get("tenantName") as string) || "";
+  const tenantId        = (formData.get("tenantId") as string) || "";
+  const role            = (formData.get("role") as string) || "";
 
   const errors: Partial<Record<string, string>> = {};
   if (!firstName?.trim())  errors.firstName = "First name is required.";
@@ -317,9 +320,43 @@ export async function registerAction(
   if (!password?.trim())   errors.password  = "Password is required.";
   if (password && password.length < 8) errors.password = "Password must be at least 8 characters.";
   if (password !== confirmPassword)    errors.confirmPassword = "Passwords do not match.";
+  if (tenantName?.trim() && tenantId?.trim()) errors._ = "Cannot specify both Tenant Name and Tenant ID.";
+  if (tenantId?.trim() && !role?.trim()) errors.role = "Role is required when joining an organization.";
   if (Object.keys(errors).length) return { status: "error", errors };
+  // Call registration API to create user with optional tenantName
+  // Example payload: { firstName, lastName, email, password, tenantName }
+  const finalRole = role?.trim() || "SalesRep";
+  const payload: Record<string, unknown> = { firstName: firstName.trim(), lastName: lastName.trim(), email: email.trim(), password };
+  if (tenantName?.trim()) payload.tenantName = tenantName.trim();
+  if (tenantId?.trim()) {
+    payload.tenantId = tenantId.trim();
+    payload.role = finalRole;
+  }
 
-  // TODO: Call registration API to create user
-  // On success, redirect to login page
-  redirect("/login");
+  try {
+    const base = process.env.NEXT_PUBLIC_API_URL ?? process.env.API_BASE_URL ?? "";
+    const res = await fetch(`${base.replace(/\/$/, "")}/auth/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      // Map any validation errors returned by the API into the form errors shape
+      const apiErrors: Partial<Record<string, string>> = {};
+      if (data && typeof data === "object") {
+        if (data.errors && typeof data.errors === "object") Object.assign(apiErrors, data.errors);
+        if (data.message && !Object.keys(apiErrors).length) apiErrors["_message"] = String(data.message);
+      }
+      return { status: "error", message: data?.message ?? "Registration failed.", errors: apiErrors };
+    }
+
+    // Success — API typically returns created user (and maybe tenant info)
+    const user = (data && typeof data === "object" && (data.user ?? data)) || { firstName, lastName, email };
+    // Return success and user to the client; client will navigate to /login
+    return { status: "success", user };
+  } catch (err) {
+    return { status: "error", message: "Registration failed. Please try again." };
+  }
 }
