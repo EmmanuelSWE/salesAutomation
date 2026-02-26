@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { IUser } from "./providers/context";
 
 export type ProposalFormState = {
@@ -53,6 +54,7 @@ export async function submitProposalAction(
   // TODO: await db.proposals.create({ ... })
 
   revalidatePath("/submitProposal");
+  // TODO: fetch opportunity to get clientId, then redirect("/Client/" + clientId)
   return { status: "success", message: "Proposal submitted successfully!" };
 }
 
@@ -87,8 +89,8 @@ export async function createContactAction(_prev: FormState, formData: FormData):
 
   // TODO: await fetch(`${process.env.API_BASE_URL}/api/contacts`, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ clientId, firstName, lastName, email, phoneNumber, position, isPrimaryContact }) });
   console.log("createContact:", { clientId, firstName, lastName, email, phoneNumber, position, isPrimaryContact });
-  revalidatePath("/admin/contacts");
-  return { status: "success", message: `Contact ${firstName} ${lastName} created.` };
+  revalidatePath(`/Client/${clientId}`);
+  redirect(`/Client/${clientId}`);
 }
 
 /* ─── POST /api/opportunities ────────────────────────── */
@@ -114,8 +116,8 @@ export async function createOpportunityAction(_prev: FormState, formData: FormDa
 
   // TODO: await fetch(`${process.env.API_BASE_URL}/api/opportunities`, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ title, clientId, contactId, estimatedValue: Number(estimatedValue), currency, stage: Number(stage), source: Number(source), probability: Number(probability), expectedCloseDate, description }) });
   console.log("createOpportunity:", { title, clientId, contactId, estimatedValue: Number(estimatedValue), currency, stage: Number(stage), source: Number(source), probability: Number(probability), expectedCloseDate, description });
-  revalidatePath("/admin/opportunities");
-  return { status: "success", message: `Opportunity "${title}" created.` };
+  revalidatePath("/opportunities");
+  redirect("/opportunities");
 }
 
 /* ─── POST /api/pricingrequests ──────────────────────── */
@@ -136,8 +138,8 @@ export async function createPricingRequestAction(_prev: FormState, formData: For
 
   // TODO: await fetch(`${process.env.API_BASE_URL}/api/pricingrequests`, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ title, description, clientId, opportunityId, requestedById, priority: Number(priority), requiredByDate }) });
   console.log("createPricingRequest:", { title, description, clientId, opportunityId, requestedById, priority: Number(priority), requiredByDate });
-  revalidatePath("/admin/pricingrequests");
-  return { status: "success", message: `Pricing request "${title}" created.` };
+  revalidatePath(`/Client/${clientId}`);
+  redirect(`/Client/${clientId}`);
 }
 
 /* ─── POST /api/contracts ────────────────────────────── */
@@ -165,8 +167,8 @@ export async function createContractAction(_prev: FormState, formData: FormData)
 
   // TODO: await fetch(`${process.env.API_BASE_URL}/api/contracts`, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ clientId, opportunityId, proposalId, title, contractValue: Number(contractValue), currency, startDate, endDate, ownerId, renewalNoticePeriod: Number(renewalNoticePeriod), autoRenew, terms }) });
   console.log("createContract:", { clientId, opportunityId, proposalId, title, contractValue: Number(contractValue), currency, startDate, endDate, ownerId, renewalNoticePeriod: Number(renewalNoticePeriod), autoRenew, terms });
-  revalidatePath("/admin/contracts");
-  return { status: "success", message: `Contract "${title}" created.` };
+  revalidatePath(`/Client/${clientId}`);
+  redirect(`/Client/${clientId}`);
 }
 
 /* ─── POST /api/contracts/{contractId}/renewals ──────── */
@@ -186,7 +188,8 @@ export async function createRenewalAction(_prev: FormState, formData: FormData):
 
   // TODO: await fetch(`${process.env.API_BASE_URL}/api/contracts/${contractId}/renewals`, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ proposedStartDate, proposedEndDate, proposedValue: Number(proposedValue), notes }) });
   console.log("createRenewal:", { contractId, proposedStartDate, proposedEndDate, proposedValue: Number(proposedValue), notes });
-  revalidatePath("/admin/contracts");
+  revalidatePath(`/Client/[clientId]`);
+  // TODO: fetch contract to get clientId, then redirect("/Client/" + clientId)
   return { status: "success", message: "Renewal created successfully." };
 }
 
@@ -211,8 +214,8 @@ export async function createActivityAction(_prev: FormState, formData: FormData)
 
   // TODO: await fetch(`${process.env.API_BASE_URL}/api/activities`, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ type: Number(type), subject, description, priority: Number(priority), dueDate, assignedToId, relatedToType: Number(relatedToType), relatedToId, duration: Number(duration), location }) });
   console.log("createActivity:", { type: Number(type), subject, description, priority: Number(priority), dueDate, assignedToId, relatedToType: Number(relatedToType), relatedToId, duration: Number(duration), location });
-  revalidatePath("/admin/activities");
-  return { status: "success", message: `Activity "${subject}" created.` };
+  revalidatePath("/activities");
+  redirect("/activities");
 }
 
 /* ─── POST /api/notes ────────────────────────────────── */
@@ -230,8 +233,9 @@ export async function createNoteAction(_prev: FormState, formData: FormData): Pr
 
   // TODO: await fetch(`${process.env.API_BASE_URL}/api/notes`, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ content, relatedToType: Number(relatedToType), relatedToId, isPrivate }) });
   console.log("createNote:", { content, relatedToType: Number(relatedToType), relatedToId, isPrivate });
-  revalidatePath("/admin/notes");
-  return { status: "success", message: "Note added successfully." };
+  revalidatePath(`/Client/${relatedToId}`);
+  // TODO: Determine actual entity type and redirect accordingly (Client, Opportunity, etc.)
+  redirect(`/Client/${relatedToId}`);
 }
 
 /* ─── POST /api/clients ──────────────────────────────── */
@@ -254,7 +258,8 @@ export async function createClientAction(_prev: FormState, formData: FormData): 
 
   // TODO: await fetch(`${process.env.API_BASE_URL}/api/clients`, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ name, industry, clientType: Number(clientType), website, billingAddress, taxNumber, companySize }) });
   console.log("createClient:", { name, industry, clientType: Number(clientType), website, billingAddress, taxNumber, companySize });
-  revalidatePath("/admin/clients");
+  revalidatePath("/clients");
+  // TODO: Get newClientId from API response, then redirect("/Client/" + newClientId)
   return { status: "success", message: `Client "${name}" created.` };
 }
 
@@ -280,8 +285,10 @@ export async function loginAction(
   if (!password?.trim()) errors.password = "Password is required.";
   if (Object.keys(errors).length) return { status: "error", errors };
 
-  // Pass credentials back to client so the provider's loginUser can call the API with them
-  return { status: "success", email, password };
+  // TODO: Call login API with email and password
+  // TODO: Store auth token in cookies
+  // On success, redirect to dashboard
+  redirect("/admin");
 }
 
 
@@ -299,7 +306,6 @@ export async function registerAction(
   const firstName       = formData.get("firstName")       as string;
   const lastName        = formData.get("lastName")        as string;
   const email           = formData.get("email")           as string;
-  const phoneNumber     = formData.get("phoneNumber")     as string;
   const password        = formData.get("password")        as string;
   const confirmPassword = formData.get("confirmPassword") as string;
 
@@ -313,8 +319,7 @@ export async function registerAction(
   if (password !== confirmPassword)    errors.confirmPassword = "Passwords do not match.";
   if (Object.keys(errors).length) return { status: "error", errors };
 
-  return {
-    status: "success",
-    user: { firstName, lastName, email, phoneNumber, password },
-  };
+  // TODO: Call registration API to create user
+  // On success, redirect to login page
+  redirect("/login");
 }
