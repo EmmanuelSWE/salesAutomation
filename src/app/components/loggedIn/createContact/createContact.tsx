@@ -1,17 +1,26 @@
 "use client";
-import { useActionState } from "react";
+import { useActionState, useEffect, useState } from "react";
+import { useParams } from "next/navigation";
 import { createContactAction, type FormState } from "../../../lib/actions";
 import { SubmitButton } from "../form/submitButton";
-import { useFormStyles } from "../form/form.module";
+import { useCreateClientStyles } from "../createClient/createClient.module";
 
 const initial: FormState = { status: "idle" };
 
 export default function CreateContact() {
-  const { styles } = useFormStyles();
+  const { styles } = useCreateClientStyles();
+  const params = useParams();
+  const clientId = (params?.id as string) ?? "";
+  const [token, setToken] = useState("");
   const [state, formAction] = useActionState(createContactAction, initial);
+
+  useEffect(() => {
+    setToken(localStorage.getItem("auth_token") ?? "");
+  }, []);
   return (
     <div className={styles.page}>
       <form action={formAction} className={styles.form}>
+        <input type="hidden" name="_token" value={token} />
         <h1 className={styles.formTitle}>Create Contact</h1>
         {state.status === "success" && <div className={styles.successBanner}>{state.message}</div>}
 
@@ -20,6 +29,7 @@ export default function CreateContact() {
           <div className={styles.field}>
             <label className={styles.label} htmlFor="clientId">Client ID</label>
             <input id="clientId" name="clientId" className={styles.input} placeholder="Client UUID"
+              defaultValue={clientId}
               style={state.errors?.clientId ? { borderColor: "#f44336" } : {}} />
             {state.errors?.clientId && <span className={styles.errorText}>{state.errors.clientId}</span>}
           </div>
@@ -59,7 +69,7 @@ export default function CreateContact() {
           </div>
           <label className={styles.toggle}>
             <input type="checkbox" name="isPrimaryContact" value="true" className={styles.checkbox} />
-            Set as primary contact
+            {" "}Set as primary contact
           </label>
         </section>
 

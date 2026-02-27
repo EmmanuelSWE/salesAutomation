@@ -10,7 +10,7 @@
  *  - Everything else is a plain HTML input — no onChange state
  */
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { submitProposalAction, type ProposalFormState } from "../../../lib/actions";
 import { ScopeItems }   from "../../dashboard/scopeItems/scopeItems";
 import { SubmitButton } from "../submitButton/submitButton";
@@ -19,11 +19,15 @@ import { useSubmitProposalStyles } from "./submitProposal.module";
 const initialState: ProposalFormState = { status: "idle" };
 const SubmitProposal =() => {
   const { styles } = useSubmitProposalStyles();
+  const [token, setToken] = useState("");
   const [state, formAction] = useActionState(submitProposalAction, initialState);
+
+  useEffect(() => { setToken(localStorage.getItem("auth_token") ?? ""); }, []);
 
   return (
     <div className={styles.page}>
       <form action={formAction} className={styles.form} encType="multipart/form-data">
+        <input type="hidden" name="_token" value={token} />
         <h1 className={styles.formTitle}>Proposal Request Form</h1>
 
         {/* ── Success banner ── */}

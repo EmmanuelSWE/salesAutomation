@@ -1,8 +1,7 @@
 'use client'
 
 import { Input } from "antd";
-import { useActionState } from "react";
-import { useEffect } from "react";
+import { useActionState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useLoginStyles } from "../../components/login/login.module";
 import { loginAction } from "../../lib/actions";

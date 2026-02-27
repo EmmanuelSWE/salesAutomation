@@ -12,9 +12,9 @@ import { useUserState } from "../../../lib/providers/provider";
 
 const NAV_ITEMS = [
   { icon: <HomeOutlined />, label: "Overview",     href: "/admin/dashboard" },
-  { icon: <ShoppingCartOutlined />, label: "Clients",     href: "/clients" },
-  { icon: <TeamOutlined />,     label: "Staff",       href: "/staff" },
-  { icon: <UserOutlined />,    label: "Account Info", href: "#" },
+  { icon: <ShoppingCartOutlined />, label: "Clients",      href: "/clients" },
+  { icon: <TeamOutlined />,        label: "Staff",        href: "/staff" },
+  { icon: <UserOutlined />,        label: "Account Info", href: "/account" },
 ] as const;
 
 export default function Sidebar() {

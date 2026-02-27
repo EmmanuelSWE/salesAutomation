@@ -10,6 +10,16 @@ const BASE = (process.env.NEXT_PUBLIC_API_URL ?? process.env.API_BASE_URL ?? "")
    Token comes from a hidden _token form field on every
    form — client reads it from localStorage and injects it
 ══════════════════════════════════════════════════════ */
+class ApiError extends Error {
+  status: number;
+  data: unknown;
+  constructor(status: number, data: unknown) {
+    super(`API error ${status}`);
+    this.status = status;
+    this.data   = data;
+  }
+}
+
 async function apiPost(path: string, body: object, token?: string) {
   const res = await fetch(`${BASE}${path}`, {
     method: "POST",
@@ -20,7 +30,7 @@ async function apiPost(path: string, body: object, token?: string) {
     body: JSON.stringify(body),
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw { status: res.status, data };
+  if (!res.ok) throw new ApiError(res.status, data);
   return data;
 }
 
@@ -99,22 +109,8 @@ export async function loginAction(
   }
 }
 
-export async function registerAction(
-  _prev: RegisterFormState,
-  formData: FormData
-): Promise<RegisterFormState> {
-  console.log("[registerAction] Starting registration process...");
-  const firstName       = formData.get("firstName")       as string;
-  const lastName        = formData.get("lastName")        as string;
-  const email           = formData.get("email")           as string;
-  const password        = formData.get("password")        as string;
-  const confirmPassword = formData.get("confirmPassword") as string;
-  const tenantName      = (formData.get("tenantName")     as string) || "";
-  const tenantId        = (formData.get("tenantId")       as string) || "";
-  const role            = (formData.get("role")           as string) || "";
-
-  console.log("[registerAction] Input:", { firstName, lastName, email, tenantName, tenantId, role });
-
+function validateRegister(fields: Record<string, string>) {
+  const { firstName, lastName, email, password, confirmPassword, tenantName, tenantId, role } = fields;
   const errors: Partial<Record<string, string>> = {};
   if (!firstName?.trim())  errors.firstName = "First name is required.";
   if (!lastName?.trim())   errors.lastName  = "Last name is required.";
@@ -124,15 +120,12 @@ export async function registerAction(
   if (password && password.length < 8) errors.password = "Password must be at least 8 characters.";
   if (password !== confirmPassword)    errors.confirmPassword = "Passwords do not match.";
   if (tenantName?.trim() && tenantId?.trim()) errors.tenantName = "Cannot specify both Tenant Name and Tenant ID.";
-  if (tenantId?.trim() && !role?.trim())      errors.role       = "Role is required when joining an organisation.";
-  if (Object.keys(errors).length) {
-    console.log("[registerAction] Validation errors:", errors);
-    return { status: "error", errors };
-  }
+  if (tenantId?.trim() && !role?.trim())      errors.role = "Role is required when joining an organisation.";
+  return errors;
+}
 
-  // Scenario A — new org
-  // Scenario B — join existing org (tenantId + role)
-  // Scenario C — default tenant (role optional)
+function buildRegisterPayload(fields: Record<string, string>): Record<string, unknown> {
+  const { firstName, lastName, email, password, tenantName, tenantId, role } = fields;
   const payload: Record<string, unknown> = {
     firstName: firstName.trim(), lastName: lastName.trim(),
     email: email.trim(), password,
@@ -140,29 +133,41 @@ export async function registerAction(
   if (tenantName?.trim())  payload.tenantName = tenantName.trim();
   if (tenantId?.trim())  { payload.tenantId = tenantId.trim(); payload.role = role.trim(); }
   else if (role?.trim())   payload.role = role.trim();
+  return payload;
+}
 
-  console.log("[registerAction] Payload:", payload);
+export async function registerAction(
+  _prev: RegisterFormState,
+  formData: FormData
+): Promise<RegisterFormState> {
+  const fields = {
+    firstName:       (formData.get("firstName")       as string) || "",
+    lastName:        (formData.get("lastName")        as string) || "",
+    email:           (formData.get("email")           as string) || "",
+    password:        (formData.get("password")        as string) || "",
+    confirmPassword: (formData.get("confirmPassword") as string) || "",
+    tenantName:      (formData.get("tenantName")      as string) || "",
+    tenantId:        (formData.get("tenantId")        as string) || "",
+    role:            (formData.get("role")            as string) || "",
+  };
+
+  const errors = validateRegister(fields);
+  if (Object.keys(errors).length) return { status: "error", errors };
 
   try {
-    console.log("[registerAction] Calling API:", `${BASE}/auth/register`);
     const res = await fetch(`${BASE}/auth/register`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(buildRegisterPayload(fields)),
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) {
-      console.log("[registerAction] API error:", data?.message, data?.errors);
       const apiErrors: Partial<Record<string, string>> = {};
       if (data?.errors && typeof data.errors === "object") Object.assign(apiErrors, data.errors);
       return { status: "error", message: data?.message ?? "Registration failed.", errors: apiErrors };
     }
-
-    console.log("[registerAction] Registration successful, token received");
-    // Return token to client — client stores it in localStorage
     return { status: "success", token: data.token };
-  } catch (err) {
-    console.error("[registerAction] Exception:", err);
+  } catch {
     return { status: "error", message: "Registration failed. Please try again." };
   }
 }

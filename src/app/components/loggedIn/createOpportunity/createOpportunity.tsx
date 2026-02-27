@@ -1,5 +1,5 @@
 "use client";
-import { useActionState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { createOpportunityAction, type FormState } from "../../../lib/actions";
 import { SubmitButton } from "../form/submitButton";
 import { useFormStyles } from "../form/form.module";
@@ -11,10 +11,15 @@ const CURRENCIES = ["ZAR","USD","EUR","GBP"];
 
 export default function CreateOpportunity() {
   const { styles } = useFormStyles();
+  const [token, setToken] = useState("");
   const [state, formAction] = useActionState(createOpportunityAction, initial);
+
+  useEffect(() => { setToken(localStorage.getItem("auth_token") ?? ""); }, []);
+
   return (
     <div className={styles.page}>
       <form action={formAction} className={styles.form}>
+        <input type="hidden" name="_token" value={token} />
         <h1 className={styles.formTitle}>Create Opportunity</h1>
         {state.status === "success" && <div className={styles.successBanner}>{state.message}</div>}
 

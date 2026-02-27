@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { createClientAction, type FormState } from "../../../lib/actions";
 import { CreateClientSubmitButton } from "./submitButton/submitButton";
 import { useCreateClientStyles } from "./createClient.module";
@@ -29,11 +29,17 @@ const INDUSTRIES = [
 
 const CreateClient =()=> {
   const { styles } = useCreateClientStyles();
+  const [token, setToken] = useState("");
   const [state, formAction] = useActionState(createClientAction, initialState);
+
+  useEffect(() => {
+    setToken(localStorage.getItem("auth_token") ?? "");
+  }, []);
 
   return (
     <div className={styles.page}>
       <form action={formAction} className={styles.form}>
+        <input type="hidden" name="_token" value={token} />
         <h1 className={styles.formTitle}>Create New Client</h1>
 
         {/* ── Success banner ── */}

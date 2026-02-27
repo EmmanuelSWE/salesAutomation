@@ -14,9 +14,10 @@ interface KpiCardsProps {
 }
 
 function fmt(n: number) {
-  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000)     return `$${(n / 1_000).toFixed(0)}K`;
-  return `${n}`;
+  const v = n ?? 0;
+  if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`;
+  if (v >= 1_000)     return `$${(v / 1_000).toFixed(0)}K`;
+  return `$${v}`;
 }
 
 export default function KpiCards({ data }: KpiCardsProps) {
@@ -33,7 +34,7 @@ export default function KpiCards({ data }: KpiCardsProps) {
     },
     {
       label:   "Win Rate",
-      value:   `${data.winRate.toFixed(1)}%`,
+      value:   `${(data.winRate ?? 0).toFixed(1)}%`,
       sub:     "of all opportunities",
       icon:    <TrophyOutlined />,
       gold:    true,

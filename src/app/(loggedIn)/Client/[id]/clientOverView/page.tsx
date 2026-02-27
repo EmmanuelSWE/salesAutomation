@@ -137,7 +137,7 @@ export default function ClientOverview() {
       {/* 2. Contact details - Now using real data from API */}
       <ClientContactDetails
         contacts={contacts.length > 0 ? contacts : []}
-        onAddContact={() => console.log("add contact")}
+        addContactHref={`/Client/${clientId}/createContact`}
       />
 
       {/* 3. Document History — invoices (placeholder until invoice API is ready) */}

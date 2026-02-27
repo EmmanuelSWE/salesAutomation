@@ -38,7 +38,7 @@ export default function DashboardPage() {
     return (
       <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16 }}>
-          {[100, 100, 100, 100].map((h, i) => <CardSkeleton key={`kpi-${i}`} height={h} />)}
+          {["kpi-a","kpi-b","kpi-c","kpi-d"].map((k) => <CardSkeleton key={k} height={100} />)}
         </div>
         <CardSkeleton height={300} />
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
