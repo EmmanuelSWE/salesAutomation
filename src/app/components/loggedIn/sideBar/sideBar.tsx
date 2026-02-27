@@ -6,12 +6,14 @@ import {
   CalendarOutlined,
   FileTextOutlined,
   UserOutlined,
+  FundOutlined,
+  UsergroupAddOutlined,
 } from "@ant-design/icons";
 import { useSidebarStyles } from "./sideBar.module";
 import Link from "next/link";
 import { useUserState } from "../../../lib/providers/provider";
 
-const NAV_ITEMS = [
+const BASE_NAV = [
   { icon: <HomeOutlined />,     label: "Overview",         href: "/admin/dashboard" },
   { icon: <TeamOutlined />,     label: "Clients",          href: "/clients" },
   { icon: <CalendarOutlined />, label: "Activities",       href: "/activities" },
@@ -19,10 +21,13 @@ const NAV_ITEMS = [
   { icon: <UserOutlined />,     label: "Account",          href: "/account" },
 ] as const;
 
+const OPPORTUNITY_NAV = { icon: <FundOutlined />,         label: "Opportunities", href: "/opportunities" };
+const USERS_NAV       = { icon: <UsergroupAddOutlined />, label: "Users",         href: "/staff" };
+
 const ROLE_LABELS: Record<string, string> = {
-  salesrep:                    "SalesRep",
-  businessdevelopmentmanager:  "BusinessDevelopmentManager",
-  salesmanager:                "SalesManager",
+  salesrep:                    "Sales Rep",
+  businessdevelopmentmanager:  "BDM",
+  salesmanager:                "Sales Manager",
   admin:                       "Admin",
 };
 
@@ -31,9 +36,14 @@ export default function Sidebar() {
   const userState = useUserState();
 
   const firstName = userState?.user?.firstName || "User";
-  const roleLabel = userState?.user?.role
-    ? (ROLE_LABELS[userState.user.role.toLowerCase()] ?? userState.user.role)
-    : "";
+  const role = userState?.user?.role?.toLowerCase() ?? "";
+  const roleLabel = ROLE_LABELS[role] ?? userState?.user?.role ?? "";
+
+  const navItems = [
+    ...BASE_NAV,
+    ...(["businessdevelopmentmanager", "salesmanager", "admin"].includes(role) ? [OPPORTUNITY_NAV] : []),
+    ...(role === "admin" ? [USERS_NAV] : []),
+  ];
 
   return (
     <aside className={styles.sidebar}>
@@ -44,7 +54,7 @@ export default function Sidebar() {
           <span> TransformSales</span>
         </Link>
 
-        {NAV_ITEMS.map(({ icon, label, href }) => (
+        {navItems.map(({ icon, label, href }) => (
           <Link
             key={label}
             href={href}

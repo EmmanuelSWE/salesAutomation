@@ -19,10 +19,10 @@ export default function DashboardLayout({
 }) {
   const { styles } = useDashboardStyles();
   const router = useRouter();
-  const { isPending, isInitialized, token, user } = useUserState();
+  const { isInitialized, token, user } = useUserState();
 
   useEffect(() => {
-    if (!isInitialized || isPending) return; // wait for provider to finish its check
+    if (!isInitialized) return; // wait for provider to finish its one-time localStorage check
     if (!token) {
       router.replace("/login");
       return;
@@ -30,10 +30,10 @@ export default function DashboardLayout({
     if (user?.role && !VALID_ROLES.includes(user.role.toLowerCase())) {
       router.replace("/login");
     }
-  }, [isInitialized, isPending, token, user?.role, router]);
+  }, [isInitialized, token, user?.role, router]);
 
-  // Don't render protected content until auth is confirmed
-  if (!isInitialized || isPending) return null;
+  // Only block render during the initial auth check — not during subsequent data fetches
+  if (!isInitialized) return null;
 
   return (
     <div className={styles.page}>
