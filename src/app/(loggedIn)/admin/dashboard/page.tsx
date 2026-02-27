@@ -53,7 +53,7 @@ export default function DashboardPage() {
   return (
     <>
       <KpiSection data={data.kpis} />
-      <PipelineSection data={data.pipeline} />
+      <PipelineSection data={data.funnel} />
       <SalesActivitiesSection sales={data.salesPerformance} activities={data.activities} />
       <RevenueTrendSection data={data.revenue} />
     </>

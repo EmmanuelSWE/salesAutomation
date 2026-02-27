@@ -49,6 +49,17 @@ export interface DashboardActivities {
   centerLabel: string;
 }
 
+/* GET /api/dashboard/role-funnel */
+export interface FunnelRole {
+  role:    string;
+  revenue: number;
+  deals:   number;
+}
+
+export interface DashboardFunnel {
+  roles: FunnelRole[];
+}
+
 /* GET /api/dashboard/overview → revenue */
 export interface DashboardRevenue {
   labels:        string[];
@@ -63,6 +74,7 @@ export interface DashboardRevenue {
 export interface DashboardData {
   kpis:             DashboardKpis;
   pipeline:         DashboardPipeline;
+  funnel:           DashboardFunnel;
   salesPerformance: DashboardSalesPerformance;
   activities:       DashboardActivities;
   revenue:          DashboardRevenue;
@@ -92,6 +104,13 @@ export async function getDashboardData(): Promise<DashboardData> {
         { label: "Proposal",     count:  7, value: 310_000, weightedValue: 155_000 },
         { label: "Negotiation",  count:  5, value: 195_000, weightedValue: 136_500 },
         { label: "Closed Won",   count:  8, value: 480_000, weightedValue: 480_000 },
+      ],
+    },
+    funnel: {
+      roles: [
+        { role: "Sales Reps",                    revenue: 505_000, deals: 38 },
+        { role: "Business Development Managers", revenue: 312_000, deals: 24 },
+        { role: "Sales Managers",                revenue: 178_000, deals: 14 },
       ],
     },
     salesPerformance: {
@@ -136,6 +155,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     return {
       kpis:             { ...fallback.kpis,             ...kpisRes.data        },
       pipeline:         { ...fallback.pipeline,         ...pipelineRes.data    },
+      funnel:           fallback.funnel,
       salesPerformance: { ...fallback.salesPerformance, ...salesRes.data       },
       activities:       { ...fallback.activities,       ...activitiesRes.data  },
       revenue:          { ...fallback.revenue,          ...revenueRes.data     },

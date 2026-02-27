@@ -6,7 +6,7 @@ export const useSalesActivitiesStyles = createStyles(({ css }) => ({
   grid: css`
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 20px;
+    gap: 28px;
   `,
 
   card: css`
@@ -14,23 +14,23 @@ export const useSalesActivitiesStyles = createStyles(({ css }) => ({
     border: 1px solid #383838;
     border-radius: 16px;
     box-shadow: 0 6px 24px rgba(243, 156, 18, 0.12), 0 2px 8px rgba(255, 200, 100, 0.07);
-    padding: 18px 22px;
+    padding: 24px 28px;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 20px;
     min-width: 0;
   `,
 
   titleOrange: css`
     font-size: 13px;
     font-weight: 600;
-    color: #f5a623;
+    color: #c8922a;
   `,
 
   titleBlue: css`
     font-size: 13px;
     font-weight: 600;
-    color: #4d9fff;
+    color: #c8922a;
   `,
 
   /* Sales — doughnut + legend */

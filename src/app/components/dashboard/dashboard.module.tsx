@@ -76,10 +76,10 @@ export const useDashboardStyles = createStyles(({ css }) => ({
   /* Scrollable right-hand content column */
   content: css`
     flex: 1;
-    padding: 24px 28px;
+    padding: 32px 36px;
     display: flex;
     flex-direction: column;
-    gap: 28px;
+    gap: 36px;
     overflow-y: auto;
     min-width: 0;
   `,
