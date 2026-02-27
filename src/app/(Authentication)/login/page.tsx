@@ -6,7 +6,6 @@ import { useRouter } from "next/navigation";
 import { useLoginStyles } from "../../components/login/login.module";
 import { loginAction } from "../../lib/actions";
 import { setToken } from "../../lib/utils/axiosInstance";
-import { SubmitButton } from "../../components/loggedIn/form/submitButton";
 
 const Login = () => {
   const { styles } = useLoginStyles();
@@ -23,45 +22,49 @@ const Login = () => {
   return (
     <div className={styles.container}>
       <div className={styles.card}>
-        <h1 className={styles.title}>Login</h1>
+        <div className={styles.logo}>⚡</div>
+        <h1 className={styles.title}>Welcome back</h1>
+        <p className={styles.subtitle}>Sign in to your account</p>
 
         {state.status === "error" && (
-          <p style={{ color: "red", marginBottom: 12 }}>
+          <p style={{ color: "#ff6b6b", marginBottom: 16, fontSize: 13, background: "rgba(255,107,107,0.08)", borderRadius: 8, padding: "10px 14px" }}>
             {state.message ?? "Invalid credentials."}
           </p>
         )}
 
         <form action={formAction}>
-          <div style={{ marginBottom: 16 }}>
+          <div style={{ marginBottom: 18, textAlign: "left" }}>
+            <label className={styles.label}>Email</label>
             <Input
               name="email"
-              placeholder="Email"
+              placeholder="you@company.com"
               className={styles.input}
               autoComplete="email"
             />
             {state.errors?.email && (
-              <p style={{ color: "red", fontSize: 12 }}>{state.errors.email}</p>
+              <p style={{ color: "#ff6b6b", fontSize: 12, marginTop: 4 }}>{state.errors.email}</p>
             )}
           </div>
 
-          <div style={{ marginBottom: 16 }}>
+          <div style={{ marginBottom: 24, textAlign: "left" }}>
+            <label className={styles.label}>Password</label>
             <Input.Password
               name="password"
-              placeholder="Password"
+              placeholder="••••••••"
               className={styles.input}
               autoComplete="current-password"
             />
             {state.errors?.password && (
-              <p style={{ color: "red", fontSize: 12 }}>{state.errors.password}</p>
+              <p style={{ color: "#ff6b6b", fontSize: 12, marginTop: 4 }}>{state.errors.password}</p>
             )}
           </div>
 
-          <SubmitButton label="Login" pendingLabel="Logging in…" />
+          <button type="submit" className={styles.button}>Login</button>
         </form>
 
-        <p style={{ textAlign: "center", marginTop: 16 }}>
+        <p className={styles.footer}>
           Don&apos;t have an account?{" "}
-          <a href="/signup" style={{ color: "#f97316" }}>Sign up</a>
+          <a href="/signup">Sign up</a>
         </p>
       </div>
     </div>

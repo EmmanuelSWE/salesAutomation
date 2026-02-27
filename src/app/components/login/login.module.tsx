@@ -7,47 +7,127 @@ export const useLoginStyles = createStyles(({ css }) => ({
     display: flex;
     justify-content: center;
     align-items: center;
-    background: #000000; /* PURE BLACK BACKGROUND */
+    background: radial-gradient(ellipse at 60% 40%, #1a0e00 0%, #0d0d0d 60%, #000 100%);
   `,
 
   card: css`
-    width: 380px;
-    padding: 40px 30px;
-    background: #1b1b1b; /* dark card */
-    border-radius: 16px;
-    box-shadow: 0 0 30px rgba(0,0,0,0.4);
+    width: 400px;
+    padding: 48px 40px;
+    background: #161616;
+    border: 1px solid #2e2e2e;
+    border-radius: 20px;
+    box-shadow: 0 0 60px rgba(243, 156, 18, 0.08), 0 24px 64px rgba(0,0,0,0.6);
     text-align: center;
   `,
 
+  logo: css`
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    margin: 0 auto 24px;
+    box-shadow: 0 4px 20px rgba(243, 156, 18, 0.4);
+  `,
+
   title: css`
-    font-size: 32px;
-    margin-bottom: 30px;
-    font-weight: 700;
-    color: white;
+    font-size: 28px;
+    margin: 0 0 6px;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: -0.5px;
+  `,
+
+  subtitle: css`
+    font-size: 14px;
+    color: #666;
+    margin: 0 0 32px;
+  `,
+
+  label: css`
+    display: block;
+    text-align: left;
+    font-size: 12px;
+    font-weight: 600;
+    color: #999;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
   `,
 
   input: css`
-    border-radius: 50px !important;
-    border: 2px solid #f39c12 !important; /* orange outline */
-    padding: 10px 18px !important;
-    background: white !important; /* white background */
-    color: black !important; /* black text */
+    border-radius: 10px !important;
+    border: 1.5px solid #2e2e2e !important;
+    padding: 11px 16px !important;
+    background: #1f1f1f !important;
+    color: #fff !important;
+    font-size: 14px !important;
+    transition: border-color 0.2s, box-shadow 0.2s !important;
 
     &::placeholder {
-      color: #888888; /* darker placeholder for better contrast */
+      color: #555 !important;
     }
 
-    &:focus {
-      outline: none !important;
+    &:hover {
+      border-color: #444 !important;
+    }
+
+    &:focus, &:focus-within {
       border-color: #f39c12 !important;
-      box-shadow: 0 0 0 3px rgba(243, 156, 18, 0.3) !important; /* orange glow outline */
+      box-shadow: 0 0 0 3px rgba(243, 156, 18, 0.18) !important;
+      background: #222 !important;
+    }
+
+    /* antd password icon color */
+    .ant-input-password-icon {
+      color: #666 !important;
+      &:hover { color: #f39c12 !important; }
     }
   `,
 
   button: css`
-    margin-top: 25px;
+    margin-top: 8px;
     width: 100%;
-    border-radius: 50px !important;
-    padding: 10px 0 !important;
+    height: 46px !important;
+    border-radius: 10px !important;
+    background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%) !important;
+    border: none !important;
+    color: #000 !important;
+    font-weight: 700 !important;
+    font-size: 15px !important;
+    letter-spacing: 0.02em !important;
+    box-shadow: 0 4px 20px rgba(243, 156, 18, 0.35) !important;
+    transition: opacity 0.2s, transform 0.1s, box-shadow 0.2s !important;
+    cursor: pointer;
+
+    &:hover {
+      opacity: 0.9 !important;
+      box-shadow: 0 6px 28px rgba(243, 156, 18, 0.5) !important;
+    }
+
+    &:active { transform: scale(0.98) !important; }
+    &:disabled { opacity: 0.5 !important; cursor: not-allowed !important; }
+  `,
+
+  divider: css`
+    border: none;
+    border-top: 1px solid #2a2a2a;
+    margin: 28px 0;
+  `,
+
+  footer: css`
+    font-size: 13px;
+    color: #555;
+    margin-top: 24px;
+
+    a {
+      color: #f39c12;
+      font-weight: 600;
+      text-decoration: none;
+      &:hover { color: #f7c948; }
+    }
   `,
 }));
