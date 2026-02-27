@@ -69,73 +69,139 @@ export interface DashboardData {
 }
 
 /* ═══════════════════════════════════════════════
-   DATA FETCHER
-   Replace each block with your real API call:
-     fetch("/api/dashboard/overview")
-     fetch("/api/dashboard/pipeline-metrics")
-     fetch("/api/dashboard/sales-performance")
-     fetch("/api/dashboard/activities-summary")
+   DATA FETCHER - Real API Calls
 ═══════════════════════════════════════════════ */
+
+// Get API URL from environment
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
+
+async function fetchWithAuth(endpoint: string) {
+  // Get token from localStorage (client-side) or cookies (server-side)
+  let token = '';
+  if (globalThis.window !== undefined) {
+    token = localStorage.getItem('authToken') || '';
+  }
+
+  const response = await fetch(`${API_URL}${endpoint}`, {
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token && { Authorization: `Bearer ${token}` }),
+    },
+    cache: 'no-store', // Ensure fresh data
+  });
+
+  if (!response.ok) {
+    console.error(`API Error (${endpoint}):`, response.statusText);
+    throw new Error(`Failed to fetch ${endpoint}`);
+  }
+
+  return response.json();
+}
+
 export async function getDashboardData(): Promise<DashboardData> {
-  // Simulated delay — remove in production
-  await new Promise((r) => setTimeout(r, 300));
+  try {
+    console.log('[getDashboardData] Fetching dashboard data from API...');
 
-  return {
-    /* ── GET /api/dashboard/overview ── */
-    kpis: {
-      totalOpportunities: 42,
-      wonCount:           8,
-      winRate:            19.05,
-      pipelineValue:      1250000,
-      activeContracts:    15,
-      expiringThisMonth:  2,
-    },
+    // Fetch all dashboard data in parallel
+    const [kpisData, pipelineData, salesData, activitiesData, revenueData] = await Promise.all([
+      fetchWithAuth('/api/dashboard/overview').catch(err => {
+        console.warn('KPIs fetch failed, using defaults:', err.message);
+        return {
+          totalOpportunities: 0,
+          wonCount: 0,
+          winRate: 0,
+          pipelineValue: 0,
+          activeContracts: 0,
+          expiringThisMonth: 0,
+        };
+      }),
+      fetchWithAuth('/api/dashboard/pipeline-metrics').catch(err => {
+        console.warn('Pipeline fetch failed, using defaults:', err.message);
+        return {
+          weightedTotal: 0,
+          stages: [],
+        };
+      }),
+      fetchWithAuth('/api/dashboard/sales-performance').catch(err => {
+        console.warn('Sales performance fetch failed, using defaults:', err.message);
+        return {
+          reps: [],
+          colors: ["#f5a623", "#03a9f4", "#4caf50", "#9e9e9e", "#e91e63"],
+        };
+      }),
+      fetchWithAuth('/api/dashboard/activities-summary').catch(err => {
+        console.warn('Activities fetch failed, using defaults:', err.message);
+        return {
+          upcoming: 0,
+          overdue: 0,
+          completedToday: 0,
+          labels: ["Upcoming", "Overdue", "Completed"],
+          data: [0, 0, 0],
+          colors: ["#2979ff", "#ef5350", "#4caf50"],
+          center: "0",
+          centerLabel: "Total",
+        };
+      }),
+      fetchWithAuth('/api/dashboard/revenue').catch(err => {
+        console.warn('Revenue fetch failed, using defaults:', err.message);
+        return {
+          thisMonth: 0,
+          thisQuarter: 0,
+          thisYear: 0,
+          labels: [],
+          thisMonthLine: [],
+          targetLine: [],
+        };
+      }),
+    ]);
 
-    /* ── GET /api/dashboard/pipeline-metrics ── */
-    pipeline: {
-      weightedTotal: 430000,
-      stages: [
-        { label: "Prospecting",   count: 12, value: 320000,  weightedValue: 48000  },
-        { label: "Qualification", count: 9,  value: 275000,  weightedValue: 82500  },
-        { label: "Proposal",      count: 7,  value: 410000,  weightedValue: 123000 },
-        { label: "Negotiation",   count: 5,  value: 290000,  weightedValue: 116000 },
-        { label: "Closed Won",    count: 8,  value: 380000,  weightedValue: 380000 },
-        { label: "Closed Lost",   count: 6,  value: 195000,  weightedValue: 0      },
-      ],
-    },
+    console.log('[getDashboardData] Successfully fetched all dashboard data');
 
-    /* ── GET /api/dashboard/sales-performance ── */
-    salesPerformance: {
-      colors: ["#f5a623", "#03a9f4", "#4caf50", "#9e9e9e", "#e91e63"],
-      reps: [
-        { name: "Alice M.",  dealsWon: 14, revenue: 420000 },
-        { name: "James T.",  dealsWon: 11, revenue: 310000 },
-        { name: "Sara K.",   dealsWon: 9,  revenue: 270000 },
-        { name: "David R.",  dealsWon: 7,  revenue: 185000 },
-        { name: "Nina P.",   dealsWon: 5,  revenue: 115000 },
-      ],
-    },
-
-    /* ── GET /api/dashboard/activities-summary ── */
-    activities: {
-      upcoming:       12,
-      overdue:        3,
-      completedToday: 5,
-      labels:  ["Upcoming", "Overdue", "Completed"],
-      data:    [12, 3, 5],
-      colors:  ["#2979ff", "#ef5350", "#4caf50"],
-      center:  "20",
-      centerLabel: "Total",
-    },
-
-    /* ── GET /api/dashboard/overview → revenue ── */
-    revenue: {
-      thisMonth:     180000,
-      thisQuarter:   520000,
-      thisYear:      1100000,
-      labels:        ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
-      thisMonthLine: [95000, 112000, 130000, 158000, 145000, 180000],
-      targetLine:    [100000, 110000, 120000, 140000, 155000, 170000],
-    },
-  };
+    return {
+      kpis: kpisData,
+      pipeline: pipelineData,
+      salesPerformance: salesData,
+      activities: activitiesData,
+      revenue: revenueData,
+    };
+  } catch (error) {
+    console.error('[getDashboardData] Critical error:', error);
+    // Return empty/default data structure if all API calls fail
+    return {
+      kpis: {
+        totalOpportunities: 0,
+        wonCount: 0,
+        winRate: 0,
+        pipelineValue: 0,
+        activeContracts: 0,
+        expiringThisMonth: 0,
+      },
+      pipeline: {
+        weightedTotal: 0,
+        stages: [],
+      },
+      salesPerformance: {
+        reps: [],
+        colors: ["#f5a623", "#03a9f4", "#4caf50", "#9e9e9e", "#e91e63"],
+      },
+      activities: {
+        upcoming: 0,
+        overdue: 0,
+        completedToday: 0,
+        labels: ["Upcoming", "Overdue", "Completed"],
+        data: [0, 0, 0],
+        colors: ["#2979ff", "#ef5350", "#4caf50"],
+        center: "0",
+        centerLabel: "Total",
+      },
+      revenue: {
+        thisMonth: 0,
+        thisQuarter: 0,
+        thisYear: 0,
+        labels: [],
+        thisMonthLine: [],
+        targetLine: [],
+      },
+    };
+  }
 }

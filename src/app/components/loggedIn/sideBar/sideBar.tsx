@@ -1,3 +1,5 @@
+'use client';
+
 import {
   HomeOutlined,
   ShoppingCartOutlined,
@@ -5,6 +7,8 @@ import {
   UserOutlined,
 } from "@ant-design/icons";
 import { useSidebarStyles } from "./sideBar.module";
+import Link from "next/link";
+import { useUserState } from "../../../lib/providers/index";
 
 const NAV_ITEMS = [
   { icon: <HomeOutlined />, label: "Overview",     href: "/admin/dashboard" },
@@ -14,33 +18,36 @@ const NAV_ITEMS = [
 ] as const;
 
 export default function Sidebar() {
-  const { styles, cx } = useSidebarStyles();
+  const { styles } = useSidebarStyles();
+  const userState = useUserState();
+  
+  const userName = userState?.user?.firstName || "User";
 
   return (
     <aside className={styles.sidebar}>
       {/* ── Top: logo + nav ── */}
       <div className={styles.sidebarTop}>
-        <a href="/" className={styles.logo}>
+        <Link href="/" className={styles.logo}>
           <span className={styles.logoIcon}>❄️</span>
           <span>snowui</span>
-        </a>
+        </Link>
 
         {NAV_ITEMS.map(({ icon, label, href }) => (
-          <a
+          <Link
             key={label}
             href={href}
             className={styles.navItem}
           >
             <span className={styles.navIcon}>{icon}</span>
             {label}
-          </a>
+          </Link>
         ))}
       </div>
 
       {/* ── Bottom: user ── */}
       <div className={styles.footer}>
         <div className={styles.avatar}>👤</div>
-        <span>ByeWind</span>
+        <span>{userName}</span>
       </div>
     </aside>
   );

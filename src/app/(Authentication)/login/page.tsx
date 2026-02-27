@@ -3,21 +3,23 @@
 import { Input } from "antd";
 import { useActionState } from "react";
 import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useLoginStyles } from "../../components/login/login.module";
-import { useUserAction } from "../../lib/providers/index";
 import { loginAction } from "../../lib/actions";
-import {SubmitButton} from "../../components/loggedIn/form/submitButton";
+import { setToken } from "../../lib/utils/axiosInstance";
+import { SubmitButton } from "../../components/loggedIn/form/submitButton";
 
 const Login = () => {
   const { styles } = useLoginStyles();
-  const { loginUser } = useUserAction();
+  const router = useRouter();
   const [state, formAction] = useActionState(loginAction, { status: "idle" });
 
   useEffect(() => {
-    if (state.status === "success" && state.email && state.password) {
-      loginUser(state.email, state.password);
+    if (state.status === "success" && state.token) {
+      setToken(state.token);
+      router.push("/admin/dashboard");
     }
-  }, [state.status]);
+  }, [state.status, state.token]);
 
   return (
     <div className={styles.container}>
@@ -57,6 +59,11 @@ const Login = () => {
 
           <SubmitButton label="Login" pendingLabel="Logging in…" />
         </form>
+
+        <p style={{ textAlign: "center", marginTop: 16 }}>
+          Don&apos;t have an account?{" "}
+          <a href="/signup" style={{ color: "#f97316" }}>Sign up</a>
+        </p>
       </div>
     </div>
   );

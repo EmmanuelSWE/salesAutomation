@@ -38,12 +38,9 @@ export interface IUserStateContext {
    ACTIONS INTERFACE
 ══════════════════════════════════════════════════════ */
 export interface IUserActionsContext {
-  registerUser:    (user: IUser)                          => void;
-  loginUser:       (email: string, password: string)      => void;
-  getUsers:        ()                                     => void;
-  getOneUser:      (id: string)                           => void;
-  updateUser:      (id: string, user: Partial<IUser>)     => void;
-  deleteUser:      (id: string)                           => void;
+  getUsers:        ()          => void;
+  getOneUser:      (id: string) => void;
+  logoutUser:      ()          => void;
 }
 
 /* ══════════════════════════════════════════════════════
@@ -90,11 +87,8 @@ export interface IClientStateContext {
 
 /* ── Actions ── */
 export interface IClientActionsContext {
-  getClients:    (params?: { searchTerm?: string; industry?: string; clientType?: ClientType; isActive?: boolean; pageNumber?: number; pageSize?: number }) => void;
-  getOneClient:  (id: string)                    => void;
-  createClient:  (client: IClient)               => void;
-  updateClient:  (id: string, client: Partial<IClient>) => void;
-  deleteClient:  (id: string)                    => void;
+  getClients:    (params?: object) => void;
+  getOneClient:  (id: string)      => void;
 }
 
 /* ── Initial state ── */
@@ -134,13 +128,9 @@ export interface IContactStateContext {
 
 /* ── Actions ── */
 export interface IContactActionsContext {
-  getContacts:          (params?: { clientId?: string; searchTerm?: string; pageNumber?: number; pageSize?: number }) => void;
-  getContactsByClient:  (clientId: string)                       => void;
-  getOneContact:        (id: string)                             => void;
-  createContact:        (contact: IContact)                      => void;
-  updateContact:        (id: string, contact: Partial<IContact>) => void;
-  setPrimaryContact:    (id: string)                             => void;
-  deleteContact:        (id: string)                             => void;
+  getContacts:          (params?: object) => void;
+  getContactsByClient:  (clientId: string) => void;
+  getOneContact:        (id: string)       => void;
 }
 
 /* ── Initial state ── */
@@ -195,16 +185,11 @@ export interface IOpportunityStateContext {
 
 /* ── Actions ── */
 export interface IOpportunityActionsContext {
-  getOpportunities:     (params?: { clientId?: string; stage?: OpportunityStage; ownerId?: string; searchTerm?: string; pageNumber?: number; pageSize?: number }) => void;
-  getMyOpportunities:   (params?: { stage?: OpportunityStage; pageNumber?: number; pageSize?: number }) => void;
-  getPipeline:          (ownerId?: string)                                   => void;
-  getOneOpportunity:    (id: string)                                         => void;
-  getStageHistory:      (id: string)                                         => void;
-  createOpportunity:    (opportunity: IOpportunity)                          => void;
-  updateOpportunity:    (id: string, opportunity: Partial<IOpportunity>)     => void;
-  updateStage:          (id: string, stage: OpportunityStage, reason?: string) => void;
-  assignOpportunity:    (id: string, userId: string)                         => void;
-  deleteOpportunity:    (id: string)                                         => void;
+  getOpportunities:     (params?: object)  => void;
+  getMyOpportunities:   (params?: object)  => void;
+  getPipeline:          (ownerId?: string) => void;
+  getOneOpportunity:    (id: string)       => void;
+  getStageHistory:      (id: string)       => void;
 }
 
 /* ── Initial state ── */
@@ -260,19 +245,8 @@ export interface IProposalStateContext {
 
 /* ── Actions ── */
 export interface IProposalActionsContext {
-  getProposals:     (params?: { clientId?: string; opportunityId?: string; status?: ProposalStatus; pageNumber?: number; pageSize?: number }) => void;
-  getOneProposal:   (id: string)                                                         => void;
-  createProposal:   (proposal: IProposal)                                                => void;
-  updateProposal:   (id: string, proposal: Partial<IProposal>)                           => void;
-  // Line item actions — only on Draft proposals
-  addLineItem:      (proposalId: string, item: IProposalLineItem)                        => void;
-  updateLineItem:   (proposalId: string, lineItemId: string, item: Partial<IProposalLineItem>) => void;
-  removeLineItem:   (proposalId: string, lineItemId: string)                             => void;
-  // Status transitions
-  submitProposal:   (id: string)                                                         => void;
-  approveProposal:  (id: string)                                                         => void;
-  rejectProposal:   (id: string, reason: string)                                         => void;
-  deleteProposal:   (id: string)                                                         => void;
+  getProposals:     (params?: object) => void;
+  getOneProposal:   (id: string)      => void;
 }
 
 /* ── Initial state ── */
@@ -315,14 +289,10 @@ export interface IPricingRequestStateContext {
 
 /* ── Actions ── */
 export interface IPricingRequestActionsContext {
-  getPricingRequests:      (params?: { status?: PricingRequestStatus; priority?: Priority; assignedToId?: string; pageNumber?: number; pageSize?: number }) => void;
-  getPendingRequests:      ()                                                              => void;
-  getMyRequests:           ()                                                              => void;
-  getOnePricingRequest:    (id: string)                                                   => void;
-  createPricingRequest:    (request: IPricingRequest)                                     => void;
-  updatePricingRequest:    (id: string, request: Partial<IPricingRequest>)                => void;
-  assignPricingRequest:    (id: string, userId: string)                                   => void;
-  completePricingRequest:  (id: string)                                                   => void;
+  getPricingRequests:      (params?: object) => void;
+  getPendingRequests:      ()               => void;
+  getMyRequests:           ()               => void;
+  getOnePricingRequest:    (id: string)     => void;
 }
 
 /* ── Initial state ── */
@@ -384,18 +354,10 @@ export interface IContractStateContext {
 
 /* ── Actions ── */
 export interface IContractActionsContext {
-  getContracts:       (params?: { clientId?: string; status?: ContractStatus; pageNumber?: number; pageSize?: number }) => void;
-  getOneContract:     (id: string)                                                   => void;
-  getExpiringContracts: (daysUntilExpiry?: number)                                   => void;
-  getContractsByClient: (clientId: string)                                            => void;
-  createContract:     (contract: IContract)                                          => void;
-  updateContract:     (id: string, contract: Partial<IContract>)                     => void;
-  activateContract:   (id: string)                                                   => void;
-  cancelContract:     (id: string)                                                   => void;
-  deleteContract:     (id: string)                                                   => void;
-  // Renewals
-  createRenewal:      (contractId: string, renewal: IContractRenewal)                => void;
-  completeRenewal:    (renewalId: string)                                             => void;
+  getContracts:         (params?: object)        => void;
+  getOneContract:       (id: string)             => void;
+  getExpiringContracts: (daysUntilExpiry?: number) => void;
+  getContractsByClient: (clientId: string)       => void;
 }
 
 /* ── Initial state ── */
@@ -440,16 +402,11 @@ export interface IActivityStateContext {
 
 /* ── Actions ── */
 export interface IActivityActionsContext {
-  getActivities:      (params?: { assignedToId?: string; type?: ActivityType; status?: ActivityStatus; relatedToType?: RelatedToType; relatedToId?: string; pageNumber?: number; pageSize?: number }) => void;
-  getMyActivities:    (params?: { status?: ActivityStatus; pageNumber?: number; pageSize?: number }) => void;
-  getUpcoming:        (daysAhead?: number)                                          => void;
-  getOverdue:         ()                                                            => void;
-  getOneActivity:     (id: string)                                                 => void;
-  createActivity:     (activity: IActivity)                                        => void;
-  updateActivity:     (id: string, activity: Partial<IActivity>)                   => void;
-  completeActivity:   (id: string, outcome: string)                                => void;
-  cancelActivity:     (id: string)                                                 => void;
-  deleteActivity:     (id: string)                                                 => void;
+  getActivities:      (params?: object)    => void;
+  getMyActivities:    (params?: object)    => void;
+  getUpcoming:        (daysAhead?: number) => void;
+  getOverdue:         ()                   => void;
+  getOneActivity:     (id: string)         => void;
 }
 
 /* ── Initial state ── */
@@ -540,11 +497,8 @@ export interface INoteStateContext {
 
 /* ── Actions ── */
 export interface INoteActionsContext {
-  getNotes:    (params?: { relatedToType?: RelatedToType; relatedToId?: string; pageNumber?: number; pageSize?: number }) => void;
-  getOneNote:  (id: string)                           => void;
-  createNote:  (note: INote)                          => void;
-  updateNote:  (id: string, note: Partial<INote>)     => void;
-  deleteNote:  (id: string)                           => void;
+  getNotes:    (params?: object) => void;
+  getOneNote:  (id: string)      => void;
 }
 
 /* ── Initial state ── */

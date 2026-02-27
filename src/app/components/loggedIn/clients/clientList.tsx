@@ -100,29 +100,43 @@ export default function ClientList() {
           <tbody className={styles.tbody}>
             {rows.map((client) => (
               <tr key={client.id}>
-                <td className={styles.idCell}>{client.clientId}</td>
+                <td className={styles.idCell}>
+                  <Link href={`/Client/${client.id}/clientOverView`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                    {client.clientId}
+                  </Link>
+                </td>
                 <td>
-                  <div className={styles.clientCell}>
-                    <div
-                      className={styles.avatar}
-                      style={{ background: client.avatarColor }}
-                    >
-                      {client.avatarInitials}
+                  <Link href={`/Client/${client.id}/clientOverView`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                    <div className={styles.clientCell}>
+                      <div
+                        className={styles.avatar}
+                        style={{ background: client.avatarColor }}
+                      >
+                        {client.avatarInitials}
+                      </div>
+                      <span className={styles.clientName}>{client.name}</span>
                     </div>
-                    <span className={styles.clientName}>{client.name}</span>
-                  </div>
-                </td>
-                <td>{client.industry}</td>
-                <td>
-                  <div className={styles.dateCell}>
-                    <CalendarOutlined />
-                    {client.joinedDate}
-                  </div>
+                  </Link>
                 </td>
                 <td>
-                  <span className={cx(styles.badge, styles[STATUS_BADGE[client.status] as keyof typeof styles])}>
-                    {client.status}
-                  </span>
+                  <Link href={`/Client/${client.id}/clientOverView`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                    {client.industry}
+                  </Link>
+                </td>
+                <td>
+                  <Link href={`/Client/${client.id}/clientOverView`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                    <div className={styles.dateCell}>
+                      <CalendarOutlined />
+                      {client.joinedDate}
+                    </div>
+                  </Link>
+                </td>
+                <td>
+                  <Link href={`/Client/${client.id}/clientOverView`} style={{ textDecoration: 'none', color: 'inherit' }}>
+                    <span className={cx(styles.badge, styles[STATUS_BADGE[client.status] as keyof typeof styles])}>
+                      {client.status}
+                    </span>
+                  </Link>
                 </td>
               </tr>
             ))}
