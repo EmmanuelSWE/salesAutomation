@@ -36,8 +36,16 @@ export const useSidebarStyles = createStyles(({ css }) => ({
   `,
 
   logoIcon: css`
-    font-size: 22px;
-    line-height: 1;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+    flex-shrink: 0;
+    box-shadow: 0 3px 12px rgba(243, 156, 18, 0.45);
   `,
 
   navItem: css`

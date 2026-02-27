@@ -28,7 +28,7 @@ export default function Sidebar() {
       {/* ── Top: logo + nav ── */}
       <div className={styles.sidebarTop}>
         <Link href="/" className={styles.logo}>
-          <span className={styles.logoIcon}>❄️</span>
+          <div className={styles.logoIcon}>⚡</div>
           <span> TransformSales</span>
         </Link>
 
