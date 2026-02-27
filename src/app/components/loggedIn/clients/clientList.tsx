@@ -95,6 +95,7 @@ export default function ClientList() {
       <h1 className={styles.title}>Client List</h1>
 
       {/* ── Toolbar ── */}
+      <div className={styles.listContainer}>
       <div className={styles.toolbar}>
         <div className={styles.searchWrap}>
           <SearchOutlined className={styles.searchIcon} />
@@ -169,9 +170,8 @@ export default function ClientList() {
             ))}
           </tbody>
         </table>
-      </div>
-
-      {/* ── Pagination ── */}
+      </div>{/* end pagination */}
+      </div>{/* end listContainer */}
       <div className={styles.pagination}>
         <button
           className={styles.pageBtn}

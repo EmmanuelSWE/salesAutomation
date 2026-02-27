@@ -32,6 +32,12 @@ export const useClientsStyles = createStyles(({ css }) => ({
     border-bottom: 1px solid #333;
   `,
 
+  listContainer: css`
+    border-radius: 10px;
+    box-shadow: 0 6px 24px rgba(243, 156, 18, 0.12), 0 2px 8px rgba(255, 200, 100, 0.07);
+    overflow: hidden;
+  `,
+
   searchWrap: css`
     flex: 1;
     display: flex;

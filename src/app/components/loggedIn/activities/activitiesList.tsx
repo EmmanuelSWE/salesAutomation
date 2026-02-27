@@ -201,6 +201,7 @@ export default function ActivitiesList() {
       <h1 className={styles.title}>Activities</h1>
 
       {/* ── Toolbar ── */}
+      <div className={styles.listContainer}>
       <div className={styles.toolbar}>
         <div className={styles.searchWrap}>
           <SearchOutlined className={styles.searchIcon} />
@@ -277,8 +278,9 @@ export default function ActivitiesList() {
           <RightOutlined />
         </button>
       </div>
+      </div>{/* end listContainer */}
 
-      {/* ── Edit drawer ── */}
+      {/* ── Edit drawer ── */}}
       {editing && (
         <EditDrawer
           activity={editing}

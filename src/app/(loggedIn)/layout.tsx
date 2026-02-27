@@ -36,7 +36,6 @@ export default function DashboardLayout({
           </Content>
 
           <Footer className={styles.footer}>
-            <div className={styles.footerAvatar} />
             <span className={styles.footerLink}>About</span>
             <span className={styles.footerLink}>Support</span>
             <span className={styles.footerLink}>Contact Us</span>

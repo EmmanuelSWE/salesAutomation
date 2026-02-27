@@ -224,6 +224,7 @@ export default function StaffList() {
       <h1 className={styles.title}>Staff</h1>
 
       {/* ── Toolbar ── */}
+      <div className={styles.listContainer}>
       <div className={styles.toolbar}>
         <div className={styles.searchWrap}>
           <SearchOutlined className={styles.searchIcon} />
@@ -317,6 +318,7 @@ export default function StaffList() {
           <RightOutlined />
         </button>
       </div>
+      </div>{/* end listContainer */}
     </div>
   );
 }

@@ -5,7 +5,9 @@ import { createStyles } from "antd-style";
 export const useRevenueTrendStyles = createStyles(({ css }) => ({
   card: css`
     background: #2e2e2e;
-    border-radius: 14px;
+    border: 1px solid #383838;
+    border-radius: 16px;
+    box-shadow: 0 6px 24px rgba(243, 156, 18, 0.12), 0 2px 8px rgba(255, 200, 100, 0.07);
     padding: 18px 22px;
     display: flex;
     flex-direction: column;

@@ -11,7 +11,11 @@ export const useDashboardStyles = createStyles(({ css }) => ({
   page: css`
     width: 100%;
     min-height: 100vh;
-    background: #1a1a1a;
+    background:
+      radial-gradient(ellipse 55% 60% at 100% 50%, rgba(243, 156, 18, 0.45) 0%, transparent 70%),
+      radial-gradient(ellipse 55% 60% at 0% 50%, rgba(230, 126, 34, 0.40) 0%, transparent 70%),
+      radial-gradient(ellipse 40% 40% at 50% 100%, rgba(243, 100, 10, 0.20) 0%, transparent 60%),
+      #050505;
     display: flex;
     justify-content: center;
     align-items: flex-start;
@@ -22,16 +26,18 @@ export const useDashboardStyles = createStyles(({ css }) => ({
   /* Centered rounded container — antd Layout compatible */
   wrapper: css`
     &.ant-layout {
-      background: #2a2a2a;
+      background: #222;
       border-radius: 20px;
       overflow: hidden;
+      border: 1px solid #333;
     }
     display: flex;
     flex-direction: row;
     width: 100%;
     max-width: 1440px;
     min-height: calc(100vh - 48px);
-    background: #2a2a2a;
+    background: #222;
+    border: 1px solid #333;
     border-radius: 20px;
     overflow: hidden;
     color: #fff;
