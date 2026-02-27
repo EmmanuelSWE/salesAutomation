@@ -34,6 +34,20 @@ async function apiPost(path: string, body: object, token?: string) {
   return data;
 }
 
+async function apiPut(path: string, body: object, token?: string) {
+  const res = await fetch(`${BASE}${path}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new ApiError(res.status, data);
+  return data;
+}
+
 /* ══════════════════════════════════════════════════════
    TYPES
 ══════════════════════════════════════════════════════ */
@@ -251,8 +265,8 @@ export async function createContactAction(_prev: FormState, formData: FormData):
     return { status: "error", message: e.data?.message ?? "Failed to create contact." };
   }
 
-  revalidatePath(`/Client/${clientId}`);
-  redirect(`/Client/${clientId}`);
+  revalidatePath(`/Client/${clientId}/clientOverView`);
+  redirect(`/Client/${clientId}/clientOverView`);
 }
 
 /* ══════════════════════════════════════════════════════
@@ -264,6 +278,7 @@ export async function createOpportunityAction(_prev: FormState, formData: FormDa
   const title             = formData.get("title")             as string;
   const clientId          = formData.get("clientId")          as string;
   const contactId         = formData.get("contactId")         as string;
+  const ownerId           = formData.get("ownerId")           as string;
   const estimatedValue    = formData.get("estimatedValue")    as string;
   const currency          = formData.get("currency")          as string;
   const stage             = formData.get("stage")             as string;
@@ -286,7 +301,7 @@ export async function createOpportunityAction(_prev: FormState, formData: FormDa
   try {
     console.log("[createOpportunityAction] Calling API with data:", { title, clientId, estimatedValue });
     const data = await apiPost("/opportunities", {
-      title, clientId, contactId,
+      title, clientId, contactId, ownerId,
       estimatedValue: Number(estimatedValue), currency,
       stage: Number(stage), source: Number(source),
       probability: Number(probability), expectedCloseDate, description,
@@ -563,5 +578,118 @@ export async function submitProposalAction(
     console.error("[submitProposalAction] Error:", err);
     const e = err as { data?: { message?: string } };
     return { status: "error", message: e.data?.message ?? "Failed to submit proposal." };
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   OPPORTUNITY STAGE ADVANCEMENT
+   PUT /opportunities/{id}/stage
+══════════════════════════════════════════════════════ */
+export async function advanceStageAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  const token         = formData.get("_token")         as string;
+  const opportunityId = formData.get("opportunityId")  as string;
+  const stage         = formData.get("stage")          as string;
+  const reason        = formData.get("reason")         as string;
+  const redirectPath  = formData.get("redirectPath")   as string;
+
+  if (!opportunityId?.trim()) return { status: "error", errors: { opportunityId: "Opportunity ID is required." } };
+  if (!stage)                 return { status: "error", errors: { stage: "Stage is required." } };
+
+  try {
+    await apiPut(`/opportunities/${opportunityId}/stage`, { stage: Number(stage), reason }, token);
+    revalidatePath(redirectPath?.trim() || "/");
+    return { status: "success", message: "Stage updated." };
+  } catch (err: unknown) {
+    const e = err as { data?: { message?: string } };
+    return { status: "error", message: e.data?.message ?? "Failed to advance stage." };
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   PRICING REQUEST — ASSIGN
+   POST /pricingrequests/{id}/assign
+══════════════════════════════════════════════════════ */
+export async function assignPricingRequestAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  const token            = formData.get("_token")           as string;
+  const pricingRequestId = formData.get("pricingRequestId") as string;
+  const assignedToId     = formData.get("assignedToId")     as string;
+  const clientId         = formData.get("clientId")         as string;
+
+  if (!pricingRequestId?.trim()) return { status: "error", errors: { pricingRequestId: "Pricing request ID is required." } };
+  if (!assignedToId?.trim())     return { status: "error", errors: { assignedToId: "Assignee is required." } };
+
+  try {
+    await apiPost(`/pricingrequests/${pricingRequestId}/assign`, { assignedToId }, token);
+    if (clientId) revalidatePath(`/Client/${clientId}`);
+    return { status: "success", message: "Pricing request assigned." };
+  } catch (err: unknown) {
+    const e = err as { data?: { message?: string } };
+    return { status: "error", message: e.data?.message ?? "Failed to assign pricing request." };
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   PROPOSAL — APPROVE
+   PUT /proposals/{id}/approve
+══════════════════════════════════════════════════════ */
+export async function approveProposalAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  const token      = formData.get("_token")     as string;
+  const proposalId = formData.get("proposalId") as string;
+  const comment    = formData.get("comment")    as string;
+
+  if (!proposalId?.trim()) return { status: "error", errors: { proposalId: "Proposal ID is required." } };
+
+  try {
+    await apiPut(`/proposals/${proposalId}/approve`, comment ? { comment } : {}, token);
+    revalidatePath(`/proposals/${proposalId}`);
+    return { status: "success", message: "Proposal approved." };
+  } catch (err: unknown) {
+    const e = err as { data?: { message?: string } };
+    return { status: "error", message: e.data?.message ?? "Failed to approve proposal." };
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   CONTRACT — ACTIVATE
+   PUT /contracts/{id}/activate
+══════════════════════════════════════════════════════ */
+export async function activateContractAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  const token      = formData.get("_token")     as string;
+  const contractId = formData.get("contractId") as string;
+  const clientId   = formData.get("clientId")   as string;
+
+  if (!contractId?.trim()) return { status: "error", errors: { contractId: "Contract ID is required." } };
+
+  try {
+    await apiPut(`/contracts/${contractId}/activate`, {}, token);
+    if (clientId) revalidatePath(`/Client/${clientId}`);
+    revalidatePath(`/contracts`);
+    return { status: "success", message: "Contract activated." };
+  } catch (err: unknown) {
+    const e = err as { data?: { message?: string } };
+    return { status: "error", message: e.data?.message ?? "Failed to activate contract." };
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   RENEWAL — COMPLETE
+   PUT /contracts/renewals/{renewalId}/complete
+══════════════════════════════════════════════════════ */
+export async function completeRenewalAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  const token      = formData.get("_token")      as string;
+  const renewalId  = formData.get("renewalId")   as string;
+  const contractId = formData.get("contractId")  as string;
+  const clientId   = formData.get("clientId")    as string;
+
+  if (!renewalId?.trim()) return { status: "error", errors: { renewalId: "Renewal ID is required." } };
+
+  try {
+    await apiPut(`/contracts/renewals/${renewalId}/complete`, {}, token);
+    if (contractId) revalidatePath(`/contracts/${contractId}`);
+    if (clientId)   revalidatePath(`/Client/${clientId}`);
+    return { status: "success", message: "Renewal completed." };
+  } catch (err: unknown) {
+    const e = err as { data?: { message?: string } };
+    return { status: "error", message: e.data?.message ?? "Failed to complete renewal." };
   }
 }

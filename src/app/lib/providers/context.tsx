@@ -39,7 +39,7 @@ export interface IUserStateContext {
    ACTIONS INTERFACE
 ══════════════════════════════════════════════════════ */
 export interface IUserActionsContext {
-  getUsers:    ()           => Promise<void>;
+  getUsers:    (params?: { role?: string; isActive?: boolean; [key: string]: unknown }) => Promise<void>;
   getOneUser:  (id: string) => Promise<void>;
   logoutUser:  ()           => void;
 }
@@ -210,6 +210,7 @@ export interface IOpportunityActionsContext {
   getPipeline:        (ownerId?: string) => Promise<void>;
   getOneOpportunity:  (id: string)       => Promise<void>;
   getStageHistory:    (id: string)       => Promise<void>;
+  advanceStage:       (id: string, stage: number, reason?: string) => Promise<void>;
 }
 
 /* ── Initial state ── */
@@ -265,8 +266,10 @@ export interface IProposalStateContext {
 
 /* ── Actions ── */
 export interface IProposalActionsContext {
-  getProposals:   (params?: object) => Promise<void>;
-  getOneProposal: (id: string)      => Promise<void>;
+  getProposals:    (params?: object) => Promise<void>;
+  getOneProposal:  (id: string)      => Promise<void>;
+  submitProposal:  (id: string)      => Promise<void>;
+  approveProposal: (id: string, comment?: string) => Promise<void>;
 }
 
 /* ── Initial state ── */
@@ -309,10 +312,11 @@ export interface IPricingRequestStateContext {
 
 /* ── Actions ── */
 export interface IPricingRequestActionsContext {
-  getPricingRequests:   (params?: object) => Promise<void>;
-  getPendingRequests:   ()               => Promise<void>;
-  getMyRequests:        ()               => Promise<void>;
-  getOnePricingRequest: (id: string)     => Promise<void>;
+  getPricingRequests:   (params?: object)                                   => Promise<void>;
+  getPendingRequests:   ()                                                  => Promise<void>;
+  getMyRequests:        ()                                                  => Promise<void>;
+  getOnePricingRequest: (id: string)                                        => Promise<void>;
+  assignRequest:        (id: string, assignedToId: string)                  => Promise<void>;
 }
 
 /* ── Initial state ── */
@@ -374,10 +378,12 @@ export interface IContractStateContext {
 
 /* ── Actions ── */
 export interface IContractActionsContext {
-  getContracts:         (params?: object)         => Promise<void>;
-  getOneContract:       (id: string)              => Promise<void>;
-  getExpiringContracts: (daysUntilExpiry?: number) => Promise<void>;
-  getContractsByClient: (clientId: string)        => Promise<void>;
+  getContracts:         (params?: object)          => Promise<void>;
+  getOneContract:       (id: string)               => Promise<void>;
+  getExpiringContracts: (daysUntilExpiry?: number)  => Promise<void>;
+  getContractsByClient: (clientId: string)         => Promise<void>;
+  activateContract:     (id: string)               => Promise<void>;
+  completeRenewal:      (renewalId: string)         => Promise<void>;
 }
 
 /* ── Initial state ── */
@@ -427,6 +433,7 @@ export interface IActivityActionsContext {
   getUpcoming:     (daysAhead?: number) => Promise<void>;
   getOverdue:      ()                   => Promise<void>;
   getOneActivity:  (id: string)         => Promise<void>;
+  updateActivity:  (id: string, payload: Partial<IActivity>) => Promise<void>;
 }
 
 /* ── Initial state ── */

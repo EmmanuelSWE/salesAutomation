@@ -4,6 +4,7 @@ import { useActionState, useEffect, useState } from "react";
 import { createPricingRequestAction, type FormState } from "../../../lib/actions";
 import { SubmitButton } from "../form/submitButton";
 import { useFormStyles } from "../form/form.module";
+import { useUserState, useUserAction } from "../../../lib/providers/provider";
 
 const initial: FormState = { status: "idle" };
 
@@ -12,7 +13,15 @@ export default function CreatePricingRequest() {
   const [token, setToken] = useState("");
   const [state, formAction] = useActionState(createPricingRequestAction, initial);
 
-  useEffect(() => { setToken(localStorage.getItem("auth_token") ?? ""); }, []);
+  const { users }    = useUserState();
+  const { getUsers } = useUserAction();
+
+  useEffect(() => {
+    setToken(localStorage.getItem("auth_token") ?? "");
+    getUsers({ isActive: true });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const activeUsers = users ?? [];
 
   return (
     <div className={styles.page}>
@@ -56,8 +65,15 @@ export default function CreatePricingRequest() {
           </div>
 
           <div className={styles.field}>
-            <label className={styles.label} htmlFor="requestedById">Requested By (User ID)</label>
-            <input id="requestedById" name="requestedById" className={styles.input} />
+            <label className={styles.label} htmlFor="requestedById">Requested By</label>
+            <select id="requestedById" name="requestedById" className={styles.select} defaultValue="">
+              <option value="">Select requester…</option>
+              {activeUsers.map((u) => (
+                <option key={u.id} value={u.id ?? ""}>
+                  {u.firstName} {u.lastName} ({u.role ?? "User"})
+                </option>
+              ))}
+            </select>
           </div>
         </section>
 

@@ -52,6 +52,7 @@ import {
 
   getActivitiesPending, getActivitiesSuccess, getActivitiesError,
   getOneActivityPending, getOneActivitySuccess, getOneActivityError,
+  updateActivityPending, updateActivitySuccess, updateActivityError,
 
   getNotesPending, getNotesSuccess, getNotesError,
   getOneNotePending, getOneNoteSuccess, getOneNoteError,
@@ -88,9 +89,9 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     }
   }, []);
 
-  const getUsers = async () => {
+  const getUsers = async (params?: { role?: string; isActive?: boolean; [key: string]: unknown }) => {
     dispatch(getUsersPending());
-    await api.get("/users")
+    await api.get("/users", { params })
       .then(({ data }) => dispatch(getUsersSuccess(Array.isArray(data) ? data : (data.items ?? []))))
       .catch(err => { console.error("getUsers", err.response?.data); dispatch(getUsersError()); });
   };
@@ -250,8 +251,14 @@ export const OpportunityProvider = ({ children }: { children: ReactNode }) => {
       .catch(err => { console.error("getStageHistory", err.response?.data); dispatch(getStageHistoryError()); });
   };
 
+  const advanceStage = async (id: string, stage: number, reason?: string) => {
+    await api.put(`/opportunities/${id}/stage`, { stage, reason })
+      .then(() => getOneOpportunity(id))
+      .catch(err => console.error("advanceStage", err.response?.data));
+  };
+
   const opportunityActions = useMemo(
-    () => ({ getOpportunities, getMyOpportunities, getPipeline, getOneOpportunity, getStageHistory }),
+    () => ({ getOpportunities, getMyOpportunities, getPipeline, getOneOpportunity, getStageHistory, advanceStage }),
     [token] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
@@ -288,8 +295,20 @@ export const ProposalProvider = ({ children }: { children: ReactNode }) => {
       .catch(err => { console.error("getOneProposal", err.response?.data); dispatch(getOneProposalError()); });
   };
 
+  const submitProposal = async (id: string) => {
+    await api.put(`/proposals/${id}/submit`, {})
+      .then(() => getOneProposal(id))
+      .catch(err => console.error("submitProposal", err.response?.data));
+  };
+
+  const approveProposal = async (id: string, comment?: string) => {
+    await api.put(`/proposals/${id}/approve`, comment ? { comment } : {})
+      .then(() => getOneProposal(id))
+      .catch(err => console.error("approveProposal", err.response?.data));
+  };
+
   const proposalActions = useMemo(
-    () => ({ getProposals, getOneProposal }),
+    () => ({ getProposals, getOneProposal, submitProposal, approveProposal }),
     [token] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
@@ -340,8 +359,14 @@ export const PricingRequestProvider = ({ children }: { children: ReactNode }) =>
       .catch(err => { console.error("getOnePricingRequest", err.response?.data); dispatch(getOnePricingRequestError()); });
   };
 
+  const assignRequest = async (id: string, assignedToId: string) => {
+    await api.post(`/pricingrequests/${id}/assign`, { assignedToId })
+      .then(() => getOnePricingRequest(id))
+      .catch(err => console.error("assignRequest", err.response?.data));
+  };
+
   const pricingActions = useMemo(
-    () => ({ getPricingRequests, getPendingRequests, getMyRequests, getOnePricingRequest }),
+    () => ({ getPricingRequests, getPendingRequests, getMyRequests, getOnePricingRequest, assignRequest }),
     [token] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
@@ -392,8 +417,19 @@ export const ContractProvider = ({ children }: { children: ReactNode }) => {
       .catch(err => { console.error("getContractsByClient", err.response?.data); dispatch(getContractsError()); });
   };
 
+  const activateContract = async (id: string) => {
+    await api.put(`/contracts/${id}/activate`, {})
+      .then(() => getOneContract(id))
+      .catch(err => console.error("activateContract", err.response?.data));
+  };
+
+  const completeRenewal = async (renewalId: string) => {
+    await api.put(`/contracts/renewals/${renewalId}/complete`, {})
+      .catch(err => console.error("completeRenewal", err.response?.data));
+  };
+
   const contractActions = useMemo(
-    () => ({ getContracts, getOneContract, getExpiringContracts, getContractsByClient }),
+    () => ({ getContracts, getOneContract, getExpiringContracts, getContractsByClient, activateContract, completeRenewal }),
     [token] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
@@ -451,8 +487,15 @@ export const ActivityProvider = ({ children }: { children: ReactNode }) => {
       .catch(err => { console.error("getOneActivity", err.response?.data); dispatch(getOneActivityError()); });
   };
 
+  const updateActivity = async (id: string, payload: Partial<import('./context').IActivity>) => {
+    dispatch(updateActivityPending());
+    await api.put(`/activities/${id}`, payload)
+      .then(res => { dispatch(updateActivitySuccess()); dispatch(getOneActivitySuccess(res.data)); })
+      .catch(err => { console.error("updateActivity", err.response?.data); dispatch(updateActivityError()); });
+  };
+
   const activityActions = useMemo(
-    () => ({ getActivities, getMyActivities, getUpcoming, getOverdue, getOneActivity }),
+    () => ({ getActivities, getMyActivities, getUpcoming, getOverdue, getOneActivity, updateActivity }),
     [token] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
