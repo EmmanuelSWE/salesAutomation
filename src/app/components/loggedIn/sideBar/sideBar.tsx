@@ -31,8 +31,13 @@ const ROLE_LABELS: Record<string, string> = {
   admin:                       "Admin",
 };
 
-export default function Sidebar() {
-  const { styles } = useSidebarStyles();
+interface SidebarProps {
+  collapsed: boolean;
+  onToggle: () => void;
+}
+
+export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
+  const { styles, cx } = useSidebarStyles();
   const userState = useUserState();
 
   const firstName = userState?.user?.firstName || "User";
@@ -46,32 +51,61 @@ export default function Sidebar() {
   ];
 
   return (
-    <aside className={styles.sidebar}>
+    <aside className={cx(styles.sidebar, collapsed && styles.sidebarCollapsed)}>
+      {/* ── Toggle button ── */}
+      <button
+        type="button"
+        className={styles.toggleBtn}
+        onClick={onToggle}
+        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+      >
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 16 16"
+          fill="none"
+          style={{
+            transform: collapsed ? "rotate(180deg)" : "rotate(0deg)",
+            transition: "transform 0.3s cubic-bezier(0.4,0,0.2,1)",
+            display: "block",
+          }}
+        >
+          <path
+            d="M10 3L5 8L10 13"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
+
       {/* ── Top: logo + nav ── */}
       <div className={styles.sidebarTop}>
-        <Link href="/" className={styles.logo}>
+        <Link href="/" className={cx(styles.logo, collapsed && styles.logoCollapsed)}>
           <div className={styles.logoIcon}>⚡</div>
-          <span> TransformSales</span>
+          {!collapsed && <span>TransformSales</span>}
         </Link>
 
         {navItems.map(({ icon, label, href }) => (
           <Link
             key={label}
             href={href}
-            className={styles.navItem}
+            className={cx(styles.navItem, collapsed && styles.navItemCollapsed)}
+            title={collapsed ? label : undefined}
           >
             <span className={styles.navIcon}>{icon}</span>
-            {label}
+            {!collapsed && label}
           </Link>
         ))}
       </div>
 
       {/* ── Bottom: user ── */}
-      <div className={styles.footer}>
+      <div className={cx(styles.footer, collapsed && styles.footerCollapsed)}>
         <div className={styles.avatar}>👤</div>
-        <span>
-          {firstName}{roleLabel ? ` (${roleLabel})` : ""}
-        </span>
+        {!collapsed && (
+          <span>{firstName}{roleLabel ? ` (${roleLabel})` : ""}</span>
+        )}
       </div>
     </aside>
   );

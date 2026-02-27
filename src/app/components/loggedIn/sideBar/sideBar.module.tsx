@@ -101,4 +101,52 @@ export const useSidebarStyles = createStyles(({ css }) => ({
     font-size: 15px;
     flex-shrink: 0;
   `,
+
+  /* ── Collapsed variants ── */
+  sidebarCollapsed: css`
+    width: 64px;
+    padding: 28px 8px 24px;
+    align-items: center;
+  `,
+
+  logoCollapsed: css`
+    padding-left: 0;
+    justify-content: center;
+    margin-bottom: 24px;
+  `,
+
+  navItemCollapsed: css`
+    justify-content: center;
+    padding: 10px;
+    gap: 0;
+  `,
+
+  footerCollapsed: css`
+    justify-content: center;
+    padding: 8px;
+  `,
+
+  toggleBtn: css`
+    align-self: flex-end;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #2e2e2e;
+    border: 1px solid #3a3a3a;
+    color: #888;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+    flex-shrink: 0;
+    transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
+    &:hover {
+      background: #f39c12;
+      border-color: #f39c12;
+      color: #000;
+      box-shadow: 0 0 10px rgba(243,156,18,0.4);
+    }
+  `,
 }));

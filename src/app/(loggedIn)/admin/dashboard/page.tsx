@@ -51,11 +51,19 @@ export default function DashboardPage() {
   }
 
   return (
-    <>
-      <KpiSection data={data.kpis} />
-      <PipelineSection data={data.funnel} />
-      <SalesActivitiesSection sales={data.salesPerformance} activities={data.activities} />
-      <RevenueTrendSection data={data.revenue} />
-    </>
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      <div style={{ padding: 10 }}>
+        <KpiSection data={data.kpis} />
+      </div>
+      <div style={{ padding: 10 }}>
+        <PipelineSection data={data.funnel} />
+      </div>
+      <div style={{ padding: 10 }}>
+        <SalesActivitiesSection sales={data.salesPerformance} activities={data.activities} />
+      </div>
+      <div style={{ padding: 10 }}>
+        <RevenueTrendSection data={data.revenue} />
+      </div>
+    </div>
   );
 }

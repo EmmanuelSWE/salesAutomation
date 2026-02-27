@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Layout } from "antd";
 import { useDashboardStyles } from "../components/dashboard/dashboard.module";
@@ -20,19 +20,16 @@ export default function DashboardLayout({
   const { styles } = useDashboardStyles();
   const router = useRouter();
   const { isInitialized, token, user } = useUserState();
+  const [collapsed, setCollapsed] = useState(false);
 
   useEffect(() => {
-    if (!isInitialized) return; // wait for provider to finish its one-time localStorage check
-    if (!token) {
-      router.replace("/login");
-      return;
-    }
+    if (!isInitialized) return;
+    if (!token) { router.replace("/login"); return; }
     if (user?.role && !VALID_ROLES.includes(user.role.toLowerCase())) {
       router.replace("/login");
     }
   }, [isInitialized, token, user?.role, router]);
 
-  // Only block render during the initial auth check — not during subsequent data fetches
   if (!isInitialized) return null;
 
   return (
@@ -40,8 +37,14 @@ export default function DashboardLayout({
       <Layout className={styles.wrapper}>
 
         {/* ── Left: Sidebar ── */}
-        <Sider className={styles.sider} width={220}>
-          <Sidebar />
+        <Sider
+          className={styles.sider}
+          width={220}
+          collapsedWidth={64}
+          collapsed={collapsed}
+          trigger={null}
+        >
+          <Sidebar collapsed={collapsed} onToggle={() => setCollapsed((c) => !c)} />
         </Sider>
 
         {/* ── Right: Header + Content + Footer ── */}
