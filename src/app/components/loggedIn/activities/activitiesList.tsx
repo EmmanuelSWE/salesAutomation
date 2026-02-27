@@ -96,7 +96,7 @@ function EditDrawer({
                   padding: "9px 12px", color: "#fff", fontSize: 13, boxSizing: "border-box" as const }} />
             )},
             { label: "Type", node: (
-              <select value={type} onChange={e => setType(e.target.value)}
+              <select value={type} onChange={e => setType(e.target.value as IActivity["type"])}
                 style={{ width: "100%", background: "#333", border: "1px solid #444", borderRadius: 8,
                   padding: "9px 12px", color: "#fff", fontSize: 13 }}>
                 <option value="">Select type…</option>
