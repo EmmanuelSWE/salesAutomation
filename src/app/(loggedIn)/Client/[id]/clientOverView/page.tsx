@@ -1,7 +1,8 @@
 "use client";
 
 import { useContext, useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams }    from "next/navigation";
+import Link             from "next/link";
 import ClientOverviewCard  from "../../../../components/loggedIn/clientOverview/clientOverviewCard/clientOverViewCard";
 import ClientContactDetails from "../../../../components/loggedIn/clientOverview/clientContactDetails/clientContactDetails";
 import ClientDocumentHistory from "../../../../components/loggedIn/clientOverview/clientDocumentHistory/clientDocumentHistory";
@@ -123,6 +124,26 @@ export default function ClientOverview() {
         boxSizing: "border-box",
       }}
     >
+      {/* ── Action bar ── */}
+      <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
+        <Link
+          href={`/Client/${clientId}/createProposal`}
+          style={{
+            display:        "inline-block",
+            padding:        "8px 18px",
+            borderRadius:   8,
+            background:     "#4caf50",
+            color:          "#fff",
+            fontWeight:     600,
+            fontSize:       13,
+            textDecoration: "none",
+            letterSpacing:  "0.02em",
+          }}
+        >
+          + Create Proposal
+        </Link>
+      </div>
+
       {/* 1. Client name + project steps + active date + pricing + alert */}
       <ClientOverviewCard
         clientName={clientName}

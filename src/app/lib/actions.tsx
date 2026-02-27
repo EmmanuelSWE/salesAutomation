@@ -538,6 +538,8 @@ export async function submitProposalAction(
 ): Promise<ProposalFormState> {
   console.log("[submitProposalAction] Starting proposal submission...");
   const token            = formData.get("_token")          as string;
+  const clientId         = formData.get("clientId")         as string;
+  const requestedById    = formData.get("requestedById")    as string;
   const clientName       = formData.get("clientName")       as string;
   const opportunityId    = formData.get("opportunityId")    as string;
   const deadline         = formData.get("deadline")         as string;
@@ -570,8 +572,13 @@ export async function submitProposalAction(
       opportunityId, title: clientName, description: requirements,
       validUntil: deadline, licenses, contractDuration, services,
       scopeItems, attachmentCount: attachments.filter(f => f.size > 0).length,
+      ...(requestedById ? { requestedById } : {}),
     }, token);
     console.log("[submitProposalAction] Success, proposal ID:", data.id);
+    if (clientId?.trim()) {
+      revalidatePath(`/Client/${clientId}/clientOverView`);
+      redirect(`/Client/${clientId}/clientOverView`);
+    }
     revalidatePath("/opportunities");
     redirect(`/proposals/${data.id}`);
   } catch (err: unknown) {

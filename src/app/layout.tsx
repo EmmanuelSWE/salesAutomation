@@ -8,7 +8,7 @@ import {
 } from "./lib/providers/provider";
 
 export const metadata: Metadata = {
-  title: "Login",
+  title: "Transfor Sales",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
