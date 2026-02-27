@@ -2,7 +2,50 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { IUser } from "./providers/context";
+
+const BASE = (process.env.NEXT_PUBLIC_API_URL ?? process.env.API_BASE_URL ?? "").replace(/\/$/, "");
+
+/* ══════════════════════════════════════════════════════
+   HELPERS
+   Token comes from a hidden _token form field on every
+   form — client reads it from localStorage and injects it
+══════════════════════════════════════════════════════ */
+async function apiPost(path: string, body: object, token?: string) {
+  const res = await fetch(`${BASE}${path}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw { status: res.status, data };
+  return data;
+}
+
+/* ══════════════════════════════════════════════════════
+   TYPES
+══════════════════════════════════════════════════════ */
+export type FormState = {
+  status: "idle" | "success" | "error";
+  message?: string;
+  errors?: Partial<Record<string, string>>;
+};
+
+export type LoginFormState = {
+  status: "idle" | "success" | "error";
+  message?: string;
+  token?: string; // returned to client → stored in localStorage
+  errors?: Partial<Record<string, string>>;
+};
+
+export type RegisterFormState = {
+  status: "idle" | "success" | "error";
+  message?: string;
+  token?: string; // returned to client → stored in localStorage
+  errors?: Partial<Record<string, string>>;
+};
 
 export type ProposalFormState = {
   status: "idle" | "success" | "error";
@@ -10,67 +53,168 @@ export type ProposalFormState = {
   errors?: Partial<Record<string, string>>;
 };
 
-export async function submitProposalAction(
-  _prevState: ProposalFormState,
+/* ══════════════════════════════════════════════════════
+   AUTH
+   No cookie logic — token is returned in state.
+   Client useEffect watches for state.token, calls
+   setToken(state.token) then redirects to dashboard.
+══════════════════════════════════════════════════════ */
+export async function loginAction(
+  _prev: LoginFormState,
   formData: FormData
-): Promise<ProposalFormState> {
-  /* ── Extract fields ── */
-  const clientName       = formData.get("clientName") as string;
-  const opportunityId    = formData.get("opportunityId") as string;
-  const deadline         = formData.get("deadline") as string;
-  const requirements     = formData.get("requirements") as string;
-  const licenses         = formData.get("licenses") as string;
-  const contractDuration = formData.get("contractDuration") as string;
-  const services         = formData.get("services") as string;
-  const attachments      = formData.getAll("attachments") as File[];
+): Promise<LoginFormState> {
+  console.log("[loginAction] Starting login process...");
+  const email    = formData.get("email")    as string;
+  const password = formData.get("password") as string;
 
-  // Scope items — submitted as scopeItem_0, scopeItem_1 ...
-  const scopeItems: string[] = [];
-  for (const [key, val] of formData.entries()) {
-    if (key.startsWith("scopeItem_") && typeof val === "string" && val.trim()) {
-      scopeItems.push(val.trim());
-    }
-  }
-
-  /* ── Validation ── */
+  console.log("[loginAction] Email:", email);
   const errors: Partial<Record<string, string>> = {};
-  if (!clientName?.trim())    errors.clientName    = "Client name is required.";
-  if (!opportunityId?.trim()) errors.opportunityId = "Opportunity ID is required.";
-  if (!deadline)              errors.deadline      = "Deadline is required.";
-  if (!requirements?.trim())  errors.requirements  = "Requirements are required.";
-
-  if (Object.keys(errors).length > 0) {
+  if (!email?.trim())    errors.email    = "Email is required.";
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = "Enter a valid email.";
+  if (!password?.trim()) errors.password = "Password is required.";
+  if (Object.keys(errors).length) {
+    console.log("[loginAction] Validation errors:", errors);
     return { status: "error", errors };
   }
 
-  /* ── Business logic (replace with DB/API call) ── */
-  console.log("Proposal submitted:", {
-    clientName, opportunityId, deadline,
-    requirements, scopeItems, licenses,
-    contractDuration, services,
-    attachmentCount: attachments.filter((f) => f.size > 0).length,
-  });
+  try {
+    console.log("[loginAction] Calling API:", `${BASE}/auth/login`);
+    const res = await fetch(`${BASE}/auth/login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: email.trim(), password }),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      console.log("[loginAction] API error:", data?.message);
+      return { status: "error", message: data?.message ?? "Invalid email or password." };
+    }
 
-  // TODO: await db.proposals.create({ ... })
-
-  revalidatePath("/submitProposal");
-  // TODO: fetch opportunity to get clientId, then redirect("/Client/" + clientId)
-  return { status: "success", message: "Proposal submitted successfully!" };
+    console.log("[loginAction] Login successful, token received");
+    // Return token to client — client stores it in localStorage
+    return { status: "success", token: data.token };
+  } catch (err) {
+    console.error("[loginAction] Exception:", err);
+    return { status: "error", message: "Login failed. Please try again." };
+  }
 }
 
+export async function registerAction(
+  _prev: RegisterFormState,
+  formData: FormData
+): Promise<RegisterFormState> {
+  console.log("[registerAction] Starting registration process...");
+  const firstName       = formData.get("firstName")       as string;
+  const lastName        = formData.get("lastName")        as string;
+  const email           = formData.get("email")           as string;
+  const password        = formData.get("password")        as string;
+  const confirmPassword = formData.get("confirmPassword") as string;
+  const tenantName      = (formData.get("tenantName")     as string) || "";
+  const tenantId        = (formData.get("tenantId")       as string) || "";
+  const role            = (formData.get("role")           as string) || "";
 
+  console.log("[registerAction] Input:", { firstName, lastName, email, tenantName, tenantId, role });
 
+  const errors: Partial<Record<string, string>> = {};
+  if (!firstName?.trim())  errors.firstName = "First name is required.";
+  if (!lastName?.trim())   errors.lastName  = "Last name is required.";
+  if (!email?.trim())      errors.email     = "Email is required.";
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = "Enter a valid email.";
+  if (!password?.trim())   errors.password  = "Password is required.";
+  if (password && password.length < 8) errors.password = "Password must be at least 8 characters.";
+  if (password !== confirmPassword)    errors.confirmPassword = "Passwords do not match.";
+  if (tenantName?.trim() && tenantId?.trim()) errors.tenantName = "Cannot specify both Tenant Name and Tenant ID.";
+  if (tenantId?.trim() && !role?.trim())      errors.role       = "Role is required when joining an organisation.";
+  if (Object.keys(errors).length) {
+    console.log("[registerAction] Validation errors:", errors);
+    return { status: "error", errors };
+  }
 
+  // Scenario A — new org
+  // Scenario B — join existing org (tenantId + role)
+  // Scenario C — default tenant (role optional)
+  const payload: Record<string, unknown> = {
+    firstName: firstName.trim(), lastName: lastName.trim(),
+    email: email.trim(), password,
+  };
+  if (tenantName?.trim())  payload.tenantName = tenantName.trim();
+  if (tenantId?.trim())  { payload.tenantId = tenantId.trim(); payload.role = role.trim(); }
+  else if (role?.trim())   payload.role = role.trim();
 
+  console.log("[registerAction] Payload:", payload);
 
-export type FormState = {
-  status: "idle" | "success" | "error";
-  message?: string;
-  errors?: Partial<Record<string, string>>;
-};
+  try {
+    console.log("[registerAction] Calling API:", `${BASE}/auth/register`);
+    const res = await fetch(`${BASE}/auth/register`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      console.log("[registerAction] API error:", data?.message, data?.errors);
+      const apiErrors: Partial<Record<string, string>> = {};
+      if (data?.errors && typeof data.errors === "object") Object.assign(apiErrors, data.errors);
+      return { status: "error", message: data?.message ?? "Registration failed.", errors: apiErrors };
+    }
 
-/* ─── POST /api/contacts ─────────────────────────────── */
+    console.log("[registerAction] Registration successful, token received");
+    // Return token to client — client stores it in localStorage
+    return { status: "success", token: data.token };
+  } catch (err) {
+    console.error("[registerAction] Exception:", err);
+    return { status: "error", message: "Registration failed. Please try again." };
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   CLIENTS
+══════════════════════════════════════════════════════ */
+export async function createClientAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  console.log("[createClientAction] Starting client creation...");
+  const token          = formData.get("_token")         as string;
+  const name           = formData.get("name")           as string;
+  const industry       = formData.get("industry")       as string;
+  const clientType     = formData.get("clientType")     as string;
+  const website        = formData.get("website")        as string;
+  const billingAddress = formData.get("billingAddress") as string;
+  const taxNumber      = formData.get("taxNumber")      as string;
+  const companySize    = formData.get("companySize")    as string;
+
+  const errors: Partial<Record<string, string>> = {};
+  if (!name?.trim())           errors.name           = "Company name is required.";
+  if (!industry?.trim())       errors.industry       = "Industry is required.";
+  if (!clientType)             errors.clientType     = "Client type is required.";
+  if (!billingAddress?.trim()) errors.billingAddress = "Billing address is required.";
+  if (website && !/^https?:\/\/.+/.test(website)) errors.website = "Must start with http:// or https://";
+  if (Object.keys(errors).length) {
+    console.log("[createClientAction] Validation errors:", errors);
+    return { status: "error", errors };
+  }
+
+  try {
+    console.log("[createClientAction] Calling API with data:", { name, industry, clientType });
+    const data = await apiPost("/clients", {
+      name: name.trim(), industry: industry.trim(),
+      clientType: Number(clientType), website,
+      billingAddress, taxNumber, companySize,
+    }, token);
+    console.log("[createClientAction] Success, client ID:", data.id);
+    revalidatePath("/clients");
+    redirect(`/Client/${data.id}`);
+  } catch (err: unknown) {
+    console.error("[createClientAction] Error:", err);
+    const e = err as { data?: { message?: string } };
+    return { status: "error", message: e.data?.message ?? "Failed to create client." };
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   CONTACTS
+══════════════════════════════════════════════════════ */
 export async function createContactAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  console.log("[createContactAction] Starting contact creation...");
+  const token            = formData.get("_token")           as string;
   const clientId         = formData.get("clientId")         as string;
   const firstName        = formData.get("firstName")        as string;
   const lastName         = formData.get("lastName")         as string;
@@ -85,16 +229,33 @@ export async function createContactAction(_prev: FormState, formData: FormData):
   if (!lastName?.trim())  errors.lastName  = "Last name is required.";
   if (!email?.trim())     errors.email     = "Email is required.";
   if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = "Enter a valid email.";
-  if (Object.keys(errors).length) return { status: "error", errors };
+  if (Object.keys(errors).length) {
+    console.log("[createContactAction] Validation errors:", errors);
+    return { status: "error", errors };
+  }
 
-  // TODO: await fetch(`${process.env.API_BASE_URL}/api/contacts`, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ clientId, firstName, lastName, email, phoneNumber, position, isPrimaryContact }) });
-  console.log("createContact:", { clientId, firstName, lastName, email, phoneNumber, position, isPrimaryContact });
+  try {
+    console.log("[createContactAction] Calling API with data:", { clientId, firstName, lastName, email });
+    await apiPost("/contacts", {
+      clientId, firstName, lastName, email, phoneNumber, position, isPrimaryContact,
+    }, token);
+    console.log("[createContactAction] Contact created successfully");
+  } catch (err: unknown) {
+    console.error("[createContactAction] Error:", err);
+    const e = err as { data?: { message?: string } };
+    return { status: "error", message: e.data?.message ?? "Failed to create contact." };
+  }
+
   revalidatePath(`/Client/${clientId}`);
   redirect(`/Client/${clientId}`);
 }
 
-/* ─── POST /api/opportunities ────────────────────────── */
+/* ══════════════════════════════════════════════════════
+   OPPORTUNITIES
+══════════════════════════════════════════════════════ */
 export async function createOpportunityAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  console.log("[createOpportunityAction] Starting opportunity creation...");
+  const token             = formData.get("_token")            as string;
   const title             = formData.get("title")             as string;
   const clientId          = formData.get("clientId")          as string;
   const contactId         = formData.get("contactId")         as string;
@@ -107,21 +268,40 @@ export async function createOpportunityAction(_prev: FormState, formData: FormDa
   const description       = formData.get("description")       as string;
 
   const errors: Partial<Record<string, string>> = {};
-  if (!title?.trim())       errors.title            = "Title is required.";
-  if (!clientId?.trim())    errors.clientId         = "Client ID is required.";
-  if (!estimatedValue)      errors.estimatedValue   = "Estimated value is required.";
-  if (!stage)               errors.stage            = "Stage is required.";
-  if (!expectedCloseDate)   errors.expectedCloseDate = "Expected close date is required.";
-  if (Object.keys(errors).length) return { status: "error", errors };
+  if (!title?.trim())     errors.title             = "Title is required.";
+  if (!clientId?.trim())  errors.clientId          = "Client ID is required.";
+  if (!estimatedValue)    errors.estimatedValue    = "Estimated value is required.";
+  if (!stage)             errors.stage             = "Stage is required.";
+  if (!expectedCloseDate) errors.expectedCloseDate = "Expected close date is required.";
+  if (Object.keys(errors).length) {
+    console.log("[createOpportunityAction] Validation errors:", errors);
+    return { status: "error", errors };
+  }
 
-  // TODO: await fetch(`${process.env.API_BASE_URL}/api/opportunities`, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ title, clientId, contactId, estimatedValue: Number(estimatedValue), currency, stage: Number(stage), source: Number(source), probability: Number(probability), expectedCloseDate, description }) });
-  console.log("createOpportunity:", { title, clientId, contactId, estimatedValue: Number(estimatedValue), currency, stage: Number(stage), source: Number(source), probability: Number(probability), expectedCloseDate, description });
-  revalidatePath("/opportunities");
-  redirect("/opportunities");
+  try {
+    console.log("[createOpportunityAction] Calling API with data:", { title, clientId, estimatedValue });
+    const data = await apiPost("/opportunities", {
+      title, clientId, contactId,
+      estimatedValue: Number(estimatedValue), currency,
+      stage: Number(stage), source: Number(source),
+      probability: Number(probability), expectedCloseDate, description,
+    }, token);
+    console.log("[createOpportunityAction] Success, opportunity ID:", data.id);
+    revalidatePath("/opportunities");
+    redirect(`/opportunities/${data.id}`);
+  } catch (err: unknown) {
+    console.error("[createOpportunityAction] Error:", err);
+    const e = err as { data?: { message?: string } };
+    return { status: "error", message: e.data?.message ?? "Failed to create opportunity." };
+  }
 }
 
-/* ─── POST /api/pricingrequests ──────────────────────── */
+/* ══════════════════════════════════════════════════════
+   PRICING REQUESTS
+══════════════════════════════════════════════════════ */
 export async function createPricingRequestAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  console.log("[createPricingRequestAction] Starting pricing request creation...");
+  const token          = formData.get("_token")         as string;
   const title          = formData.get("title")          as string;
   const description    = formData.get("description")    as string;
   const clientId       = formData.get("clientId")       as string;
@@ -131,19 +311,37 @@ export async function createPricingRequestAction(_prev: FormState, formData: For
   const requiredByDate = formData.get("requiredByDate") as string;
 
   const errors: Partial<Record<string, string>> = {};
-  if (!title?.trim())    errors.title         = "Title is required.";
-  if (!clientId?.trim()) errors.clientId      = "Client ID is required.";
+  if (!title?.trim())    errors.title          = "Title is required.";
+  if (!clientId?.trim()) errors.clientId       = "Client ID is required.";
   if (!requiredByDate)   errors.requiredByDate = "Required by date is required.";
-  if (Object.keys(errors).length) return { status: "error", errors };
+  if (Object.keys(errors).length) {
+    console.log("[createPricingRequestAction] Validation errors:", errors);
+    return { status: "error", errors };
+  }
 
-  // TODO: await fetch(`${process.env.API_BASE_URL}/api/pricingrequests`, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ title, description, clientId, opportunityId, requestedById, priority: Number(priority), requiredByDate }) });
-  console.log("createPricingRequest:", { title, description, clientId, opportunityId, requestedById, priority: Number(priority), requiredByDate });
+  try {
+    console.log("[createPricingRequestAction] Calling API with data:", { title, clientId, priority });
+    await apiPost("/pricingrequests", {
+      title, description, clientId, opportunityId,
+      requestedById, priority: Number(priority), requiredByDate,
+    }, token);
+    console.log("[createPricingRequestAction] Pricing request created successfully");
+  } catch (err: unknown) {
+    console.error("[createPricingRequestAction] Error:", err);
+    const e = err as { data?: { message?: string } };
+    return { status: "error", message: e.data?.message ?? "Failed to create pricing request." };
+  }
+
   revalidatePath(`/Client/${clientId}`);
   redirect(`/Client/${clientId}`);
 }
 
-/* ─── POST /api/contracts ────────────────────────────── */
+/* ══════════════════════════════════════════════════════
+   CONTRACTS
+══════════════════════════════════════════════════════ */
 export async function createContractAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  console.log("[createContractAction] Starting contract creation...");
+  const token               = formData.get("_token")              as string;
   const clientId            = formData.get("clientId")            as string;
   const opportunityId       = formData.get("opportunityId")       as string;
   const proposalId          = formData.get("proposalId")          as string;
@@ -163,38 +361,77 @@ export async function createContractAction(_prev: FormState, formData: FormData)
   if (!contractValue)    errors.contractValue = "Contract value is required.";
   if (!startDate)        errors.startDate     = "Start date is required.";
   if (!endDate)          errors.endDate       = "End date is required.";
-  if (Object.keys(errors).length) return { status: "error", errors };
+  if (Object.keys(errors).length) {
+    console.log("[createContractAction] Validation errors:", errors);
+    return { status: "error", errors };
+  }
 
-  // TODO: await fetch(`${process.env.API_BASE_URL}/api/contracts`, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ clientId, opportunityId, proposalId, title, contractValue: Number(contractValue), currency, startDate, endDate, ownerId, renewalNoticePeriod: Number(renewalNoticePeriod), autoRenew, terms }) });
-  console.log("createContract:", { clientId, opportunityId, proposalId, title, contractValue: Number(contractValue), currency, startDate, endDate, ownerId, renewalNoticePeriod: Number(renewalNoticePeriod), autoRenew, terms });
+  try {
+    console.log("[createContractAction] Calling API with data:", { clientId, title, contractValue });
+    await apiPost("/contracts", {
+      clientId, opportunityId, proposalId, title,
+      contractValue: Number(contractValue), currency,
+      startDate, endDate, ownerId,
+      renewalNoticePeriod: Number(renewalNoticePeriod),
+      autoRenew, terms,
+    }, token);
+    console.log("[createContractAction] Contract created successfully");
+  } catch (err: unknown) {
+    console.error("[createContractAction] Error:", err);
+    const e = err as { data?: { message?: string } };
+    return { status: "error", message: e.data?.message ?? "Failed to create contract." };
+  }
+
   revalidatePath(`/Client/${clientId}`);
   redirect(`/Client/${clientId}`);
 }
 
-/* ─── POST /api/contracts/{contractId}/renewals ──────── */
+/* ══════════════════════════════════════════════════════
+   RENEWALS
+══════════════════════════════════════════════════════ */
 export async function createRenewalAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  console.log("[createRenewalAction] Starting renewal creation...");
+  const token             = formData.get("_token")          as string;
   const contractId        = formData.get("contractId")        as string;
+  const clientId          = formData.get("clientId")          as string;
   const proposedStartDate = formData.get("proposedStartDate") as string;
   const proposedEndDate   = formData.get("proposedEndDate")   as string;
   const proposedValue     = formData.get("proposedValue")     as string;
   const notes             = formData.get("notes")             as string;
 
   const errors: Partial<Record<string, string>> = {};
-  if (!contractId?.trim())  errors.contractId        = "Contract ID is required.";
-  if (!proposedStartDate)   errors.proposedStartDate = "Proposed start date is required.";
-  if (!proposedEndDate)     errors.proposedEndDate   = "Proposed end date is required.";
-  if (!proposedValue)       errors.proposedValue     = "Proposed value is required.";
-  if (Object.keys(errors).length) return { status: "error", errors };
+  if (!contractId?.trim()) errors.contractId        = "Contract ID is required.";
+  if (!proposedStartDate)  errors.proposedStartDate = "Proposed start date is required.";
+  if (!proposedEndDate)    errors.proposedEndDate   = "Proposed end date is required.";
+  if (!proposedValue)      errors.proposedValue     = "Proposed value is required.";
+  if (Object.keys(errors).length) {
+    console.log("[createRenewalAction] Validation errors:", errors);
+    return { status: "error", errors };
+  }
 
-  // TODO: await fetch(`${process.env.API_BASE_URL}/api/contracts/${contractId}/renewals`, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ proposedStartDate, proposedEndDate, proposedValue: Number(proposedValue), notes }) });
-  console.log("createRenewal:", { contractId, proposedStartDate, proposedEndDate, proposedValue: Number(proposedValue), notes });
-  revalidatePath(`/Client/[clientId]`);
-  // TODO: fetch contract to get clientId, then redirect("/Client/" + clientId)
-  return { status: "success", message: "Renewal created successfully." };
+  try {
+    console.log("[createRenewalAction] Calling API with data:", { contractId, proposedValue });
+    await apiPost(`/contracts/${contractId}/renewals`, {
+      proposedStartDate, proposedEndDate,
+      proposedValue: Number(proposedValue), notes,
+    }, token);
+    console.log("[createRenewalAction] Renewal created successfully");
+  } catch (err: unknown) {
+    console.error("[createRenewalAction] Error:", err);
+    const e = err as { data?: { message?: string } };
+    return { status: "error", message: e.data?.message ?? "Failed to create renewal." };
+  }
+
+  revalidatePath(`/Client/${clientId}`);
+  redirect(`/Client/${clientId}`);
 }
 
-/* ─── POST /api/activities ───────────────────────────── */
+/* ══════════════════════════════════════════════════════
+   ACTIVITIES
+══════════════════════════════════════════════════════ */
 export async function createActivityAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  console.log("[createActivityAction] Starting activity creation...");
+  const token         = formData.get("_token")       as string;
   const type          = formData.get("type")          as string;
   const subject       = formData.get("subject")       as string;
   const description   = formData.get("description")   as string;
@@ -210,153 +447,116 @@ export async function createActivityAction(_prev: FormState, formData: FormData)
   if (!type)            errors.type    = "Activity type is required.";
   if (!subject?.trim()) errors.subject = "Subject is required.";
   if (!dueDate)         errors.dueDate = "Due date is required.";
-  if (Object.keys(errors).length) return { status: "error", errors };
+  if (Object.keys(errors).length) {
+    console.log("[createActivityAction] Validation errors:", errors);
+    return { status: "error", errors };
+  }
 
-  // TODO: await fetch(`${process.env.API_BASE_URL}/api/activities`, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ type: Number(type), subject, description, priority: Number(priority), dueDate, assignedToId, relatedToType: Number(relatedToType), relatedToId, duration: Number(duration), location }) });
-  console.log("createActivity:", { type: Number(type), subject, description, priority: Number(priority), dueDate, assignedToId, relatedToType: Number(relatedToType), relatedToId, duration: Number(duration), location });
+  try {
+    console.log("[createActivityAction] Calling API with data:", { type, subject, priority });
+    await apiPost("/activities", {
+      type: Number(type), subject, description,
+      priority: Number(priority), dueDate, assignedToId,
+      relatedToType: Number(relatedToType), relatedToId,
+      duration: Number(duration), location,
+    }, token);
+    console.log("[createActivityAction] Activity created successfully");
+  } catch (err: unknown) {
+    console.error("[createActivityAction] Error:", err);
+    const e = err as { data?: { message?: string } };
+    return { status: "error", message: e.data?.message ?? "Failed to create activity." };
+  }
+
   revalidatePath("/activities");
   redirect("/activities");
 }
 
-/* ─── POST /api/notes ────────────────────────────────── */
+/* ══════════════════════════════════════════════════════
+   NOTES
+══════════════════════════════════════════════════════ */
 export async function createNoteAction(_prev: FormState, formData: FormData): Promise<FormState> {
+  console.log("[createNoteAction] Starting note creation...");
+  const token         = formData.get("_token")        as string;
   const content       = formData.get("content")       as string;
   const relatedToType = formData.get("relatedToType") as string;
   const relatedToId   = formData.get("relatedToId")   as string;
+  const relatedToPath = formData.get("relatedToPath") as string;
   const isPrivate     = formData.get("isPrivate") === "true";
 
   const errors: Partial<Record<string, string>> = {};
-  if (!content?.trim())     errors.content      = "Note content is required.";
+  if (!content?.trim())     errors.content       = "Note content is required.";
   if (!relatedToType)       errors.relatedToType = "Related entity type is required.";
-  if (!relatedToId?.trim()) errors.relatedToId  = "Related entity ID is required.";
-  if (Object.keys(errors).length) return { status: "error", errors };
-
-  // TODO: await fetch(`${process.env.API_BASE_URL}/api/notes`, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ content, relatedToType: Number(relatedToType), relatedToId, isPrivate }) });
-  console.log("createNote:", { content, relatedToType: Number(relatedToType), relatedToId, isPrivate });
-  revalidatePath(`/Client/${relatedToId}`);
-  // TODO: Determine actual entity type and redirect accordingly (Client, Opportunity, etc.)
-  redirect(`/Client/${relatedToId}`);
-}
-
-/* ─── POST /api/clients ──────────────────────────────── */
-export async function createClientAction(_prev: FormState, formData: FormData): Promise<FormState> {
-  const name           = formData.get("name")           as string;
-  const industry       = formData.get("industry")       as string;
-  const clientType     = formData.get("clientType")     as string;
-  const website        = formData.get("website")        as string;
-  const billingAddress = formData.get("billingAddress") as string;
-  const taxNumber      = formData.get("taxNumber")      as string;
-  const companySize    = formData.get("companySize")    as string;
-
-  const errors: Partial<Record<string, string>> = {};
-  if (!name?.trim())           errors.name           = "Company name is required.";
-  if (!industry?.trim())       errors.industry       = "Industry is required.";
-  if (!clientType)             errors.clientType     = "Client type is required.";
-  if (!billingAddress?.trim()) errors.billingAddress = "Billing address is required.";
-  if (website && !/^https?:\/\/.+/.test(website)) errors.website = "Must start with http:// or https://";
-  if (Object.keys(errors).length) return { status: "error", errors };
-
-  // TODO: await fetch(`${process.env.API_BASE_URL}/api/clients`, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ name, industry, clientType: Number(clientType), website, billingAddress, taxNumber, companySize }) });
-  console.log("createClient:", { name, industry, clientType: Number(clientType), website, billingAddress, taxNumber, companySize });
-  revalidatePath("/clients");
-  // TODO: Get newClientId from API response, then redirect("/Client/" + newClientId)
-  return { status: "success", message: `Client "${name}" created.` };
-}
-
-
-export type LoginFormState = {
-  status: "idle" | "success" | "error";
-  message?: string;
-  email?: string;
-  password?: string;
-  errors?: Partial<Record<string, string>>;
-};
-
-export async function loginAction(
-  _prev: LoginFormState,
-  formData: FormData
-): Promise<LoginFormState> {
-  const email    = formData.get("email")    as string;
-  const password = formData.get("password") as string;
-
-  const errors: Partial<Record<string, string>> = {};
-  if (!email?.trim())    errors.email    = "Email is required.";
-  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = "Enter a valid email.";
-  if (!password?.trim()) errors.password = "Password is required.";
-  if (Object.keys(errors).length) return { status: "error", errors };
-
-  // TODO: Call login API with email and password
-  // TODO: Store auth token in cookies
-  // On success, redirect to dashboard
-  redirect("/admin/dashboard");
-}
-
-
-export type RegisterFormState = {
-  status: "idle" | "success" | "error";
-  message?: string;
-  user?: IUser;
-  errors?: Partial<Record<string, string>>;
-};
-
-export async function registerAction(
-  _prev: RegisterFormState,
-  formData: FormData
-): Promise<RegisterFormState> {
-  const firstName       = formData.get("firstName")       as string;
-  const lastName        = formData.get("lastName")        as string;
-  const email           = formData.get("email")           as string;
-  const password        = formData.get("password")        as string;
-  const confirmPassword = formData.get("confirmPassword") as string;
-  const tenantName      = (formData.get("tenantName") as string) || "";
-  const tenantId        = (formData.get("tenantId") as string) || "";
-  const role            = (formData.get("role") as string) || "";
-
-  const errors: Partial<Record<string, string>> = {};
-  if (!firstName?.trim())  errors.firstName = "First name is required.";
-  if (!lastName?.trim())   errors.lastName  = "Last name is required.";
-  if (!email?.trim())      errors.email     = "Email is required.";
-  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = "Enter a valid email.";
-  if (!password?.trim())   errors.password  = "Password is required.";
-  if (password && password.length < 8) errors.password = "Password must be at least 8 characters.";
-  if (password !== confirmPassword)    errors.confirmPassword = "Passwords do not match.";
-  if (tenantName?.trim() && tenantId?.trim()) errors._ = "Cannot specify both Tenant Name and Tenant ID.";
-  if (tenantId?.trim() && !role?.trim()) errors.role = "Role is required when joining an organization.";
-  if (Object.keys(errors).length) return { status: "error", errors };
-  // Call registration API to create user with optional tenantName
-  // Example payload: { firstName, lastName, email, password, tenantName }
-  const finalRole = role?.trim() || "SalesRep";
-  const payload: Record<string, unknown> = { firstName: firstName.trim(), lastName: lastName.trim(), email: email.trim(), password };
-  if (tenantName?.trim()) payload.tenantName = tenantName.trim();
-  if (tenantId?.trim()) {
-    payload.tenantId = tenantId.trim();
-    payload.role = finalRole;
+  if (!relatedToId?.trim()) errors.relatedToId   = "Related entity ID is required.";
+  if (Object.keys(errors).length) {
+    console.log("[createNoteAction] Validation errors:", errors);
+    return { status: "error", errors };
   }
 
   try {
-    const base = process.env.NEXT_PUBLIC_API_URL ?? process.env.API_BASE_URL ?? "";
-    const res = await fetch(`${base.replace(/\/$/, "")}/auth/register`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    console.log("[createNoteAction] Calling API with data:", { relatedToType, relatedToId, isPrivate });
+    await apiPost("/notes", {
+      content, relatedToType: Number(relatedToType), relatedToId, isPrivate,
+    }, token);
+    console.log("[createNoteAction] Note created successfully");
+  } catch (err: unknown) {
+    console.error("[createNoteAction] Error:", err);
+    const e = err as { data?: { message?: string } };
+    return { status: "error", message: e.data?.message ?? "Failed to add note." };
+  }
 
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) {
-      // Map any validation errors returned by the API into the form errors shape
-      const apiErrors: Partial<Record<string, string>> = {};
-      if (data && typeof data === "object") {
-        if (data.errors && typeof data.errors === "object") Object.assign(apiErrors, data.errors);
-        if (data.message && !Object.keys(apiErrors).length) apiErrors["_message"] = String(data.message);
-      }
-      return { status: "error", message: data?.message ?? "Registration failed.", errors: apiErrors };
+  const destination = relatedToPath?.trim() || "/activities";
+  revalidatePath(destination);
+  redirect(destination);
+}
+
+/* ══════════════════════════════════════════════════════
+   PROPOSALS
+══════════════════════════════════════════════════════ */
+export async function submitProposalAction(
+  _prevState: ProposalFormState,
+  formData: FormData
+): Promise<ProposalFormState> {
+  console.log("[submitProposalAction] Starting proposal submission...");
+  const token            = formData.get("_token")          as string;
+  const clientName       = formData.get("clientName")       as string;
+  const opportunityId    = formData.get("opportunityId")    as string;
+  const deadline         = formData.get("deadline")         as string;
+  const requirements     = formData.get("requirements")     as string;
+  const licenses         = formData.get("licenses")         as string;
+  const contractDuration = formData.get("contractDuration") as string;
+  const services         = formData.get("services")         as string;
+  const attachments      = formData.getAll("attachments")   as File[];
+
+  const scopeItems: string[] = [];
+  for (const [key, val] of formData.entries()) {
+    if (key.startsWith("scopeItem_") && typeof val === "string" && val.trim()) {
+      scopeItems.push(val.trim());
     }
+  }
 
-    // Success — API typically returns created user (and maybe tenant info)
-    const user = (data && typeof data === "object" && (data.user ?? data)) || { firstName, lastName, email };
-    // Return success and user to the client; client will navigate to /login
-    return { status: "success", user };
-  } catch (err) {
-    return { status: "error", message: "Registration failed. Please try again." };
+  const errors: Partial<Record<string, string>> = {};
+  if (!clientName?.trim())    errors.clientName    = "Client name is required.";
+  if (!opportunityId?.trim()) errors.opportunityId = "Opportunity ID is required.";
+  if (!deadline)              errors.deadline      = "Deadline is required.";
+  if (!requirements?.trim())  errors.requirements  = "Requirements are required.";
+  if (Object.keys(errors).length > 0) {
+    console.log("[submitProposalAction] Validation errors:", errors);
+    return { status: "error", errors };
+  }
+
+  try {
+    console.log("[submitProposalAction] Calling API with data:", { opportunityId, clientName, scopeItems });
+    const data = await apiPost("/proposals", {
+      opportunityId, title: clientName, description: requirements,
+      validUntil: deadline, licenses, contractDuration, services,
+      scopeItems, attachmentCount: attachments.filter(f => f.size > 0).length,
+    }, token);
+    console.log("[submitProposalAction] Success, proposal ID:", data.id);
+    revalidatePath("/opportunities");
+    redirect(`/proposals/${data.id}`);
+  } catch (err: unknown) {
+    console.error("[submitProposalAction] Error:", err);
+    const e = err as { data?: { message?: string } };
+    return { status: "error", message: e.data?.message ?? "Failed to submit proposal." };
   }
 }

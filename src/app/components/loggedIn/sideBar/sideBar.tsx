@@ -5,6 +5,7 @@ import {
   UserOutlined,
 } from "@ant-design/icons";
 import { useSidebarStyles } from "./sideBar.module";
+import Link from "next/link";
 
 const NAV_ITEMS = [
   { icon: <HomeOutlined />, label: "Overview",     href: "/admin/dashboard" },
@@ -20,20 +21,20 @@ export default function Sidebar() {
     <aside className={styles.sidebar}>
       {/* ── Top: logo + nav ── */}
       <div className={styles.sidebarTop}>
-        <a href="/" className={styles.logo}>
+        <Link href="/" className={styles.logo}>
           <span className={styles.logoIcon}>❄️</span>
           <span>snowui</span>
-        </a>
+        </Link>
 
         {NAV_ITEMS.map(({ icon, label, href }) => (
-          <a
+          <Link
             key={label}
             href={href}
             className={styles.navItem}
           >
             <span className={styles.navIcon}>{icon}</span>
             {label}
-          </a>
+          </Link>
         ))}
       </div>
 

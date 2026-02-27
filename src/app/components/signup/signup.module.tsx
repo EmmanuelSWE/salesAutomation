@@ -68,6 +68,25 @@ export const useSignupStyles = createStyles(({ css }) => ({
       background: white !important;
       color: black !important;
     }
+
+    /* For Select component */
+    &.ant-select {
+      .ant-select-selector {
+        border-radius: 50px !important;
+        border: 2px solid #f39c12 !important;
+        padding: 10px 18px !important;
+        background: white !important;
+        color: black !important;
+      }
+
+      .ant-select-selection-item {
+        color: black !important;
+      }
+
+      .ant-select-selection-placeholder {
+        color: #888888 !important;
+      }
+    }
   `,
 
   button: css`

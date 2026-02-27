@@ -5,8 +5,8 @@ import { Input, Select } from "antd";
 import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSignupStyles } from "../../components/signup/signup.module";
-import { useUserAction } from "../../lib/providers/index";
 import { registerAction } from "../../lib/actions";
+import { setToken } from "../../lib/utils/axiosInstance";
 import {SubmitButton} from "../../components/loggedIn/form/submitButton";
 import Link from "next/link";
 
@@ -14,19 +14,17 @@ const { Option } = Select;
 
 const Signup = () => {
   const { styles } = useSignupStyles();
-  const { registerUser } = useUserAction();
-  const [state, formAction] = useActionState(registerAction, { status: "idle" });
   const router = useRouter();
+  const [state, formAction] = useActionState(registerAction, { status: "idle" });
   const [tenantIdValue, setTenantIdValue] = useState("");
   const [roleValue, setRoleValue] = useState("SalesRep");
 
   useEffect(() => {
-    if (state.status === "success" && state.user) {
-      registerUser(state.user);
-      // After registering the user in client state, navigate to login
+    if (state.status === "success" && state.token) {
+      setToken(state.token);
       router.push("/login");
     }
-  }, [state.status]);
+  }, [state.status, state.token, router]);
 
   return (
     <div className={styles.container}>
@@ -38,6 +36,12 @@ const Signup = () => {
           <p style={{ color: "red", marginBottom: 12 }}>{state.message}</p>
         )}
 
+        {/* 
+          Three Registration Scenarios:
+          1. Create new organization: Fill in Tenant Name (no Tenant ID) → become Admin/Owner
+          2. Join existing organization: Fill in Tenant ID + select Role → join with specified role
+          3. Default tenant: Leave both empty → register with default tenant as SalesRep
+        */}
         <form action={formAction}>
           {/* First Name */}
           <div style={{ marginBottom: 16 }}>
@@ -166,9 +170,14 @@ const Signup = () => {
               <Select
                 placeholder="Select Role"
                 className={styles.input}
-                defaultValue="SalesRep"
                 value={roleValue}
                 onChange={(value) => setRoleValue(value)}
+                popupMatchSelectWidth={false}
+                dropdownRender={(menu) => (
+                  <div style={{ background: 'white' }}>
+                    {menu}
+                  </div>
+                )}
               >
                 <Option value="SalesRep">Sales Rep</Option>
                 <Option value="SalesManager">Sales Manager</Option>

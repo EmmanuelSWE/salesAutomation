@@ -1,3 +1,15 @@
 @import '~antd/dist/antd.css';
 *{margin: 0; padding: 0; box-sizing: border-box;}
 
+/* Ant Design Select dropdown styling */
+.ant-select-dropdown {
+  background: white !important;
+}
+
+.ant-select-item {
+  color: #000 !important;
+}
+
+.ant-select-item-option-content {
+  color: #000 !important;
+}
