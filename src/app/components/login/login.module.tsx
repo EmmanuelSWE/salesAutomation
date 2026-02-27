@@ -7,7 +7,11 @@ export const useLoginStyles = createStyles(({ css }) => ({
     display: flex;
     justify-content: center;
     align-items: center;
-    background: radial-gradient(ellipse at 60% 40%, #1a0e00 0%, #0d0d0d 60%, #000 100%);
+    background:
+      radial-gradient(ellipse 55% 60% at 95% 50%, rgba(243, 156, 18, 0.45) 0%, transparent 70%),
+      radial-gradient(ellipse 55% 60% at 5% 50%, rgba(230, 126, 34, 0.40) 0%, transparent 70%),
+      radial-gradient(ellipse 40% 40% at 50% 100%, rgba(243, 100, 10, 0.20) 0%, transparent 60%),
+      #050505;
   `,
 
   card: css`
@@ -86,30 +90,6 @@ export const useLoginStyles = createStyles(({ css }) => ({
       color: #666 !important;
       &:hover { color: #f39c12 !important; }
     }
-  `,
-
-  button: css`
-    margin-top: 8px;
-    width: 100%;
-    height: 46px !important;
-    border-radius: 10px !important;
-    background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%) !important;
-    border: none !important;
-    color: #000 !important;
-    font-weight: 700 !important;
-    font-size: 15px !important;
-    letter-spacing: 0.02em !important;
-    box-shadow: 0 4px 20px rgba(243, 156, 18, 0.35) !important;
-    transition: opacity 0.2s, transform 0.1s, box-shadow 0.2s !important;
-    cursor: pointer;
-
-    &:hover {
-      opacity: 0.9 !important;
-      box-shadow: 0 6px 28px rgba(243, 156, 18, 0.5) !important;
-    }
-
-    &:active { transform: scale(0.98) !important; }
-    &:disabled { opacity: 0.5 !important; cursor: not-allowed !important; }
   `,
 
   divider: css`

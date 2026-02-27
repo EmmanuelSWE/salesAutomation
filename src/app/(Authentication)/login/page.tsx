@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useLoginStyles } from "../../components/login/login.module";
 import { loginAction } from "../../lib/actions";
 import { setToken } from "../../lib/utils/axiosInstance";
+import { AuthButton } from "../../components/auth/authButton";
 
 const Login = () => {
   const { styles } = useLoginStyles();
@@ -34,8 +35,9 @@ const Login = () => {
 
         <form action={formAction}>
           <div style={{ marginBottom: 18, textAlign: "left" }}>
-            <label className={styles.label}>Email</label>
+            <label className={styles.label} htmlFor="email">Email</label>
             <Input
+              id="email"
               name="email"
               placeholder="you@company.com"
               className={styles.input}
@@ -47,8 +49,9 @@ const Login = () => {
           </div>
 
           <div style={{ marginBottom: 24, textAlign: "left" }}>
-            <label className={styles.label}>Password</label>
+            <label className={styles.label} htmlFor="password">Password</label>
             <Input.Password
+              id="password"
               name="password"
               placeholder="••••••••"
               className={styles.input}
@@ -59,7 +62,7 @@ const Login = () => {
             )}
           </div>
 
-          <button type="submit" className={styles.button}>Login</button>
+          <AuthButton label="Login" />
         </form>
 
         <p className={styles.footer}>
