@@ -1,8 +1,9 @@
 "use client";
-import { useActionState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { createOpportunityAction, type FormState } from "../../../lib/actions";
 import { SubmitButton } from "../form/submitButton";
 import { useFormStyles } from "../form/form.module";
+import { useUserState, useUserAction } from "../../../lib/providers/provider";
 
 const initial: FormState = { status: "idle" };
 const STAGES    = [["1","Prospecting"],["2","Qualification"],["3","Proposal"],["4","Negotiation"],["5","Closed Won"],["6","Closed Lost"]];
@@ -11,10 +12,23 @@ const CURRENCIES = ["ZAR","USD","EUR","GBP"];
 
 export default function CreateOpportunity() {
   const { styles } = useFormStyles();
+  const [token, setToken] = useState("");
   const [state, formAction] = useActionState(createOpportunityAction, initial);
+
+  const { users }    = useUserState();
+  const { getUsers } = useUserAction();
+
+  useEffect(() => {
+    setToken(localStorage.getItem("auth_token") ?? "");
+    getUsers({ role: "SalesRep", isActive: true });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const salesReps = users ?? [];
+
   return (
     <div className={styles.page}>
       <form action={formAction} className={styles.form}>
+        <input type="hidden" name="_token" value={token} />
         <h1 className={styles.formTitle}>Create Opportunity</h1>
         {state.status === "success" && <div className={styles.successBanner}>{state.message}</div>}
 
@@ -93,6 +107,19 @@ export default function CreateOpportunity() {
                 {SOURCES.map(([v,l]) => <option key={v} value={v}>{l}</option>)}
               </select>
             </div>
+          </div>
+
+          {/* Owner (SalesRep) */}
+          <div className={styles.field}>
+            <label className={styles.label} htmlFor="ownerId">Owner</label>
+            <select id="ownerId" name="ownerId" className={styles.select} defaultValue="">
+              <option value="">Unassigned</option>
+              {salesReps.map((u) => (
+                <option key={u.id} value={u.id ?? ""}>
+                  {u.firstName} {u.lastName}
+                </option>
+              ))}
+            </select>
           </div>
         </section>
 

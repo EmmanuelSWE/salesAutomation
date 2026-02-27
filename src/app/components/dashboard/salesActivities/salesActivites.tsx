@@ -16,7 +16,7 @@ interface SalesActivitiesProps {
   activities: DashboardActivities;
 }
 
-export default function SalesActivities({ sales, activities }: SalesActivitiesProps) {
+export default function SalesActivities({ sales, activities }: Readonly<SalesActivitiesProps>) {
   const { styles } = useSalesActivitiesStyles();
 
   const salesChartData = {

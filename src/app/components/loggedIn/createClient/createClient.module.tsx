@@ -130,4 +130,21 @@ export const useCreateClientStyles = createStyles(({ css }) => ({
     &:active { transform: scale(0.97); }
     &:disabled { opacity: 0.6; cursor: not-allowed; }
   `,
+
+  toggle: css`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #ccc;
+    font-size: 13px;
+    cursor: pointer;
+    user-select: none;
+  `,
+
+  checkbox: css`
+    width: 16px;
+    height: 16px;
+    accent-color: #f5a623;
+    cursor: pointer;
+  `,
 }));

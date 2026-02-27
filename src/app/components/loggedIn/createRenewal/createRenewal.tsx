@@ -1,5 +1,5 @@
 "use client";
-import { useActionState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { createRenewalAction, type FormState } from "../../../lib/actions";
 import { SubmitButton } from "../form/submitButton";
 import { useFormStyles } from "../form/form.module";
@@ -8,13 +8,17 @@ interface Props { contractId?: string }
 
 const initial: FormState = { status: "idle" };
 
-export default function CreateRenewal({ contractId }: Props) {
+export default function CreateRenewal({ contractId }: Readonly<Props>) {
   const { styles } = useFormStyles();
+  const [token, setToken] = useState("");
   const [state, formAction] = useActionState(createRenewalAction, initial);
+
+  useEffect(() => { setToken(localStorage.getItem("auth_token") ?? ""); }, []);
 
   return (
     <div className={styles.page}>
       <form action={formAction} className={styles.form}>
+        <input type="hidden" name="_token" value={token} />
         <h1 className={styles.formTitle}>Create Renewal</h1>
         {state.status === "success" && <div className={styles.successBanner}>{state.message}</div>}
 

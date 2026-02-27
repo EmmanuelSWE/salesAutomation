@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   SearchOutlined,
@@ -12,6 +12,7 @@ import {
   RightOutlined,
 } from "@ant-design/icons";
 import { useClientsStyles } from "./clients.module";
+import { useClientAction, useClientState } from "../../../lib/providers/provider";
 
 interface Client {
   id: string;
@@ -24,21 +25,22 @@ interface Client {
   avatarColor: string;
 }
 
-// Placeholder — replace with fetch to GET /api/clients
-const DUMMY: Client[] = [
-  { id: "abc123", clientId: "#CM9801", name: "Acme Corp",       industry: "Technology",    joinedDate: "Just now",       status: "In Progress", avatarInitials: "AC", avatarColor: "#5c6bc0" },
-  { id: "def456", clientId: "#CM9802", name: "Beta LLC",        industry: "Finance",       joinedDate: "1 minute ago",   status: "Complete",    avatarInitials: "BL", avatarColor: "#26a69a" },
-  { id: "ghi789", clientId: "#CM9803", name: "Gamma Inc",       industry: "Healthcare",    joinedDate: "1 hour ago",     status: "Pending",     avatarInitials: "GI", avatarColor: "#ef5350" },
-  { id: "jkl012", clientId: "#CM9804", name: "Delta Corp",      industry: "Retail",        joinedDate: "Yesterday",      status: "Approved",    avatarInitials: "DC", avatarColor: "#f5a623" },
-  { id: "mno345", clientId: "#CM9805", name: "Epsilon Ltd",     industry: "Manufacturing", joinedDate: "Feb 2, 2026",    status: "Rejected",    avatarInitials: "EL", avatarColor: "#78909c" },
-  { id: "pqr678", clientId: "#CM9806", name: "Zeta Partners",   industry: "Education",     joinedDate: "Just now",       status: "In Progress", avatarInitials: "ZP", avatarColor: "#ab47bc" },
-  { id: "stu901", clientId: "#CM9807", name: "Eta Solutions",   industry: "Legal",         joinedDate: "3 hours ago",    status: "Pending",     avatarInitials: "ES", avatarColor: "#29b6f6" },
-  { id: "vwx234", clientId: "#CM9808", name: "Theta Group",     industry: "Technology",    joinedDate: "Feb 1, 2026",    status: "Complete",    avatarInitials: "TG", avatarColor: "#66bb6a" },
-  { id: "yza567", clientId: "#CM9809", name: "Iota Ventures",   industry: "Finance",       joinedDate: "Jan 30, 2026",   status: "Approved",    avatarInitials: "IV", avatarColor: "#ff7043" },
-  { id: "bcd890", clientId: "#CM9810", name: "Kappa Industries",industry: "Healthcare",    joinedDate: "Jan 28, 2026",   status: "Rejected",    avatarInitials: "KI", avatarColor: "#8d6e63" },
-];
+const PAGE_SIZE = 10;
+const AVATAR_COLORS = ["#5c6bc0", "#26a69a", "#ef5350", "#f5a623", "#78909c", "#ab47bc", "#29b6f6", "#66bb6a", "#ff7043", "#8d6e63"];
 
-const PAGE_SIZE = 5;
+const getAvatarInitials = (name: string) => {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  if (words.length === 0) return "--";
+  if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
+  return `${words[0][0]}${words[1][0]}`.toUpperCase();
+};
+
+const getJoinedDate = (createdAt?: string) => {
+  if (!createdAt) return "-";
+  const parsed = new Date(createdAt);
+  if (Number.isNaN(parsed.getTime())) return "-";
+  return parsed.toLocaleDateString();
+};
 
 const STATUS_BADGE: Record<Client["status"], string> = {
   "In Progress": "badgeInProgress",
@@ -50,18 +52,43 @@ const STATUS_BADGE: Record<Client["status"], string> = {
 
 export default function ClientList() {
   const { styles, cx } = useClientsStyles();
+  const { clients, isPending, isError, clientsTotalPages } = useClientState();
+  const { getClients } = useClientAction();
   const [search, setSearch]   = useState("");
   const [page, setPage]       = useState(1);
 
-  const filtered = DUMMY.filter(
+  useEffect(() => {
+    getClients({ pageNumber: page, pageSize: PAGE_SIZE });
+  }, [page]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const mappedClients: Client[] = (clients ?? []).map((client, index) => ({
+    id: client.id ?? `client-${index + 1}`,
+    clientId: `#CM${String(((page - 1) * PAGE_SIZE) + index + 1).padStart(4, "0")}`,
+    name: client.name,
+    industry: client.industry,
+    joinedDate: getJoinedDate(client.createdAt),
+    status: client.isActive === false ? "Rejected" : "Approved",
+    avatarInitials: getAvatarInitials(client.name),
+    avatarColor: AVATAR_COLORS[index % AVATAR_COLORS.length],
+  }));
+
+  const filtered = mappedClients.filter(
     (c) =>
       c.name.toLowerCase().includes(search.toLowerCase()) ||
       c.clientId.toLowerCase().includes(search.toLowerCase()) ||
       c.industry.toLowerCase().includes(search.toLowerCase())
   );
 
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-  const rows = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const totalPages = clientsTotalPages ?? Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const rows = search ? filtered : mappedClients;
+
+  if (isPending) {
+    return <p>Loading clients...</p>;
+  }
+
+  if (isError) {
+    return <p>Failed to load clients.</p>;
+  }
 
   return (
     <div className={styles.page}>
@@ -80,7 +107,7 @@ export default function ClientList() {
         </div>
         <button className={styles.iconBtn} title="Sort"><SwapOutlined rotate={90} /></button>
         <button className={styles.iconBtn} title="Filter"><FilterOutlined /></button>
-        <Link href="/admin/clients/create">
+        <Link href="/Client/createClient">
           <button className={styles.addBtn} title="Add client"><PlusOutlined /></button>
         </Link>
       </div>
@@ -154,13 +181,13 @@ export default function ClientList() {
           <LeftOutlined />
         </button>
 
-        {Array.from({ length: totalPages }).map((_, i) => (
+        {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNumber) => (
           <button
-            key={i}
-            className={cx(styles.pageBtn, page === i + 1 && styles.pageBtnActive)}
-            onClick={() => setPage(i + 1)}
+            key={pageNumber}
+            className={cx(styles.pageBtn, page === pageNumber && styles.pageBtnActive)}
+            onClick={() => setPage(pageNumber)}
           >
-            {i + 1}
+            {pageNumber}
           </button>
         ))}
 

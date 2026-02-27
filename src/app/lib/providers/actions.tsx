@@ -2,17 +2,17 @@
 'use client';
 import { createAction } from "redux-actions";
 import {
-  IClientStateContext,       IClient,
+  IClientStateContext,       IClient,       IClientPage,
   IContactStateContext,      IContact,
   IOpportunityStateContext,  IOpportunity, IOpportunityStageHistory,
   IProposalStateContext,     IProposal,
   IPricingRequestStateContext, IPricingRequest,
   IContractStateContext,     IContract, IContractRenewal,
   IActivityStateContext,     IActivity,
-  INoteStateContext,         INote,
+  INoteStateContext,   IUserStateContext, IUser ,       INote,
 } from "./context";
 
-import { IUserStateContext, IUser } from "./context";
+
 
 /* ══════════════════════════════════════════════════════
    USER
@@ -93,7 +93,7 @@ export enum ClientActionEnums {
 }
 
 export const getClientsPending   = createAction<IClientStateContext>(ClientActionEnums.getClientsPending,   () => ({ isPending: true,  isSuccess: false, isError: false }));
-export const getClientsSuccess   = createAction<IClientStateContext, IClient[]>(ClientActionEnums.getClientsSuccess, (clients: IClient[]) => ({ isPending: false, isSuccess: true,  isError: false, clients }));
+export const getClientsSuccess   = createAction<IClientStateContext, IClientPage>(ClientActionEnums.getClientsSuccess, (page: IClientPage) => ({ isPending: false, isSuccess: true, isError: false, clients: page.items, clientsTotalCount: page.totalCount, clientsTotalPages: page.totalPages, clientsPageNumber: page.pageNumber, clientsHasNextPage: page.hasNextPage }));
 export const getClientsError     = createAction<IClientStateContext>(ClientActionEnums.getClientsError,     () => ({ isPending: false, isSuccess: false, isError: true  }));
 
 export const getOneClientPending = createAction<IClientStateContext>(ClientActionEnums.getOneClientPending, () => ({ isPending: true,  isSuccess: false, isError: false }));

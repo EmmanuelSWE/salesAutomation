@@ -1,19 +1,32 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { createPricingRequestAction, type FormState } from "../../../lib/actions";
 import { SubmitButton } from "../form/submitButton";
 import { useFormStyles } from "../form/form.module";
+import { useUserState, useUserAction } from "../../../lib/providers/provider";
 
 const initial: FormState = { status: "idle" };
 
 export default function CreatePricingRequest() {
   const { styles } = useFormStyles();
+  const [token, setToken] = useState("");
   const [state, formAction] = useActionState(createPricingRequestAction, initial);
+
+  const { users }    = useUserState();
+  const { getUsers } = useUserAction();
+
+  useEffect(() => {
+    setToken(localStorage.getItem("auth_token") ?? "");
+    getUsers({ isActive: true });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const activeUsers = users ?? [];
 
   return (
     <div className={styles.page}>
       <form action={formAction} className={styles.form}>
+        <input type="hidden" name="_token" value={token} />
         <h1 className={styles.formTitle}>Create Pricing Request</h1>
 
         {state.status === "success" && (
@@ -52,8 +65,15 @@ export default function CreatePricingRequest() {
           </div>
 
           <div className={styles.field}>
-            <label className={styles.label} htmlFor="requestedById">Requested By (User ID)</label>
-            <input id="requestedById" name="requestedById" className={styles.input} />
+            <label className={styles.label} htmlFor="requestedById">Requested By</label>
+            <select id="requestedById" name="requestedById" className={styles.select} defaultValue="">
+              <option value="">Select requester…</option>
+              {activeUsers.map((u) => (
+                <option key={u.id} value={u.id ?? ""}>
+                  {u.firstName} {u.lastName} ({u.role ?? "User"})
+                </option>
+              ))}
+            </select>
           </div>
         </section>
 

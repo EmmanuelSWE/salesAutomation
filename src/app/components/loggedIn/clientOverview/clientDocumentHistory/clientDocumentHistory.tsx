@@ -23,7 +23,7 @@ interface ClientDocumentHistoryProps {
 export default function ClientDocumentHistory({
   invoices,
   defaultPeriod = "Month",
-}: ClientDocumentHistoryProps) {
+}: Readonly<ClientDocumentHistoryProps>) {
   const { styles: card, cx } = useCardStyles();
   const { styles }           = useClientDocumentHistoryStyles();
   const [period, setPeriod]  = useState<Period>(defaultPeriod);
@@ -34,13 +34,14 @@ export default function ClientDocumentHistory({
         <h3 className={card.cardTitle}>Document History</h3>
         <div className={card.periodTabs}>
           {(["Month", "Year", "All Time"] as Period[]).map((p) => (
-            <span
+            <button
               key={p}
+              type="button"
               className={cx(card.periodTab, period === p && card.periodTabActive)}
               onClick={() => setPeriod(p)}
             >
               {p}
-            </span>
+            </button>
           ))}
         </div>
       </div>

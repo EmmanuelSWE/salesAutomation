@@ -1,7 +1,5 @@
 import ClientList from "@/app/components/loggedIn/clients/clientList";
 
-const ClientsPage = () => {
-  return <ClientList />;
-};
+const ClientsPage = () => <ClientList />;
 
 export default ClientsPage;

@@ -1,25 +1,27 @@
-import { getDashboardData }   from "../../../lib/placeholderdata";
 import KpiCards               from "../kpiCards/kpiCards";
 import PipelineChart          from "../pipelineChart/pipelineChart";
 import SalesActivities        from "../salesActivities/salesActivites";
 import RevenueTrendChart      from "../revenueChart/revenueChart";
+import type {
+  DashboardKpis,
+  DashboardPipeline,
+  DashboardSalesPerformance,
+  DashboardActivities,
+  DashboardRevenue,
+} from "../../../lib/placeholderdata";
 
-export async function KpiSection() {
-  const { kpis } = await getDashboardData();
-  return <KpiCards data={kpis} />;
+export function KpiSection({ data }: Readonly<{ data: DashboardKpis }>) {
+  return <KpiCards data={data} />;
 }
 
-export async function PipelineSection() {
-  const { pipeline } = await getDashboardData();
-  return <PipelineChart data={pipeline} />;
+export function PipelineSection({ data }: Readonly<{ data: DashboardPipeline }>) {
+  return <PipelineChart data={data} />;
 }
 
-export async function SalesActivitiesSection() {
-  const { salesPerformance, activities } = await getDashboardData();
-  return <SalesActivities sales={salesPerformance} activities={activities} />;
+export function SalesActivitiesSection({ sales, activities }: Readonly<{ sales: DashboardSalesPerformance; activities: DashboardActivities }>) {
+  return <SalesActivities sales={sales} activities={activities} />;
 }
 
-export async function RevenueTrendSection() {
-  const { revenue } = await getDashboardData();
-  return <RevenueTrendChart data={revenue} />;
+export function RevenueTrendSection({ data }: Readonly<{ data: DashboardRevenue }>) {
+  return <RevenueTrendChart data={data} />;
 }

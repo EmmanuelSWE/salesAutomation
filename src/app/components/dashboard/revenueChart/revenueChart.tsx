@@ -10,6 +10,7 @@ import {
   LinearScale,
   Tooltip,
   Legend,
+  type TooltipItem,
 } from "chart.js";
 import type { DashboardRevenue } from "../../../lib/placeholderdata";
 import { useRevenueTrendStyles } from "./revenueChart.module";
@@ -24,7 +25,7 @@ interface RevenueTrendChartProps {
   data: DashboardRevenue;
 }
 
-export default function RevenueTrendChart({ data }: RevenueTrendChartProps) {
+export default function RevenueTrendChart({ data }: Readonly<RevenueTrendChartProps>) {
   const { styles } = useRevenueTrendStyles();
 
   const chartData = {
@@ -61,8 +62,8 @@ export default function RevenueTrendChart({ data }: RevenueTrendChartProps) {
       legend: { display: false },
       tooltip: {
         callbacks: {
-          label: (ctx: { dataset: { label: string }; raw: unknown }) =>
-            ` ${ctx.dataset.label}: ${fmtK(ctx.raw as number)}`,
+          label: (ctx: TooltipItem<"line">) =>
+            ` ${ctx.dataset.label ?? ""}: ${fmtK(ctx.raw as number)}`,
         },
       },
     },
@@ -83,11 +84,11 @@ export default function RevenueTrendChart({ data }: RevenueTrendChartProps) {
         </div>
         <div className={styles.legendGroup}>
           <span className={styles.legendItem}>
-            <span className={styles.legendLine} style={{ background: "#ef5350" }} />
+            <span className={styles.legendLine} style={{ background: "#ef5350" }} />{" "}
             Actual
           </span>
           <span className={styles.legendItem}>
-            <span className={styles.legendLine} style={{ background: "#888" }} />
+            <span className={styles.legendLine} style={{ background: "#888" }} />{" "}
             Target
           </span>
           <div className={styles.moreBtn}><MoreOutlined /></div>
@@ -111,7 +112,7 @@ export default function RevenueTrendChart({ data }: RevenueTrendChartProps) {
       </div>
 
       <div className={styles.chartWrap}>
-        <Line data={chartData} />
+        <Line data={chartData} options={options} />
       </div>
     </section>
   );
