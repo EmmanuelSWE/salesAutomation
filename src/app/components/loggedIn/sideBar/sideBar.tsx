@@ -8,7 +8,7 @@ import {
 } from "@ant-design/icons";
 import { useSidebarStyles } from "./sideBar.module";
 import Link from "next/link";
-import { useUserState } from "../../../lib/providers/index";
+import { useUserState } from "../../../lib/providers/provider";
 
 const NAV_ITEMS = [
   { icon: <HomeOutlined />, label: "Overview",     href: "/admin/dashboard" },
@@ -29,7 +29,7 @@ export default function Sidebar() {
       <div className={styles.sidebarTop}>
         <Link href="/" className={styles.logo}>
           <span className={styles.logoIcon}>❄️</span>
-          <span>snowui</span>
+          <span> TransformSales</span>
         </Link>
 
         {NAV_ITEMS.map(({ icon, label, href }) => (

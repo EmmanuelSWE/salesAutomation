@@ -14,7 +14,7 @@ export interface IUser {
   lastName:      string;          // required
   phoneNumber?:  string;          // optional
   tenantName?:   string;          // optional — creates new org, caller becomes Admin
-                                  //            mutually exclusive with tenantId
+           //            mutually exclusive with tenantId
   tenantId?:     string;          // optional guid — joins existing org by ID
   role?:         string;          // optional — defaults to "SalesRep"
                                   //            cannot be "Admin" when joining via tenantId
@@ -30,6 +30,7 @@ export interface IUserStateContext {
   isPending:  boolean;
   isSuccess:  boolean;
   isError:    boolean;
+   token?:        string;
   user?:      IUser;
   users?:     IUser[];
 }
@@ -38,9 +39,9 @@ export interface IUserStateContext {
    ACTIONS INTERFACE
 ══════════════════════════════════════════════════════ */
 export interface IUserActionsContext {
-  getUsers:        ()          => void;
-  getOneUser:      (id: string) => void;
-  logoutUser:      ()          => void;
+  getUsers:    ()           => Promise<void>;
+  getOneUser:  (id: string) => Promise<void>;
+  logoutUser:  ()           => void;
 }
 
 /* ══════════════════════════════════════════════════════
@@ -63,32 +64,51 @@ export const UserActionsContext = createContext<IUserActionsContext>(null as unk
 
 /* ── Interface ── */
 export interface IClient {
-  id?:             string;
-  name:            string;
-  industry:        string;
-  clientType:      ClientType;
-  website?:        string;
-  billingAddress:  string;
-  taxNumber?:      string;
-  companySize?:    string;
-  isActive?:       boolean;
-  createdAt?:      string;
-  updatedAt?:      string;
+  id?:                  string;
+  name:                 string;
+  industry:             string;
+  clientType:           ClientType;
+  website?:             string;
+  billingAddress?:      string;
+  taxNumber?:           string;
+  companySize?:         string;
+  isActive?:            boolean;
+  createdById?:         string;
+  createdByName?:       string;
+  createdAt?:           string;
+  updatedAt?:           string;
+  contactsCount?:       number;
+  opportunitiesCount?:  number;
+  contractsCount?:      number;
+}
+
+export interface IClientPage {
+  items:           IClient[];
+  pageNumber:      number;
+  pageSize:        number;
+  totalCount:      number;
+  totalPages:      number;
+  hasNextPage:     boolean;
+  hasPreviousPage: boolean;
 }
 
 /* ── State ── */
 export interface IClientStateContext {
-  isPending:  boolean;
-  isSuccess:  boolean;
-  isError:    boolean;
-  client?:    IClient;
-  clients?:   IClient[];
+  isPending:          boolean;
+  isSuccess:          boolean;
+  isError:            boolean;
+  client?:            IClient;
+  clients?:           IClient[];
+  clientsTotalCount?: number;
+  clientsTotalPages?: number;
+  clientsPageNumber?: number;
+  clientsHasNextPage?: boolean;
 }
 
 /* ── Actions ── */
 export interface IClientActionsContext {
-  getClients:    (params?: object) => void;
-  getOneClient:  (id: string)      => void;
+  getClients:   (params?: { pageNumber?: number; pageSize?: number; [key: string]: unknown }) => Promise<void>;
+  getOneClient: (id: string) => Promise<void>;
 }
 
 /* ── Initial state ── */
@@ -128,9 +148,9 @@ export interface IContactStateContext {
 
 /* ── Actions ── */
 export interface IContactActionsContext {
-  getContacts:          (params?: object) => void;
-  getContactsByClient:  (clientId: string) => void;
-  getOneContact:        (id: string)       => void;
+  getContacts:         (params?: object)  => Promise<void>;
+  getContactsByClient: (clientId: string) => Promise<void>;
+  getOneContact:       (id: string)       => Promise<void>;
 }
 
 /* ── Initial state ── */
@@ -185,11 +205,11 @@ export interface IOpportunityStateContext {
 
 /* ── Actions ── */
 export interface IOpportunityActionsContext {
-  getOpportunities:     (params?: object)  => void;
-  getMyOpportunities:   (params?: object)  => void;
-  getPipeline:          (ownerId?: string) => void;
-  getOneOpportunity:    (id: string)       => void;
-  getStageHistory:      (id: string)       => void;
+  getOpportunities:   (params?: object)  => Promise<void>;
+  getMyOpportunities: (params?: object)  => Promise<void>;
+  getPipeline:        (ownerId?: string) => Promise<void>;
+  getOneOpportunity:  (id: string)       => Promise<void>;
+  getStageHistory:    (id: string)       => Promise<void>;
 }
 
 /* ── Initial state ── */
@@ -245,8 +265,8 @@ export interface IProposalStateContext {
 
 /* ── Actions ── */
 export interface IProposalActionsContext {
-  getProposals:     (params?: object) => void;
-  getOneProposal:   (id: string)      => void;
+  getProposals:   (params?: object) => Promise<void>;
+  getOneProposal: (id: string)      => Promise<void>;
 }
 
 /* ── Initial state ── */
@@ -289,10 +309,10 @@ export interface IPricingRequestStateContext {
 
 /* ── Actions ── */
 export interface IPricingRequestActionsContext {
-  getPricingRequests:      (params?: object) => void;
-  getPendingRequests:      ()               => void;
-  getMyRequests:           ()               => void;
-  getOnePricingRequest:    (id: string)     => void;
+  getPricingRequests:   (params?: object) => Promise<void>;
+  getPendingRequests:   ()               => Promise<void>;
+  getMyRequests:        ()               => Promise<void>;
+  getOnePricingRequest: (id: string)     => Promise<void>;
 }
 
 /* ── Initial state ── */
@@ -354,10 +374,10 @@ export interface IContractStateContext {
 
 /* ── Actions ── */
 export interface IContractActionsContext {
-  getContracts:         (params?: object)        => void;
-  getOneContract:       (id: string)             => void;
-  getExpiringContracts: (daysUntilExpiry?: number) => void;
-  getContractsByClient: (clientId: string)       => void;
+  getContracts:         (params?: object)         => Promise<void>;
+  getOneContract:       (id: string)              => Promise<void>;
+  getExpiringContracts: (daysUntilExpiry?: number) => Promise<void>;
+  getContractsByClient: (clientId: string)        => Promise<void>;
 }
 
 /* ── Initial state ── */
@@ -402,11 +422,11 @@ export interface IActivityStateContext {
 
 /* ── Actions ── */
 export interface IActivityActionsContext {
-  getActivities:      (params?: object)    => void;
-  getMyActivities:    (params?: object)    => void;
-  getUpcoming:        (daysAhead?: number) => void;
-  getOverdue:         ()                   => void;
-  getOneActivity:     (id: string)         => void;
+  getActivities:   (params?: object)    => Promise<void>;
+  getMyActivities: (params?: object)    => Promise<void>;
+  getUpcoming:     (daysAhead?: number) => Promise<void>;
+  getOverdue:      ()                   => Promise<void>;
+  getOneActivity:  (id: string)         => Promise<void>;
 }
 
 /* ── Initial state ── */
@@ -497,8 +517,8 @@ export interface INoteStateContext {
 
 /* ── Actions ── */
 export interface INoteActionsContext {
-  getNotes:    (params?: object) => void;
-  getOneNote:  (id: string)      => void;
+  getNotes:   (params?: object) => Promise<void>;
+  getOneNote: (id: string)      => Promise<void>;
 }
 
 /* ── Initial state ── */

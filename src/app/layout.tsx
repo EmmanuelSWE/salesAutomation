@@ -1,15 +1,15 @@
 import type { Metadata } from "next";
 import { ConfigProvider } from "antd";
 
-import { UserProvider }          from "../app/lib/providers";
-import { ClientProvider }        from "../app/lib/providers";
-import { ContactProvider }       from "../app/lib/providers";
-import { OpportunityProvider }   from "../app/lib/providers";
-import { ProposalProvider }      from "../app/lib/providers";
-import { PricingRequestProvider } from "../app/lib/providers";
-import { ContractProvider }      from "../app/lib/providers";
-import { ActivityProvider }      from "../app/lib/providers";
-import { NoteProvider }          from "../app/lib/providers";
+import { UserProvider }          from "./lib/providers/provider";
+import { ClientProvider }        from "./lib/providers/provider";
+import { ContactProvider }       from "./lib/providers/provider";
+import { OpportunityProvider }   from "./lib/providers/provider";
+import { ProposalProvider }      from "./lib/providers/provider";
+import { PricingRequestProvider } from "./lib/providers/provider";
+import { ContractProvider }      from "./lib/providers/provider";
+import { ActivityProvider }      from "./lib/providers/provider";
+import { NoteProvider }          from "./lib/providers/provider";
 
 export const metadata: Metadata = {
   title: "Login",

@@ -1,12 +1,16 @@
-import { Suspense } from "react";
+"use client";
+
+import { useEffect, useState } from "react";
 import {
   KpiSection,
   PipelineSection,
   SalesActivitiesSection,
   RevenueTrendSection,
 } from "../../../components/dashboard/sections/sections";
+import { getDashboardData } from "../../../lib/placeholderdata";
+import type { DashboardData } from "../../../lib/placeholderdata";
 
-function CardSkeleton({ height = 200 }: { height?: number }) {
+function CardSkeleton({ height = 200 }: Readonly<{ height?: number }>) {
   return (
     <div
       style={{
@@ -21,38 +25,37 @@ function CardSkeleton({ height = 200 }: { height?: number }) {
 }
 
 export default function DashboardPage() {
-  return (
-    <>
-      {/* ── 4 KPI cards ── */}
-      <Suspense fallback={
+  const [data, setData]       = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    getDashboardData()
+      .then(setData)
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading || !data) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 16 }}>
-          {Array.from({ length: 4 }).map((_, i) => (
-            <CardSkeleton key={i} height={100} />
-          ))}
+          {[100, 100, 100, 100].map((h, i) => <CardSkeleton key={`kpi-${i}`} height={h} />)}
         </div>
-      }>
-        <KpiSection />
-      </Suspense>
-
-      {/* ── Pipeline by stage — full width bar chart ── */}
-      <Suspense fallback={<CardSkeleton height={300} />}>
-        <PipelineSection />
-      </Suspense>
-
-      {/* ── Sales + Activities side by side ── */}
-      <Suspense fallback={
+        <CardSkeleton height={300} />
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
           <CardSkeleton height={260} />
           <CardSkeleton height={260} />
         </div>
-      }>
-        <SalesActivitiesSection />
-      </Suspense>
+        <CardSkeleton height={300} />
+      </div>
+    );
+  }
 
-      {/* ── Revenue trend — always full width ── */}
-      <Suspense fallback={<CardSkeleton height={300} />}>
-        <RevenueTrendSection />
-      </Suspense>
+  return (
+    <>
+      <KpiSection data={data.kpis} />
+      <PipelineSection data={data.pipeline} />
+      <SalesActivitiesSection sales={data.salesPerformance} activities={data.activities} />
+      <RevenueTrendSection data={data.revenue} />
     </>
   );
 }

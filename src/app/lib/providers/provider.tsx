@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, useContext, useReducer, useEffect } from "react";
+import { ReactNode, useContext, useReducer, useEffect, useMemo } from "react";
 
 /* ── axios instance ── */
 import api from "../utils/axiosInstance";
@@ -57,26 +57,41 @@ import {
   getOneNotePending, getOneNoteSuccess, getOneNoteError,
 } from "./actions";
 
+/** Handles both plain-array and paginated `{ items: [] }` API responses. */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const normalize = (data: unknown): any[] =>
+  Array.isArray(data) ? data : ((data as { items?: unknown[] })?.items ?? []);
+
 /* ══════════════════════════════════════════════════════
    USER PROVIDER
+   Reads auth_token from localStorage on mount, calls
+   /auth/me to rehydrate, and stores { ...user, token }
+   in state so every child provider can access the token
+   via useContext(UserStateContext).
 ══════════════════════════════════════════════════════ */
 export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [state, dispatch] = useReducer(UserReducer, INITIAL_USER_STATE);
 
   useEffect(() => {
-    const match = document.cookie.match(/(?:^|;\s*)auth_token=([^;]+)/);
-    if (match) {
+    const token = globalThis.window
+      ? localStorage.getItem("auth_token")
+      : null;
+
+    if (token) {
       dispatch(loginPending());
       api.get("/auth/me")
-        .then(res => dispatch(loginSuccess(res.data)))
-        .catch(() => dispatch(loginError()));
+        .then(res => dispatch(loginSuccess({ ...res.data, token })))
+        .catch(() => {
+          localStorage.removeItem("auth_token");
+          dispatch(loginError());
+        });
     }
   }, []);
 
   const getUsers = async () => {
     dispatch(getUsersPending());
     await api.get("/users")
-      .then(res => dispatch(getUsersSuccess(res.data)))
+      .then(({ data }) => dispatch(getUsersSuccess(Array.isArray(data) ? data : (data.items ?? []))))
       .catch(err => { console.error("getUsers", err.response?.data); dispatch(getUsersError()); });
   };
 
@@ -88,33 +103,39 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logoutUser = () => {
-    document.cookie = "auth_token=; Max-Age=0; path=/";
+    localStorage.removeItem("auth_token");
     dispatch(loginError());
-    window.location.href = "/login";
+    globalThis.location.href = "/login";
   };
+
+  const userActions = useMemo(
+    () => ({ getUsers, getOneUser, logoutUser }),
+    [state.token] // eslint-disable-line react-hooks/exhaustive-deps
+  );
 
   return (
     <UserStateContext.Provider value={state}>
-      <UserActionsContext.Provider value={{ getUsers, getOneUser, logoutUser }}>
+      <UserActionsContext.Provider value={userActions}>
         {children}
       </UserActionsContext.Provider>
     </UserStateContext.Provider>
   );
 };
 
-export const useUserState  = () => { const ctx = useContext(UserStateContext);   if (!ctx) throw new Error("UserStateContext missing");   return ctx; };
-export const useUserAction = () => { const ctx = useContext(UserActionsContext); if (!ctx) throw new Error("UserActionsContext missing"); return ctx; };
+export const useUserState  = () => useContext(UserStateContext);
+export const useUserAction = () => useContext(UserActionsContext);
 
 /* ══════════════════════════════════════════════════════
    CLIENT PROVIDER
 ══════════════════════════════════════════════════════ */
 export const ClientProvider = ({ children }: { children: ReactNode }) => {
   const [state, dispatch] = useReducer(ClientReducer, INITIAL_CLIENT_STATE);
+  const { token } = useContext(UserStateContext);
 
-  const getClients = async (params?: object) => {
+  const getClients = async (params?: { pageNumber?: number; pageSize?: number; [key: string]: unknown }) => {
     dispatch(getClientsPending());
     await api.get("/clients", { params })
-      .then(res => dispatch(getClientsSuccess(res.data)))
+      .then(({ data }) => dispatch(getClientsSuccess(data)))
       .catch(err => { console.error("getClients", err.response?.data); dispatch(getClientsError()); });
   };
 
@@ -125,35 +146,41 @@ export const ClientProvider = ({ children }: { children: ReactNode }) => {
       .catch(err => { console.error("getOneClient", err.response?.data); dispatch(getOneClientError()); });
   };
 
+  const clientActions = useMemo(
+    () => ({ getClients, getOneClient }),
+    [token] // eslint-disable-line react-hooks/exhaustive-deps
+  );
+
   return (
     <ClientStateContext.Provider value={state}>
-      <ClientActionsContext.Provider value={{ getClients, getOneClient }}>
+      <ClientActionsContext.Provider value={clientActions}>
         {children}
       </ClientActionsContext.Provider>
     </ClientStateContext.Provider>
   );
 };
 
-export const useClientState  = () => { const ctx = useContext(ClientStateContext);   if (!ctx) throw new Error("ClientStateContext missing");   return ctx; };
-export const useClientAction = () => { const ctx = useContext(ClientActionsContext); if (!ctx) throw new Error("ClientActionsContext missing"); return ctx; };
+export const useClientState  = () => useContext(ClientStateContext);
+export const useClientAction = () => useContext(ClientActionsContext);
 
 /* ══════════════════════════════════════════════════════
    CONTACT PROVIDER
 ══════════════════════════════════════════════════════ */
 export const ContactProvider = ({ children }: { children: ReactNode }) => {
   const [state, dispatch] = useReducer(ContactReducer, INITIAL_CONTACT_STATE);
+  const { token } = useContext(UserStateContext);
 
   const getContacts = async (params?: object) => {
     dispatch(getContactsPending());
     await api.get("/contacts", { params })
-      .then(res => dispatch(getContactsSuccess(res.data)))
+      .then(({ data }) => dispatch(getContactsSuccess(normalize(data))))
       .catch(err => { console.error("getContacts", err.response?.data); dispatch(getContactsError()); });
   };
 
   const getContactsByClient = async (clientId: string) => {
     dispatch(getContactsPending());
     await api.get(`/contacts/by-client/${clientId}`)
-      .then(res => dispatch(getContactsSuccess(res.data)))
+      .then(({ data }) => dispatch(getContactsSuccess(normalize(data))))
       .catch(err => { console.error("getContactsByClient", err.response?.data); dispatch(getContactsError()); });
   };
 
@@ -164,42 +191,48 @@ export const ContactProvider = ({ children }: { children: ReactNode }) => {
       .catch(err => { console.error("getOneContact", err.response?.data); dispatch(getOneContactError()); });
   };
 
+  const contactActions = useMemo(
+    () => ({ getContacts, getContactsByClient, getOneContact }),
+    [token] // eslint-disable-line react-hooks/exhaustive-deps
+  );
+
   return (
     <ContactStateContext.Provider value={state}>
-      <ContactActionsContext.Provider value={{ getContacts, getContactsByClient, getOneContact }}>
+      <ContactActionsContext.Provider value={contactActions}>
         {children}
       </ContactActionsContext.Provider>
     </ContactStateContext.Provider>
   );
 };
 
-export const useContactState  = () => { const ctx = useContext(ContactStateContext);   if (!ctx) throw new Error("ContactStateContext missing");   return ctx; };
-export const useContactAction = () => { const ctx = useContext(ContactActionsContext); if (!ctx) throw new Error("ContactActionsContext missing"); return ctx; };
+export const useContactState  = () => useContext(ContactStateContext);
+export const useContactAction = () => useContext(ContactActionsContext);
 
 /* ══════════════════════════════════════════════════════
    OPPORTUNITY PROVIDER
 ══════════════════════════════════════════════════════ */
 export const OpportunityProvider = ({ children }: { children: ReactNode }) => {
   const [state, dispatch] = useReducer(OpportunityReducer, INITIAL_OPPORTUNITY_STATE);
+  const { token } = useContext(UserStateContext);
 
   const getOpportunities = async (params?: object) => {
     dispatch(getOpportunitiesPending());
     await api.get("/opportunities", { params })
-      .then(res => dispatch(getOpportunitiesSuccess(res.data)))
+      .then(({ data }) => dispatch(getOpportunitiesSuccess(normalize(data))))
       .catch(err => { console.error("getOpportunities", err.response?.data); dispatch(getOpportunitiesError()); });
   };
 
   const getMyOpportunities = async (params?: object) => {
     dispatch(getOpportunitiesPending());
     await api.get("/opportunities/my-opportunities", { params })
-      .then(res => dispatch(getOpportunitiesSuccess(res.data)))
+      .then(({ data }) => dispatch(getOpportunitiesSuccess(normalize(data))))
       .catch(err => { console.error("getMyOpportunities", err.response?.data); dispatch(getOpportunitiesError()); });
   };
 
   const getPipeline = async (ownerId?: string) => {
     dispatch(getOpportunitiesPending());
     await api.get("/opportunities/pipeline", { params: ownerId ? { ownerId } : undefined })
-      .then(res => dispatch(getOpportunitiesSuccess(res.data)))
+      .then(({ data }) => dispatch(getOpportunitiesSuccess(normalize(data))))
       .catch(err => { console.error("getPipeline", err.response?.data); dispatch(getOpportunitiesError()); });
   };
 
@@ -213,32 +246,38 @@ export const OpportunityProvider = ({ children }: { children: ReactNode }) => {
   const getStageHistory = async (id: string) => {
     dispatch(getStageHistoryPending());
     await api.get(`/opportunities/${id}/stage-history`)
-      .then(res => dispatch(getStageHistorySuccess(res.data)))
+      .then(({ data }) => dispatch(getStageHistorySuccess(normalize(data))))
       .catch(err => { console.error("getStageHistory", err.response?.data); dispatch(getStageHistoryError()); });
   };
 
+  const opportunityActions = useMemo(
+    () => ({ getOpportunities, getMyOpportunities, getPipeline, getOneOpportunity, getStageHistory }),
+    [token] // eslint-disable-line react-hooks/exhaustive-deps
+  );
+
   return (
     <OpportunityStateContext.Provider value={state}>
-      <OpportunityActionsContext.Provider value={{ getOpportunities, getMyOpportunities, getPipeline, getOneOpportunity, getStageHistory }}>
+      <OpportunityActionsContext.Provider value={opportunityActions}>
         {children}
       </OpportunityActionsContext.Provider>
     </OpportunityStateContext.Provider>
   );
 };
 
-export const useOpportunityState  = () => { const ctx = useContext(OpportunityStateContext);   if (!ctx) throw new Error("OpportunityStateContext missing");   return ctx; };
-export const useOpportunityAction = () => { const ctx = useContext(OpportunityActionsContext); if (!ctx) throw new Error("OpportunityActionsContext missing"); return ctx; };
+export const useOpportunityState  = () => useContext(OpportunityStateContext);
+export const useOpportunityAction = () => useContext(OpportunityActionsContext);
 
 /* ══════════════════════════════════════════════════════
    PROPOSAL PROVIDER
 ══════════════════════════════════════════════════════ */
 export const ProposalProvider = ({ children }: { children: ReactNode }) => {
   const [state, dispatch] = useReducer(ProposalReducer, INITIAL_PROPOSAL_STATE);
+  const { token } = useContext(UserStateContext);
 
   const getProposals = async (params?: object) => {
     dispatch(getProposalsPending());
     await api.get("/proposals", { params })
-      .then(res => dispatch(getProposalsSuccess(res.data)))
+      .then(({ data }) => dispatch(getProposalsSuccess(normalize(data))))
       .catch(err => { console.error("getProposals", err.response?.data); dispatch(getProposalsError()); });
   };
 
@@ -249,42 +288,48 @@ export const ProposalProvider = ({ children }: { children: ReactNode }) => {
       .catch(err => { console.error("getOneProposal", err.response?.data); dispatch(getOneProposalError()); });
   };
 
+  const proposalActions = useMemo(
+    () => ({ getProposals, getOneProposal }),
+    [token] // eslint-disable-line react-hooks/exhaustive-deps
+  );
+
   return (
     <ProposalStateContext.Provider value={state}>
-      <ProposalActionsContext.Provider value={{ getProposals, getOneProposal }}>
+      <ProposalActionsContext.Provider value={proposalActions}>
         {children}
       </ProposalActionsContext.Provider>
     </ProposalStateContext.Provider>
   );
 };
 
-export const useProposalState  = () => { const ctx = useContext(ProposalStateContext);   if (!ctx) throw new Error("ProposalStateContext missing");   return ctx; };
-export const useProposalAction = () => { const ctx = useContext(ProposalActionsContext); if (!ctx) throw new Error("ProposalActionsContext missing"); return ctx; };
+export const useProposalState  = () => useContext(ProposalStateContext);
+export const useProposalAction = () => useContext(ProposalActionsContext);
 
 /* ══════════════════════════════════════════════════════
    PRICING REQUEST PROVIDER
 ══════════════════════════════════════════════════════ */
 export const PricingRequestProvider = ({ children }: { children: ReactNode }) => {
   const [state, dispatch] = useReducer(PricingRequestReducer, INITIAL_PRICING_STATE);
+  const { token } = useContext(UserStateContext);
 
   const getPricingRequests = async (params?: object) => {
     dispatch(getPricingRequestsPending());
     await api.get("/pricingrequests", { params })
-      .then(res => dispatch(getPricingRequestsSuccess(res.data)))
+      .then(({ data }) => dispatch(getPricingRequestsSuccess(normalize(data))))
       .catch(err => { console.error("getPricingRequests", err.response?.data); dispatch(getPricingRequestsError()); });
   };
 
   const getPendingRequests = async () => {
     dispatch(getPricingRequestsPending());
     await api.get("/pricingrequests/pending")
-      .then(res => dispatch(getPricingRequestsSuccess(res.data)))
+      .then(({ data }) => dispatch(getPricingRequestsSuccess(normalize(data))))
       .catch(err => { console.error("getPendingRequests", err.response?.data); dispatch(getPricingRequestsError()); });
   };
 
   const getMyRequests = async () => {
     dispatch(getPricingRequestsPending());
     await api.get("/pricingrequests/my-requests")
-      .then(res => dispatch(getPricingRequestsSuccess(res.data)))
+      .then(({ data }) => dispatch(getPricingRequestsSuccess(normalize(data))))
       .catch(err => { console.error("getMyRequests", err.response?.data); dispatch(getPricingRequestsError()); });
   };
 
@@ -295,28 +340,34 @@ export const PricingRequestProvider = ({ children }: { children: ReactNode }) =>
       .catch(err => { console.error("getOnePricingRequest", err.response?.data); dispatch(getOnePricingRequestError()); });
   };
 
+  const pricingActions = useMemo(
+    () => ({ getPricingRequests, getPendingRequests, getMyRequests, getOnePricingRequest }),
+    [token] // eslint-disable-line react-hooks/exhaustive-deps
+  );
+
   return (
     <PricingRequestStateContext.Provider value={state}>
-      <PricingRequestActionsContext.Provider value={{ getPricingRequests, getPendingRequests, getMyRequests, getOnePricingRequest }}>
+      <PricingRequestActionsContext.Provider value={pricingActions}>
         {children}
       </PricingRequestActionsContext.Provider>
     </PricingRequestStateContext.Provider>
   );
 };
 
-export const usePricingRequestState  = () => { const ctx = useContext(PricingRequestStateContext);   if (!ctx) throw new Error("PricingRequestStateContext missing");   return ctx; };
-export const usePricingRequestAction = () => { const ctx = useContext(PricingRequestActionsContext); if (!ctx) throw new Error("PricingRequestActionsContext missing"); return ctx; };
+export const usePricingRequestState  = () => useContext(PricingRequestStateContext);
+export const usePricingRequestAction = () => useContext(PricingRequestActionsContext);
 
 /* ══════════════════════════════════════════════════════
    CONTRACT PROVIDER
 ══════════════════════════════════════════════════════ */
 export const ContractProvider = ({ children }: { children: ReactNode }) => {
   const [state, dispatch] = useReducer(ContractReducer, INITIAL_CONTRACT_STATE);
+  const { token } = useContext(UserStateContext);
 
   const getContracts = async (params?: object) => {
     dispatch(getContractsPending());
     await api.get("/contracts", { params })
-      .then(res => dispatch(getContractsSuccess(res.data)))
+      .then(({ data }) => dispatch(getContractsSuccess(normalize(data))))
       .catch(err => { console.error("getContracts", err.response?.data); dispatch(getContractsError()); });
   };
 
@@ -330,60 +381,66 @@ export const ContractProvider = ({ children }: { children: ReactNode }) => {
   const getExpiringContracts = async (daysUntilExpiry?: number) => {
     dispatch(getContractsPending());
     await api.get("/contracts/expiring", { params: { daysUntilExpiry } })
-      .then(res => dispatch(getContractsSuccess(res.data)))
+      .then(({ data }) => dispatch(getContractsSuccess(normalize(data))))
       .catch(err => { console.error("getExpiringContracts", err.response?.data); dispatch(getContractsError()); });
   };
 
   const getContractsByClient = async (clientId: string) => {
     dispatch(getContractsPending());
     await api.get(`/contracts/client/${clientId}`)
-      .then(res => dispatch(getContractsSuccess(res.data)))
+      .then(({ data }) => dispatch(getContractsSuccess(normalize(data))))
       .catch(err => { console.error("getContractsByClient", err.response?.data); dispatch(getContractsError()); });
   };
 
+  const contractActions = useMemo(
+    () => ({ getContracts, getOneContract, getExpiringContracts, getContractsByClient }),
+    [token] // eslint-disable-line react-hooks/exhaustive-deps
+  );
+
   return (
     <ContractStateContext.Provider value={state}>
-      <ContractActionsContext.Provider value={{ getContracts, getOneContract, getExpiringContracts, getContractsByClient }}>
+      <ContractActionsContext.Provider value={contractActions}>
         {children}
       </ContractActionsContext.Provider>
     </ContractStateContext.Provider>
   );
 };
 
-export const useContractState  = () => { const ctx = useContext(ContractStateContext);   if (!ctx) throw new Error("ContractStateContext missing");   return ctx; };
-export const useContractAction = () => { const ctx = useContext(ContractActionsContext); if (!ctx) throw new Error("ContractActionsContext missing"); return ctx; };
+export const useContractState  = () => useContext(ContractStateContext);
+export const useContractAction = () => useContext(ContractActionsContext);
 
 /* ══════════════════════════════════════════════════════
    ACTIVITY PROVIDER
 ══════════════════════════════════════════════════════ */
 export const ActivityProvider = ({ children }: { children: ReactNode }) => {
   const [state, dispatch] = useReducer(ActivityReducer, INITIAL_ACTIVITY_STATE);
+  const { token } = useContext(UserStateContext);
 
   const getActivities = async (params?: object) => {
     dispatch(getActivitiesPending());
     await api.get("/activities", { params })
-      .then(res => dispatch(getActivitiesSuccess(res.data)))
+      .then(({ data }) => dispatch(getActivitiesSuccess(normalize(data))))
       .catch(err => { console.error("getActivities", err.response?.data); dispatch(getActivitiesError()); });
   };
 
   const getMyActivities = async (params?: object) => {
     dispatch(getActivitiesPending());
     await api.get("/activities/my-activities", { params })
-      .then(res => dispatch(getActivitiesSuccess(res.data)))
+      .then(({ data }) => dispatch(getActivitiesSuccess(normalize(data))))
       .catch(err => { console.error("getMyActivities", err.response?.data); dispatch(getActivitiesError()); });
   };
 
   const getUpcoming = async (daysAhead?: number) => {
     dispatch(getActivitiesPending());
     await api.get("/activities/upcoming", { params: { daysAhead } })
-      .then(res => dispatch(getActivitiesSuccess(res.data)))
+      .then(({ data }) => dispatch(getActivitiesSuccess(normalize(data))))
       .catch(err => { console.error("getUpcoming", err.response?.data); dispatch(getActivitiesError()); });
   };
 
   const getOverdue = async () => {
     dispatch(getActivitiesPending());
     await api.get("/activities/overdue")
-      .then(res => dispatch(getActivitiesSuccess(res.data)))
+      .then(({ data }) => dispatch(getActivitiesSuccess(normalize(data))))
       .catch(err => { console.error("getOverdue", err.response?.data); dispatch(getActivitiesError()); });
   };
 
@@ -394,28 +451,34 @@ export const ActivityProvider = ({ children }: { children: ReactNode }) => {
       .catch(err => { console.error("getOneActivity", err.response?.data); dispatch(getOneActivityError()); });
   };
 
+  const activityActions = useMemo(
+    () => ({ getActivities, getMyActivities, getUpcoming, getOverdue, getOneActivity }),
+    [token] // eslint-disable-line react-hooks/exhaustive-deps
+  );
+
   return (
     <ActivityStateContext.Provider value={state}>
-      <ActivityActionsContext.Provider value={{ getActivities, getMyActivities, getUpcoming, getOverdue, getOneActivity }}>
+      <ActivityActionsContext.Provider value={activityActions}>
         {children}
       </ActivityActionsContext.Provider>
     </ActivityStateContext.Provider>
   );
 };
 
-export const useActivityState  = () => { const ctx = useContext(ActivityStateContext);   if (!ctx) throw new Error("ActivityStateContext missing");   return ctx; };
-export const useActivityAction = () => { const ctx = useContext(ActivityActionsContext); if (!ctx) throw new Error("ActivityActionsContext missing"); return ctx; };
+export const useActivityState  = () => useContext(ActivityStateContext);
+export const useActivityAction = () => useContext(ActivityActionsContext);
 
 /* ══════════════════════════════════════════════════════
    NOTE PROVIDER
 ══════════════════════════════════════════════════════ */
 export const NoteProvider = ({ children }: { children: ReactNode }) => {
   const [state, dispatch] = useReducer(NoteReducer, INITIAL_NOTE_STATE);
+  const { token } = useContext(UserStateContext);
 
   const getNotes = async (params?: object) => {
     dispatch(getNotesPending());
     await api.get("/notes", { params })
-      .then(res => dispatch(getNotesSuccess(res.data)))
+      .then(({ data }) => dispatch(getNotesSuccess(normalize(data))))
       .catch(err => { console.error("getNotes", err.response?.data); dispatch(getNotesError()); });
   };
 
@@ -426,14 +489,19 @@ export const NoteProvider = ({ children }: { children: ReactNode }) => {
       .catch(err => { console.error("getOneNote", err.response?.data); dispatch(getOneNoteError()); });
   };
 
+  const noteActions = useMemo(
+    () => ({ getNotes, getOneNote }),
+    [token] // eslint-disable-line react-hooks/exhaustive-deps
+  );
+
   return (
     <NoteStateContext.Provider value={state}>
-      <NoteActionsContext.Provider value={{ getNotes, getOneNote }}>
+      <NoteActionsContext.Provider value={noteActions}>
         {children}
       </NoteActionsContext.Provider>
     </NoteStateContext.Provider>
   );
 };
 
-export const useNoteState  = () => { const ctx = useContext(NoteStateContext);   if (!ctx) throw new Error("NoteStateContext missing");   return ctx; };
-export const useNoteAction = () => { const ctx = useContext(NoteActionsContext); if (!ctx) throw new Error("NoteActionsContext missing"); return ctx; };
+export const useNoteState  = () => useContext(NoteStateContext);
+export const useNoteAction = () => useContext(NoteActionsContext);

@@ -1,62 +1,53 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
+import { useEffect, useState } from "react";
 import {
   SearchOutlined,
   SwapOutlined,
   FilterOutlined,
   PlusOutlined,
-  CalendarOutlined,
   LeftOutlined,
   RightOutlined,
 } from "@ant-design/icons";
 import { useStaffStyles } from "./staff.module";
-
-interface Staff {
-  id: string;
-  name: string;
-  role: string;
-  busy: boolean;
-  avatarInitials: string;
-  avatarColor: string;
-}
-
-// Placeholder — replace with fetch to GET /api/staff
-const DUMMY: Staff[] = [
-  { id: "a1", name: "Alice Johnson",   role: "Sales Manager", busy: false, avatarInitials: "AJ", avatarColor: "#5c6bc0" },
-  { id: "b2", name: "Brian Lee",       role: "Sales Rep",     busy: true,  avatarInitials: "BL", avatarColor: "#26a69a" },
-  { id: "c3", name: "Catherine Wu",    role: "Analyst",       busy: false, avatarInitials: "CW", avatarColor: "#ef5350" },
-  { id: "d4", name: "Daniel Rossi",    role: "Support",       busy: true,  avatarInitials: "DR", avatarColor: "#f5a623" },
-  { id: "e5", name: "Elena García",    role: "Engineer",      busy: false, avatarInitials: "EG", avatarColor: "#78909c" },
-  { id: "f6", name: "Frank Müller",    role: "Designer",      busy: false, avatarInitials: "FM", avatarColor: "#ab47bc" },
-  { id: "g7", name: "Grace Kim",       role: "QA",            busy: true,  avatarInitials: "GK", avatarColor: "#29b6f6" },
-  { id: "h8", name: "Hiro Tanaka",     role: "DevOps",        busy: false, avatarInitials: "HT", avatarColor: "#66bb6a" },
-  { id: "i9", name: "Isabel Smith",    role: "HR",            busy: true,  avatarInitials: "IS", avatarColor: "#ff7043" },
-  { id: "j10",name: "Jamal Ibrahim",   role: "Marketing",     busy: false, avatarInitials: "JI", avatarColor: "#8d6e63" },
-];
+import { useUserState, useUserAction } from "../../../lib/providers/provider";
 
 const PAGE_SIZE = 5;
+const AVATAR_COLORS = ["#5c6bc0","#26a69a","#ef5350","#f5a623","#78909c","#ab47bc","#29b6f6","#66bb6a","#ff7043","#8d6e63"];
 
-// map busy flag to a badge style
-const STATUS_BADGE: Record<"busy" | "available", string> = {
-  busy: "badgeRejected",
-  available: "badgeApproved",
-};
+const getInitials = (first: string, last: string) =>
+  `${first?.[0] ?? ""}${last?.[0] ?? ""}`.toUpperCase() || "--";
 
 export default function StaffList() {
   const { styles, cx } = useStaffStyles();
-  const [search, setSearch]   = useState("");
-  const [page, setPage]       = useState(1);
+  const { users, isPending, isError } = useUserState();
+  const { getUsers } = useUserAction();
+  const [search, setSearch] = useState("");
+  const [page, setPage]     = useState(1);
 
-  const filtered = DUMMY.filter(
+  useEffect(() => {
+    getUsers();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (isPending) return <p>Loading staff...</p>;
+  if (isError)   return <p>Failed to load staff.</p>;
+
+  const list = (users ?? []).map((user, index) => ({
+    id:             user.id ?? `user-${index}`,
+    name:           `${user.firstName} ${user.lastName}`,
+    role:           user.role ?? "Staff",
+    avatarInitials: getInitials(user.firstName, user.lastName),
+    avatarColor:    AVATAR_COLORS[index % AVATAR_COLORS.length],
+  }));
+
+  const filtered = list.filter(
     (s) =>
       s.name.toLowerCase().includes(search.toLowerCase()) ||
       s.role.toLowerCase().includes(search.toLowerCase())
   );
 
-  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
-  const rows = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const rows       = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <div className={styles.page}>
@@ -75,9 +66,7 @@ export default function StaffList() {
         </div>
         <button className={styles.iconBtn} title="Sort"><SwapOutlined rotate={90} /></button>
         <button className={styles.iconBtn} title="Filter"><FilterOutlined /></button>
-        <Link href="/admin/staff/create">
-          <button className={styles.addBtn} title="Add staff"><PlusOutlined /></button>
-        </Link>
+        <button className={styles.addBtn} title="Add staff"><PlusOutlined /></button>
       </div>
 
       {/* ── Table ── */}
@@ -87,7 +76,6 @@ export default function StaffList() {
             <tr>
               <th>Name</th>
               <th>Role</th>
-              <th>Status</th>
             </tr>
           </thead>
           <tbody className={styles.tbody}>
@@ -95,28 +83,13 @@ export default function StaffList() {
               <tr key={staff.id}>
                 <td>
                   <div className={styles.clientCell}>
-                    <div
-                      className={styles.avatar}
-                      style={{ background: staff.avatarColor }}
-                    >
+                    <div className={styles.avatar} style={{ background: staff.avatarColor }}>
                       {staff.avatarInitials}
                     </div>
                     <span className={styles.clientName}>{staff.name}</span>
                   </div>
                 </td>
                 <td>{staff.role}</td>
-                <td>
-                  <span
-                    className={cx(
-                      styles.badge,
-                      styles[
-                        STATUS_BADGE[staff.busy ? "busy" : "available"] as keyof typeof styles
-                      ]
-                    )}
-                  >
-                    {staff.busy ? "Busy" : "Available"}
-                  </span>
-                </td>
               </tr>
             ))}
           </tbody>
@@ -125,29 +98,15 @@ export default function StaffList() {
 
       {/* ── Pagination ── */}
       <div className={styles.pagination}>
-        <button
-          className={styles.pageBtn}
-          onClick={() => setPage((p) => Math.max(1, p - 1))}
-          disabled={page === 1}
-        >
+        <button className={styles.pageBtn} onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>
           <LeftOutlined />
         </button>
-
-        {Array.from({ length: totalPages }).map((_, i) => (
-          <button
-            key={i}
-            className={cx(styles.pageBtn, page === i + 1 && styles.pageBtnActive)}
-            onClick={() => setPage(i + 1)}
-          >
-            {i + 1}
+        {Array.from({ length: totalPages }, (_, i) => i + 1).map((n) => (
+          <button key={n} className={cx(styles.pageBtn, page === n && styles.pageBtnActive)} onClick={() => setPage(n)}>
+            {n}
           </button>
         ))}
-
-        <button
-          className={styles.pageBtn}
-          onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-          disabled={page === totalPages}
-        >
+        <button className={styles.pageBtn} onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>
           <RightOutlined />
         </button>
       </div>

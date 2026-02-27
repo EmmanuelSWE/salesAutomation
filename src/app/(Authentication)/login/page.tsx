@@ -17,7 +17,7 @@ const Login = () => {
   useEffect(() => {
     if (state.status === "success" && state.token) {
       setToken(state.token);
-      router.push("/admin/dashboard");
+      router.push("/clients");
     }
   }, [state.status, state.token]);
 

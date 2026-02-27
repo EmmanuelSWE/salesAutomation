@@ -68,140 +68,38 @@ export interface DashboardData {
   revenue:          DashboardRevenue;
 }
 
+import api from "./utils/axiosInstance";
+
 /* ═══════════════════════════════════════════════
-   DATA FETCHER - Real API Calls
+   DATA FETCHER - uses axios instance (token from localStorage)
 ═══════════════════════════════════════════════ */
 
-// Get API URL from environment
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000';
-
-async function fetchWithAuth(endpoint: string) {
-  // Get token from localStorage (client-side) or cookies (server-side)
-  let token = '';
-  if (globalThis.window !== undefined) {
-    token = localStorage.getItem('authToken') || '';
-  }
-
-  const response = await fetch(`${API_URL}${endpoint}`, {
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token && { Authorization: `Bearer ${token}` }),
-    },
-    cache: 'no-store', // Ensure fresh data
-  });
-
-  if (!response.ok) {
-    console.error(`API Error (${endpoint}):`, response.statusText);
-    throw new Error(`Failed to fetch ${endpoint}`);
-  }
-
-  return response.json();
-}
-
 export async function getDashboardData(): Promise<DashboardData> {
-  try {
-    console.log('[getDashboardData] Fetching dashboard data from API...');
+  const fallback: DashboardData = {
+    kpis:             { totalOpportunities: 0, wonCount: 0, winRate: 0, pipelineValue: 0, activeContracts: 0, expiringThisMonth: 0 },
+    pipeline:         { weightedTotal: 0, stages: [] },
+    salesPerformance: { reps: [], colors: ["#f5a623", "#03a9f4", "#4caf50", "#9e9e9e", "#e91e63"] },
+    activities:       { upcoming: 0, overdue: 0, completedToday: 0, labels: ["Upcoming", "Overdue", "Completed"], data: [0, 0, 0], colors: ["#2979ff", "#ef5350", "#4caf50"], center: "0", centerLabel: "Total" },
+    revenue:          { thisMonth: 0, thisQuarter: 0, thisYear: 0, labels: [], thisMonthLine: [], targetLine: [] },
+  };
 
-    // Fetch all dashboard data in parallel
-    const [kpisData, pipelineData, salesData, activitiesData, revenueData] = await Promise.all([
-      fetchWithAuth('/api/dashboard/overview').catch(err => {
-        console.warn('KPIs fetch failed, using defaults:', err.message);
-        return {
-          totalOpportunities: 0,
-          wonCount: 0,
-          winRate: 0,
-          pipelineValue: 0,
-          activeContracts: 0,
-          expiringThisMonth: 0,
-        };
-      }),
-      fetchWithAuth('/api/dashboard/pipeline-metrics').catch(err => {
-        console.warn('Pipeline fetch failed, using defaults:', err.message);
-        return {
-          weightedTotal: 0,
-          stages: [],
-        };
-      }),
-      fetchWithAuth('/api/dashboard/sales-performance').catch(err => {
-        console.warn('Sales performance fetch failed, using defaults:', err.message);
-        return {
-          reps: [],
-          colors: ["#f5a623", "#03a9f4", "#4caf50", "#9e9e9e", "#e91e63"],
-        };
-      }),
-      fetchWithAuth('/api/dashboard/activities-summary').catch(err => {
-        console.warn('Activities fetch failed, using defaults:', err.message);
-        return {
-          upcoming: 0,
-          overdue: 0,
-          completedToday: 0,
-          labels: ["Upcoming", "Overdue", "Completed"],
-          data: [0, 0, 0],
-          colors: ["#2979ff", "#ef5350", "#4caf50"],
-          center: "0",
-          centerLabel: "Total",
-        };
-      }),
-      fetchWithAuth('/api/dashboard/revenue').catch(err => {
-        console.warn('Revenue fetch failed, using defaults:', err.message);
-        return {
-          thisMonth: 0,
-          thisQuarter: 0,
-          thisYear: 0,
-          labels: [],
-          thisMonthLine: [],
-          targetLine: [],
-        };
-      }),
+  try {
+    const [kpisRes, pipelineRes, salesRes, activitiesRes, revenueRes] = await Promise.all([
+      api.get("/dashboard/overview").catch(() => ({ data: fallback.kpis })),
+      api.get("/dashboard/pipeline-metrics").catch(() => ({ data: fallback.pipeline })),
+      api.get("/dashboard/sales-performance").catch(() => ({ data: fallback.salesPerformance })),
+      api.get("/dashboard/activities-summary").catch(() => ({ data: fallback.activities })),
+      api.get("/dashboard/revenue").catch(() => ({ data: fallback.revenue })),
     ]);
 
-    console.log('[getDashboardData] Successfully fetched all dashboard data');
-
     return {
-      kpis: kpisData,
-      pipeline: pipelineData,
-      salesPerformance: salesData,
-      activities: activitiesData,
-      revenue: revenueData,
+      kpis:             kpisRes.data ?? fallback.kpis,
+      pipeline:         pipelineRes.data ?? fallback.pipeline,
+      salesPerformance: salesRes.data ?? fallback.salesPerformance,
+      activities:       activitiesRes.data ?? fallback.activities,
+      revenue:          revenueRes.data ?? fallback.revenue,
     };
-  } catch (error) {
-    console.error('[getDashboardData] Critical error:', error);
-    // Return empty/default data structure if all API calls fail
-    return {
-      kpis: {
-        totalOpportunities: 0,
-        wonCount: 0,
-        winRate: 0,
-        pipelineValue: 0,
-        activeContracts: 0,
-        expiringThisMonth: 0,
-      },
-      pipeline: {
-        weightedTotal: 0,
-        stages: [],
-      },
-      salesPerformance: {
-        reps: [],
-        colors: ["#f5a623", "#03a9f4", "#4caf50", "#9e9e9e", "#e91e63"],
-      },
-      activities: {
-        upcoming: 0,
-        overdue: 0,
-        completedToday: 0,
-        labels: ["Upcoming", "Overdue", "Completed"],
-        data: [0, 0, 0],
-        colors: ["#2979ff", "#ef5350", "#4caf50"],
-        center: "0",
-        centerLabel: "Total",
-      },
-      revenue: {
-        thisMonth: 0,
-        thisQuarter: 0,
-        thisYear: 0,
-        labels: [],
-        thisMonthLine: [],
-        targetLine: [],
-      },
-    };
+  } catch {
+    return fallback;
   }
 }
