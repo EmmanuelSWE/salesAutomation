@@ -31,7 +31,7 @@ const STAGE_KEY: Record<OpportunityRow["stage"], string> = {
 export default function ClientOpportunities({
   opportunities,
   defaultPeriod = "Month",
-}: ClientOpportunitiesProps) {
+}: Readonly<ClientOpportunitiesProps>) {
   const { styles: card, cx } = useCardStyles();
   const { styles }           = useClientOpportunitiesStyles();
   const [period, setPeriod]  = useState<Period>(defaultPeriod);
@@ -42,13 +42,14 @@ export default function ClientOpportunities({
         <h3 className={card.cardTitle}>Opportunities</h3>
         <div className={card.periodTabs}>
           {(["Month", "Year", "All Time"] as Period[]).map((p) => (
-            <span
+            <button
               key={p}
+              type="button"
               className={cx(card.periodTab, period === p && card.periodTabActive)}
               onClick={() => setPeriod(p)}
             >
               {p}
-            </span>
+            </button>
           ))}
         </div>
       </div>

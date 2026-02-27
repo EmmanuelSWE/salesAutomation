@@ -134,11 +134,11 @@ export async function getDashboardData(): Promise<DashboardData> {
     ]);
 
     return {
-      kpis:             { ...fallback.kpis,             ...(kpisRes.data        ?? {}) },
-      pipeline:         { ...fallback.pipeline,         ...(pipelineRes.data    ?? {}) },
-      salesPerformance: { ...fallback.salesPerformance, ...(salesRes.data       ?? {}) },
-      activities:       { ...fallback.activities,       ...(activitiesRes.data  ?? {}) },
-      revenue:          { ...fallback.revenue,          ...(revenueRes.data     ?? {}) },
+      kpis:             { ...fallback.kpis,             ...kpisRes.data        },
+      pipeline:         { ...fallback.pipeline,         ...pipelineRes.data    },
+      salesPerformance: { ...fallback.salesPerformance, ...salesRes.data       },
+      activities:       { ...fallback.activities,       ...activitiesRes.data  },
+      revenue:          { ...fallback.revenue,          ...revenueRes.data     },
     };
   } catch {
     return fallback;

@@ -20,6 +20,7 @@ interface ClientOverviewCardProps {
 }
 
 const SEGMENT_COUNT = 8;
+const PROGRESS_SEGS = Array.from({ length: SEGMENT_COUNT }, (_, i) => ({ id: `seg-${i}`, idx: i }));
 
 export default function ClientOverviewCard({
   clientName,
@@ -29,7 +30,7 @@ export default function ClientOverviewCard({
   pricePerMonth,
   onCancelProject,
   onRenewContract,
-}: ClientOverviewCardProps) {
+}: Readonly<ClientOverviewCardProps>) {
   const { styles: card, cx } = useCardStyles();
   const { styles }           = useClientOverviewCardStyles();
 
@@ -59,11 +60,11 @@ export default function ClientOverviewCard({
           <strong>Project steps</strong> {doneCount} of {steps.length} steps completed
         </div>
         <div className={styles.progressTrack}>
-          {Array.from({ length: SEGMENT_COUNT }).map((_, i) => (
+          {PROGRESS_SEGS.map((seg) => (
             <div
-              key={i}
+              key={seg.id}
               className={styles.progressSeg}
-              style={{ background: i < filledSegs ? "#5c6bc0" : "#3a3a3a" }}
+              style={{ background: seg.idx < filledSegs ? "#5c6bc0" : "#3a3a3a" }}
             />
           ))}
         </div>
@@ -72,8 +73,8 @@ export default function ClientOverviewCard({
         </div>
 
         <div className={styles.stepsList}>
-          {steps.map((step, i) => (
-            <div key={i} className={styles.stepItem}>
+          {steps.map((step) => (
+            <div key={step.label} className={styles.stepItem}>
               <span
                 className={cx(
                   styles.stepDot,

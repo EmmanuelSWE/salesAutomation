@@ -13,14 +13,13 @@ interface KpiCardsProps {
   data: DashboardKpis;
 }
 
-function fmt(n: number) {
-  const v = n ?? 0;
-  if (v >= 1_000_000) return `$${(v / 1_000_000).toFixed(1)}M`;
-  if (v >= 1_000)     return `$${(v / 1_000).toFixed(0)}K`;
-  return `$${v}`;
+function fmt(n = 0) {
+  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000)     return `$${(n / 1_000).toFixed(0)}K`;
+  return `$${n}`;
 }
 
-export default function KpiCards({ data }: KpiCardsProps) {
+export default function KpiCards({ data }: Readonly<KpiCardsProps>) {
   const { styles, cx } = useKpiStyles();
 
   const cards = [

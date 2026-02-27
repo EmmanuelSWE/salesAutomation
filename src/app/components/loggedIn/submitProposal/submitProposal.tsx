@@ -15,7 +15,7 @@ interface SubmitProposalProps {
   prefillOpportunityId?: string;
 }
 
-const SubmitProposal = ({ prefillClientId, prefillClientName, prefillOpportunityId }: SubmitProposalProps = {}) => {
+const SubmitProposal = ({ prefillClientId, prefillClientName, prefillOpportunityId }: Readonly<SubmitProposalProps> = {}) => {
   const { styles } = useSubmitProposalStyles();
   const [token, setToken] = useState("");
   const [state, formAction] = useActionState(submitProposalAction, initialState);

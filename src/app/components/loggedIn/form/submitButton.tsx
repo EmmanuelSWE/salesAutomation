@@ -4,7 +4,7 @@ import { useFormStyles } from "./form.module";
 
 interface Props { label?: string; pendingLabel?: string; }
 
-export function SubmitButton({ label = "Submit", pendingLabel = "Submitting…" }: Props) {
+export function SubmitButton({ label = "Submit", pendingLabel = "Submitting…" }: Readonly<Props>) {
   const { pending } = useFormStatus();
   const { styles }  = useFormStyles();
   return (

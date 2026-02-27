@@ -13,7 +13,7 @@ interface TopBarProps {
   crumbs?: string[];
 }
 
-export default function TopBar({ crumbs = ["Dashboards", "Overview"] }: TopBarProps) {
+export default function TopBar({ crumbs = ["Dashboards", "Overview"] }: Readonly<TopBarProps>) {
   const { styles } = useTopBarStyles();
 
   return (
