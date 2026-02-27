@@ -197,8 +197,52 @@ export default function StaffList() {
     getUsers({ isActive: true });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (isPending) return <p>Loading staff...</p>;
-  if (isError)   return <p>Failed to load staff.</p>;
+  if (isPending) return (
+    <div className={styles.page}>
+      <h1 className={styles.title}>Staff</h1>
+      <div className={styles.listContainer}>
+        <div className={styles.toolbar}>
+          <div className={styles.skeletonSearch} />
+          <div className={styles.skeletonBtn} />
+          <div className={styles.skeletonBtn} />
+        </div>
+        <div className={styles.tableWrap}>
+          <table className={styles.table}>
+            <thead className={styles.thead}>
+              <tr>
+                <th style={{ width: 32 }} />
+                <th>Name</th>
+                <th>Role</th>
+                <th>Email</th>
+              </tr>
+            </thead>
+            <tbody className={styles.tbody}>
+              {["a","b","c","d","e","f","g"].map((k) => (
+                <tr key={k}>
+                  <td><div className={styles.skeletonBlock} style={{ width: 16, height: 16, borderRadius: 2 }} /></td>
+                  <td>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div className={styles.skeletonAvatar} />
+                      <div className={styles.skeletonBlock} style={{ width: 130 }} />
+                    </div>
+                  </td>
+                  <td><div className={styles.skeletonBlock} style={{ width: 70, borderRadius: 20 }} /></td>
+                  <td><div className={styles.skeletonBlock} style={{ width: 160 }} /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (isError) return (
+    <div className={styles.page}>
+      <h1 className={styles.title}>Staff</h1>
+      <p style={{ color: "#ef5350", marginTop: 40, textAlign: "center" }}>Failed to load staff.</p>
+    </div>
+  );
 
   const list = (users ?? []).map((user, index) => ({
     id:             user.id ?? `user-${index}`,

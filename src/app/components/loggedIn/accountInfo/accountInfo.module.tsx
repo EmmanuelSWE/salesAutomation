@@ -148,4 +148,27 @@ export const useAccountInfoStyles = createStyles(({ css }) => ({
       background: #4d2020;
     }
   `,
+
+  skeletonBlock: css`
+    border-radius: 4px;
+    background: #2e2e2e;
+    animation: skel 1.4s ease-in-out infinite;
+    @keyframes skel {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.4; }
+    }
+  `,
+
+  skeletonCircle: css`
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: #2e2e2e;
+    flex-shrink: 0;
+    animation: skel 1.4s ease-in-out infinite;
+    @keyframes skel {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.4; }
+    }
+  `,
 }));

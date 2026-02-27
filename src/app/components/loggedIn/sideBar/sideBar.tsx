@@ -2,8 +2,9 @@
 
 import {
   HomeOutlined,
-  ShoppingCartOutlined,
   TeamOutlined,
+  CalendarOutlined,
+  FileTextOutlined,
   UserOutlined,
 } from "@ant-design/icons";
 import { useSidebarStyles } from "./sideBar.module";
@@ -11,10 +12,11 @@ import Link from "next/link";
 import { useUserState } from "../../../lib/providers/provider";
 
 const NAV_ITEMS = [
-  { icon: <HomeOutlined />, label: "Overview",     href: "/admin/dashboard" },
-  { icon: <ShoppingCartOutlined />, label: "Clients",      href: "/clients" },
-  { icon: <TeamOutlined />,        label: "Staff",        href: "/staff" },
-  { icon: <UserOutlined />,        label: "Account Info", href: "/account" },
+  { icon: <HomeOutlined />,     label: "Overview",         href: "/admin/dashboard" },
+  { icon: <TeamOutlined />,     label: "Clients",          href: "/clients" },
+  { icon: <CalendarOutlined />, label: "Activities",       href: "/activities" },
+  { icon: <FileTextOutlined />, label: "Pricing Requests", href: "/pricingRequests/create" },
+  { icon: <UserOutlined />,     label: "Account",          href: "/account" },
 ] as const;
 
 export default function Sidebar() {

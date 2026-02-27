@@ -167,8 +167,55 @@ export default function ActivitiesList() {
     }
   }, [isPending]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (isPending && !activities?.length) return <p>Loading activities...</p>;
-  if (isError)                          return <p>Failed to load activities.</p>;
+  if (isPending) return (
+    <div className={styles.page}>
+      <h1 className={styles.title}>Activities</h1>
+      <div className={styles.listContainer}>
+        <div className={styles.toolbar}>
+          <div className={styles.skeletonSearch} />
+          <div className={styles.skeletonBtn} />
+          <div className={styles.skeletonBtn} />
+          <div className={styles.skeletonBtn} />
+        </div>
+        <div className={styles.tableWrap}>
+          <table className={styles.table}>
+            <thead className={styles.thead}>
+              <tr>
+                <th>Subject</th>
+                <th>Type</th>
+                <th>Due Date</th>
+                <th>Priority</th>
+                <th style={{ width: 48 }} />
+              </tr>
+            </thead>
+            <tbody className={styles.tbody}>
+              {["a","b","c","d","e","f","g"].map((k) => (
+                <tr key={k}>
+                  <td>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div className={styles.skeletonAvatar} />
+                      <div className={styles.skeletonBlock} style={{ width: 140 }} />
+                    </div>
+                  </td>
+                  <td><div className={styles.skeletonBlock} style={{ width: 80 }} /></td>
+                  <td><div className={styles.skeletonBlock} style={{ width: 90 }} /></td>
+                  <td><div className={styles.skeletonBlock} style={{ width: 64, borderRadius: 20 }} /></td>
+                  <td><div className={styles.skeletonBlock} style={{ width: 24, height: 24, borderRadius: 6 }} /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+
+  if (isError) return (
+    <div className={styles.page}>
+      <h1 className={styles.title}>Activities</h1>
+      <p style={{ color: "#ef5350", marginTop: 40, textAlign: "center" }}>Failed to load activities.</p>
+    </div>
+  );
 
   const list = (activities ?? []).map((a, index) => ({
     id:             a.id ?? `activity-${index}`,
@@ -280,7 +327,7 @@ export default function ActivitiesList() {
       </div>
       </div>{/* end listContainer */}
 
-      {/* ── Edit drawer ── */}}
+      {/* ── Edit drawer ── */}
       {editing && (
         <EditDrawer
           activity={editing}

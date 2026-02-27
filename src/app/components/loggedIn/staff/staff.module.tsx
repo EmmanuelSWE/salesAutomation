@@ -224,4 +224,53 @@ export const useStaffStyles = createStyles(({ css }) => ({
     color: #1a1000 !important;
     font-weight: 700;
   `,
+
+  skeletonBlock: css`
+    height: 14px;
+    border-radius: 4px;
+    background: #2e2e2e;
+    animation: skel 1.4s ease-in-out infinite;
+    @keyframes skel {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.4; }
+    }
+  `,
+
+  skeletonAvatar: css`
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: #2e2e2e;
+    flex-shrink: 0;
+    animation: skel 1.4s ease-in-out infinite;
+    @keyframes skel {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.4; }
+    }
+  `,
+
+  skeletonSearch: css`
+    flex: 1;
+    height: 34px;
+    border-radius: 8px;
+    background: #2e2e2e;
+    animation: skel 1.4s ease-in-out infinite;
+    @keyframes skel {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.4; }
+    }
+  `,
+
+  skeletonBtn: css`
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    background: #2e2e2e;
+    flex-shrink: 0;
+    animation: skel 1.4s ease-in-out infinite;
+    @keyframes skel {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.4; }
+    }
+  `,
 }));

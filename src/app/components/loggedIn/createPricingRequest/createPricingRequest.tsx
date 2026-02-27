@@ -13,7 +13,7 @@ export default function CreatePricingRequest() {
   const [token, setToken] = useState("");
   const [state, formAction] = useActionState(createPricingRequestAction, initial);
 
-  const { users }    = useUserState();
+  const { users, isPending: usersPending } = useUserState();
   const { getUsers } = useUserAction();
 
   useEffect(() => {
@@ -66,13 +66,18 @@ export default function CreatePricingRequest() {
 
           <div className={styles.field}>
             <label className={styles.label} htmlFor="requestedById">Requested By</label>
-            <select id="requestedById" name="requestedById" className={styles.select} defaultValue="">
-              <option value="">Select requester…</option>
-              {activeUsers.map((u) => (
-                <option key={u.id} value={u.id ?? ""}>
-                  {u.firstName} {u.lastName} ({u.role ?? "User"})
-                </option>
-              ))}
+            <select id="requestedById" name="requestedById" className={styles.select} defaultValue="" disabled={usersPending}>
+              {usersPending
+                ? <option value="">Loading users…</option>
+                : <>
+                    <option value="">Select requester…</option>
+                    {activeUsers.map((u) => (
+                      <option key={u.id} value={u.id ?? ""}>
+                        {u.firstName} {u.lastName} ({u.role ?? "User"})
+                      </option>
+                    ))}
+                  </>
+              }
             </select>
           </div>
         </section>

@@ -82,13 +82,55 @@ export default function ClientList() {
   const totalPages = clientsTotalPages ?? Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const rows = search ? filtered : mappedClients;
 
-  if (isPending) {
-    return <p>Loading clients...</p>;
-  }
+  if (isPending) return (
+    <div className={styles.page}>
+      <h1 className={styles.title}>Client List</h1>
+      <div className={styles.listContainer}>
+        <div className={styles.toolbar}>
+          <div className={styles.skeletonSearch} />
+          <div className={styles.skeletonBtn} />
+          <div className={styles.skeletonBtn} />
+          <div className={styles.skeletonBtn} />
+        </div>
+        <div className={styles.tableWrap}>
+          <table className={styles.table}>
+            <thead className={styles.thead}>
+              <tr>
+                <th>Client ID</th>
+                <th>Client</th>
+                <th>Industry</th>
+                <th>Date</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody className={styles.tbody}>
+              {["a","b","c","d","e","f","g"].map((k) => (
+                <tr key={k}>
+                  <td><div className={styles.skeletonBlock} style={{ width: 60 }} /></td>
+                  <td>
+                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                      <div className={styles.skeletonAvatar} />
+                      <div className={styles.skeletonBlock} style={{ width: 120 }} />
+                    </div>
+                  </td>
+                  <td><div className={styles.skeletonBlock} style={{ width: 90 }} /></td>
+                  <td><div className={styles.skeletonBlock} style={{ width: 80 }} /></td>
+                  <td><div className={styles.skeletonBlock} style={{ width: 64, borderRadius: 20 }} /></td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
 
-  if (isError) {
-    return <p>Failed to load clients.</p>;
-  }
+  if (isError) return (
+    <div className={styles.page}>
+      <h1 className={styles.title}>Client List</h1>
+      <p style={{ color: "#ef5350", marginTop: 40, textAlign: "center" }}>Failed to load clients.</p>
+    </div>
+  );
 
   return (
     <div className={styles.page}>

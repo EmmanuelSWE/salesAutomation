@@ -2,163 +2,114 @@
 
 import Link from "next/link";
 
-const NAV_GROUPS = [
-  {
-    label: "Auth",
-    links: [
-      { href: "/login",  text: "Login" },
-      { href: "/signup", text: "Sign Up" },
-    ],
-  },
-  {
-    label: "Create",
-    links: [
-      { href: "/pricingRequests/create",                      text: "Pricing Request" },
-      { href: "/contracts/create",                            text: "Contract" },
-      { href: "/contracts/EXAMPLE_CONTRACT_ID/createRenewal", text: "Renewal" },
-      { href: "/activities/create",                           text: "Activity" },
-      { href: "/notes/create",                                text: "Note" },
-    ],
-  },
-  {
-    label: "Lists",
-    links: [
-      { href: "/clients",    text: "Clients" },
-      { href: "/staff",      text: "Staff" },
-      { href: "/activities", text: "Activities" },
-    ],
-  },
-];
-
-export default function Home() {
+export default function LandingPage() {
   return (
     <main
       style={{
         minHeight: "100vh",
-        background: "#000",
+        background: [
+          "radial-gradient(ellipse 55% 60% at 95% 50%, rgba(243,156,18,0.45) 0%, transparent 70%)",
+          "radial-gradient(ellipse 55% 60% at 5%  50%, rgba(236,64,122,0.35) 0%, transparent 70%)",
+          "radial-gradient(ellipse 40% 40% at 50% 100%, rgba(243,100,10,0.18) 0%, transparent 65%)",
+          "#050505",
+        ].join(","),
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
         justifyContent: "center",
         fontFamily: "'Inter', sans-serif",
         padding: "48px 24px",
-        boxSizing: "border-box",
+        boxSizing: "border-box" as const,
       }}
     >
-      {/* ── Hero ── */}
-      <div style={{ textAlign: "center", marginBottom: 56 }}>
-        <div
-          style={{
-            display: "inline-block",
-            background: "#f39c12",
-            borderRadius: "50%",
-            width: 64,
-            height: 64,
-            lineHeight: "64px",
-            fontSize: 28,
-            marginBottom: 20,
-          }}
-        >
-          ⚡
-        </div>
-        <h1
-          style={{
-            color: "#fff",
-            fontSize: 36,
-            fontWeight: 800,
-            margin: "0 0 12px",
-            letterSpacing: "-0.5px",
-          }}
-        >
-          Sales Automation
-        </h1>
-        <p style={{ color: "#666", fontSize: 15, margin: 0 }}>
-          Dev launch pad — pick a page below
-        </p>
-      </div>
-
-      {/* ── Nav groups ── */}
+      {/* ── logo badge ── */}
       <div
         style={{
+          width: 68,
+          height: 68,
+          borderRadius: 18,
+          background: "linear-gradient(135deg, #f39c12 0%, #e67e22 100%)",
+          boxShadow: "0 4px 28px rgba(243,156,18,0.55)",
           display: "flex",
-          flexWrap: "wrap",
-          gap: 20,
+          alignItems: "center",
           justifyContent: "center",
-          width: "100%",
-          maxWidth: 780,
+          fontSize: 30,
+          marginBottom: 28,
         }}
       >
-        {NAV_GROUPS.map((group) => (
-          <div
-            key={group.label}
-            style={{
-              background: "#1a1a1a",
-              border: "1px solid #2a2a2a",
-              borderRadius: 14,
-              padding: "24px 28px",
-              minWidth: 200,
-              flex: "1 1 200px",
-            }}
-          >
-            <p
-              style={{
-                color: "#f39c12",
-                fontSize: 11,
-                fontWeight: 700,
-                letterSpacing: "0.1em",
-                textTransform: "uppercase",
-                margin: "0 0 16px",
-              }}
-            >
-              {group.label}
-            </p>
-            <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 10 }}>
-              {group.links.map((link) => (
-                <li key={link.href}>
-                  <Link
-                    href={link.href}
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 8,
-                      color: "#ccc",
-                      textDecoration: "none",
-                      fontSize: 14,
-                      fontWeight: 500,
-                      padding: "7px 12px",
-                      borderRadius: 8,
-                      background: "#222",
-                      transition: "background 0.15s, color 0.15s",
-                    }}
-                    onMouseEnter={(e) => {
-                      (e.currentTarget as HTMLAnchorElement).style.background = "#f39c12";
-                      (e.currentTarget as HTMLAnchorElement).style.color = "#000";
-                    }}
-                    onMouseLeave={(e) => {
-                      (e.currentTarget as HTMLAnchorElement).style.background = "#222";
-                      (e.currentTarget as HTMLAnchorElement).style.color = "#ccc";
-                    }}
-                  >
-                    <span
-                      style={{
-                        width: 6,
-                        height: 6,
-                        borderRadius: "50%",
-                        background: "#f39c12",
-                        flexShrink: 0,
-                      }}
-                    />
-                    {link.text}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ))}
+        ⚡
       </div>
 
-      <p style={{ color: "#333", fontSize: 12, marginTop: 48 }}>
-        Sales Automation &copy; {new Date().getFullYear()}
+      {/* ── headline ── */}
+      <h1
+        style={{
+          color: "#fff",
+          fontSize: 42,
+          fontWeight: 800,
+          margin: "0 0 14px",
+          letterSpacing: "-1px",
+          textAlign: "center",
+        }}
+      >
+        TransformSales
+      </h1>
+      <p
+        style={{
+          color: "rgba(255,255,255,0.45)",
+          fontSize: 16,
+          margin: "0 0 52px",
+          textAlign: "center",
+          maxWidth: 380,
+          lineHeight: 1.6,
+        }}
+      >
+        Close more deals, faster. Your pipeline — organised and automated.
+      </p>
+
+      {/* ── CTA buttons ── */}
+      <div style={{ display: "flex", gap: 16, flexWrap: "wrap", justifyContent: "center" }}>
+        <Link
+          href="/login"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "14px 44px",
+            borderRadius: 12,
+            background: "linear-gradient(135deg, #f5c518 0%, #f39c12 100%)",
+            color: "#1a0e00",
+            fontWeight: 700,
+            fontSize: 15,
+            textDecoration: "none",
+            boxShadow: "0 4px 20px rgba(245,197,24,0.35)",
+            letterSpacing: "0.02em",
+          }}
+        >
+          Log In
+        </Link>
+        <Link
+          href="/signup"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "14px 44px",
+            borderRadius: 12,
+            background: "linear-gradient(135deg, #f9e84a 0%, #f5c518 100%)",
+            color: "#1a0e00",
+            fontWeight: 700,
+            fontSize: 15,
+            textDecoration: "none",
+            boxShadow: "0 4px 20px rgba(249,232,74,0.30)",
+            letterSpacing: "0.02em",
+          }}
+        >
+          Sign Up
+        </Link>
+      </div>
+
+      <p style={{ color: "#2a2a2a", fontSize: 12, marginTop: 64 }}>
+        &copy; {new Date().getFullYear()} TransformSales
       </p>
     </main>
   );
