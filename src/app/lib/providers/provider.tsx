@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, useContext, useReducer, useEffect, useMemo } from "react";
+import { ReactNode, useContext, useReducer, useEffect, useMemo, useState } from "react";
 
 /* ── axios instance ── */
 import api from "../utils/axiosInstance";
@@ -72,6 +72,8 @@ const normalize = (data: unknown): any[] =>
 ══════════════════════════════════════════════════════ */
 export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [state, dispatch] = useReducer(UserReducer, INITIAL_USER_STATE);
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [authToken, setAuthToken] = useState<string | undefined>(undefined);
 
   useEffect(() => {
     const token = globalThis.window
@@ -81,11 +83,18 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     if (token) {
       dispatch(loginPending());
       api.get("/auth/me")
-        .then(res => dispatch(loginSuccess({ ...res.data, token })))
+        .then(res => {
+          dispatch(loginSuccess({ ...res.data, token }));
+          setAuthToken(token);
+          setIsInitialized(true);
+        })
         .catch(() => {
           localStorage.removeItem("auth_token");
           dispatch(loginError());
+          setIsInitialized(true);
         });
+    } else {
+      setIsInitialized(true);
     }
   }, []);
 
@@ -105,6 +114,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 
   const logoutUser = () => {
     localStorage.removeItem("auth_token");
+    setAuthToken(undefined);
     dispatch(loginError());
     globalThis.location.href = "/login";
   };
@@ -115,7 +125,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   );
 
   return (
-    <UserStateContext.Provider value={state}>
+    <UserStateContext.Provider value={{ ...state, token: authToken, isInitialized }}>
       <UserActionsContext.Provider value={userActions}>
         {children}
       </UserActionsContext.Provider>

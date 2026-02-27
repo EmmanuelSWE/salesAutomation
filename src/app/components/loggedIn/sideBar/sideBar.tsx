@@ -19,11 +19,21 @@ const NAV_ITEMS = [
   { icon: <UserOutlined />,     label: "Account",          href: "/account" },
 ] as const;
 
+const ROLE_LABELS: Record<string, string> = {
+  salesrep:                    "SalesRep",
+  businessdevelopmentmanager:  "BusinessDevelopmentManager",
+  salesmanager:                "SalesManager",
+  admin:                       "Admin",
+};
+
 export default function Sidebar() {
   const { styles } = useSidebarStyles();
   const userState = useUserState();
-  
-  const userName = userState?.user?.firstName || "User";
+
+  const firstName = userState?.user?.firstName || "User";
+  const roleLabel = userState?.user?.role
+    ? (ROLE_LABELS[userState.user.role.toLowerCase()] ?? userState.user.role)
+    : "";
 
   return (
     <aside className={styles.sidebar}>
@@ -49,7 +59,9 @@ export default function Sidebar() {
       {/* ── Bottom: user ── */}
       <div className={styles.footer}>
         <div className={styles.avatar}>👤</div>
-        <span>{userName}</span>
+        <span>
+          {firstName}{roleLabel ? ` (${roleLabel})` : ""}
+        </span>
       </div>
     </aside>
   );

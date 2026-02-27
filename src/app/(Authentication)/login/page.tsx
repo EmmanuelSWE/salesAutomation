@@ -2,7 +2,6 @@
 
 import { Input } from "antd";
 import { useActionState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { useLoginStyles } from "../../components/login/login.module";
 import { loginAction } from "../../lib/actions";
 import { setToken } from "../../lib/utils/axiosInstance";
@@ -10,13 +9,12 @@ import { AuthButton } from "../../components/auth/authButton";
 
 const Login = () => {
   const { styles } = useLoginStyles();
-  const router = useRouter();
   const [state, formAction] = useActionState(loginAction, { status: "idle" });
 
   useEffect(() => {
     if (state.status === "success" && state.token) {
       setToken(state.token);
-      router.push("/clients");
+      window.location.href = "/admin/dashboard";
     }
   }, [state.status, state.token]);
 

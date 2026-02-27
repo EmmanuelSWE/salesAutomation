@@ -1,12 +1,16 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { Layout } from "antd";
 import { useDashboardStyles } from "../components/dashboard/dashboard.module";
 import Sidebar from "@/app/components/loggedIn/sideBar/sideBar";
 import TopBar  from "@/app/components/loggedIn/topBar/topBar";
+import { useUserState } from "@/app/lib/providers/provider";
 
 const { Sider, Header, Content, Footer } = Layout;
+
+const VALID_ROLES = ["salesrep", "businessdevelopmentmanager", "salesmanager", "admin"];
 
 export default function DashboardLayout({
   children,
@@ -14,6 +18,22 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const { styles } = useDashboardStyles();
+  const router = useRouter();
+  const { isPending, isInitialized, token, user } = useUserState();
+
+  useEffect(() => {
+    if (!isInitialized || isPending) return; // wait for provider to finish its check
+    if (!token) {
+      router.replace("/login");
+      return;
+    }
+    if (user?.role && !VALID_ROLES.includes(user.role.toLowerCase())) {
+      router.replace("/login");
+    }
+  }, [isInitialized, isPending, token, user?.role, router]);
+
+  // Don't render protected content until auth is confirmed
+  if (!isInitialized || isPending) return null;
 
   return (
     <div className={styles.page}>

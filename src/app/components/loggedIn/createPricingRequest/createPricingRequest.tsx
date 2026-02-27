@@ -4,7 +4,7 @@ import { useActionState, useEffect, useState } from "react";
 import { createPricingRequestAction, type FormState } from "../../../lib/actions";
 import { SubmitButton } from "../form/submitButton";
 import { useFormStyles } from "../form/form.module";
-import { useUserState, useUserAction } from "../../../lib/providers/provider";
+import { useUserState, useUserAction, useClientState, useClientAction } from "../../../lib/providers/provider";
 
 const initial: FormState = { status: "idle" };
 
@@ -15,13 +15,17 @@ export default function CreatePricingRequest() {
 
   const { users, isPending: usersPending } = useUserState();
   const { getUsers } = useUserAction();
+  const { clients, isPending: clientsPending } = useClientState();
+  const { getClients } = useClientAction();
 
   useEffect(() => {
     setToken(localStorage.getItem("auth_token") ?? "");
     getUsers({ isActive: true });
+    getClients({ pageSize: 200 });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const activeUsers = users ?? [];
+  const activeClients = clients ?? [];
 
   return (
     <div className={styles.page}>
@@ -53,15 +57,31 @@ export default function CreatePricingRequest() {
           <h2 className={styles.sectionTitle}>Links</h2>
 
           <div className={styles.field}>
-            <label className={styles.label} htmlFor="clientId">Client ID</label>
-            <input id="clientId" name="clientId" className={styles.input}
-              style={state.errors?.clientId ? { borderColor: "#f44336" } : {}} />
+            <label className={styles.label} htmlFor="clientId">Client</label>
+            <select
+              id="clientId"
+              name="clientId"
+              className={styles.select}
+              defaultValue=""
+              disabled={clientsPending}
+              style={state.errors?.clientId ? { borderColor: "#f44336" } : {}}
+            >
+              {clientsPending
+                ? <option value="">Loading clients…</option>
+                : <>
+                    <option value="">Select client…</option>
+                    {activeClients.map((c) => (
+                      <option key={c.id} value={c.id ?? ""}>{c.name}</option>
+                    ))}
+                  </>
+              }
+            </select>
             {state.errors?.clientId && <span className={styles.errorText}>{state.errors.clientId}</span>}
           </div>
 
           <div className={styles.field}>
-            <label className={styles.label} htmlFor="opportunityId">Opportunity ID</label>
-            <input id="opportunityId" name="opportunityId" className={styles.input} />
+            <label className={styles.label} htmlFor="opportunityId">Opportunity ID <span style={{ color: "#666", fontWeight: 400 }}>(optional)</span></label>
+            <input id="opportunityId" name="opportunityId" className={styles.input} placeholder="Paste opportunity UUID if linked…" />
           </div>
 
           <div className={styles.field}>

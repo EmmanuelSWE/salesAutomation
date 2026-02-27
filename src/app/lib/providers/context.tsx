@@ -27,9 +27,10 @@ export interface IUser {
    STATE INTERFACE
 ══════════════════════════════════════════════════════ */
 export interface IUserStateContext {
-  isPending:  boolean;
-  isSuccess:  boolean;
-  isError:    boolean;
+  isPending:     boolean;
+  isSuccess:     boolean;
+  isError:       boolean;
+  isInitialized: boolean;
    token?:        string;
   user?:      IUser;
   users?:     IUser[];
@@ -48,9 +49,10 @@ export interface IUserActionsContext {
    INITIAL STATE
 ══════════════════════════════════════════════════════ */
 export const INITIAL_USER_STATE: IUserStateContext = {
-  isPending: false,
-  isSuccess: false,
-  isError:   false,
+  isPending:     false,
+  isSuccess:     false,
+  isError:       false,
+  isInitialized: false,
 };
 
 /* ══════════════════════════════════════════════════════

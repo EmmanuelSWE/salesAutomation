@@ -78,8 +78,8 @@ const Signup = () => {
   const [roleValue, setRoleValue] = useState("SalesRep");
 
   useEffect(() => {
-    if (state.status === "success" && state.token) {
-      setToken(state.token);
+    if (state.status === "success") {
+      if (state.token) setToken(state.token);
       router.push("/login");
     }
   }, [state.status, state.token, router]);
