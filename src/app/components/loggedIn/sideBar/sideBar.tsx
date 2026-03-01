@@ -25,29 +25,37 @@ const OPPORTUNITY_NAV = { icon: <FundOutlined />,         label: "Opportunities"
 const USERS_NAV       = { icon: <UsergroupAddOutlined />, label: "Users",         href: "/staff" };
 
 const ROLE_LABELS: Record<string, string> = {
-  salesrep:                    "Sales Rep",
-  businessdevelopmentmanager:  "BDM",
-  salesmanager:                "Sales Manager",
-  admin:                       "Admin",
+  SalesRep:                    "Sales Rep",
+  BusinessDevelopmentManager:  "BDM",
+  SalesManager:                "Sales Manager",
+  Admin:                       "Admin",
 };
+
+/* roles that can see Opportunities */
+const OPPORTUNITY_ROLES = new Set(["Admin", "SalesManager", "BusinessDevelopmentManager"]);
+/* roles that can see Users/Staff */
+const USERS_ROLES       = new Set(["Admin", "SalesManager"]);
 
 interface SidebarProps {
   collapsed: boolean;
   onToggle: () => void;
 }
 
-export default function Sidebar({ collapsed, onToggle }: SidebarProps) {
+export default function Sidebar({ collapsed, onToggle }: Readonly<SidebarProps>) {
   const { styles, cx } = useSidebarStyles();
   const userState = useUserState();
 
   const firstName = userState?.user?.firstName || "User";
-  const role = userState?.user?.role?.toLowerCase() ?? "";
-  const roleLabel = ROLE_LABELS[role] ?? userState?.user?.role ?? "";
+  /* roles array from API, e.g. ["Admin"] or ["SalesRep"] */
+  const roles     = userState?.user?.roles ?? (userState?.user?.role ? [userState.user.role] : []);
+
+  /* Label shown in footer: join all role labels */
+  const roleLabel = roles.map((r) => ROLE_LABELS[r] ?? r).join(", ");
 
   const navItems = [
     ...BASE_NAV,
-    ...(["businessdevelopmentmanager", "salesmanager", "admin"].includes(role) ? [OPPORTUNITY_NAV] : []),
-    ...(role === "admin" ? [USERS_NAV] : []),
+    ...(roles.some((r) => OPPORTUNITY_ROLES.has(r)) ? [OPPORTUNITY_NAV] : []),
+    ...(roles.some((r) => USERS_ROLES.has(r))       ? [USERS_NAV]       : []),
   ];
 
   return (

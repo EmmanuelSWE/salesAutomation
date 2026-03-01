@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Fragment } from "react";
 import {
   SearchOutlined,
   SwapOutlined,
@@ -248,7 +248,7 @@ export default function StaffList() {
     id:             user.id ?? `user-${index}`,
     name:           `${user.firstName} ${user.lastName}`,
     email:          user.email,
-    role:           user.role ?? "Staff",
+    roles:          user.roles?.length ? user.roles : [user.role ?? "Staff"],
     avatarInitials: getInitials(user.firstName, user.lastName),
     avatarColor:    AVATAR_COLORS[index % AVATAR_COLORS.length],
   }));
@@ -256,7 +256,7 @@ export default function StaffList() {
   const filtered = list.filter(
     (s) =>
       s.name.toLowerCase().includes(search.toLowerCase()) ||
-      s.role.toLowerCase().includes(search.toLowerCase()) ||
+      s.roles.some((r) => r.toLowerCase().includes(search.toLowerCase())) ||
       s.email.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -296,8 +296,8 @@ export default function StaffList() {
           </thead>
           <tbody className={styles.tbody}>
             {rows.map((staff) => (
-              <>
-                <tr key={staff.id}
+              <Fragment key={staff.id}>
+                <tr
                   onClick={() => setExpanded(expanded === staff.id ? null : staff.id)}
                   style={{ cursor: "pointer" }}>
                   <td style={{ color: "#555", fontSize: 12, textAlign: "center" }}>
@@ -312,11 +312,15 @@ export default function StaffList() {
                     </div>
                   </td>
                   <td>
-                    <span style={{ fontSize: 11, fontWeight: 600, padding: "2px 10px", borderRadius: 20,
-                      background: staff.role === "Admin" ? "rgba(245,166,35,0.15)" : "rgba(33,150,243,0.1)",
-                      color: staff.role === "Admin" ? "#f5a623" : "#64b5f6" }}>
-                      {staff.role}
-                    </span>
+                    <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+                      {staff.roles.map((r) => (
+                        <span key={r} style={{ fontSize: 11, fontWeight: 600, padding: "2px 10px", borderRadius: 20,
+                          background: r === "Admin" ? "rgba(245,166,35,0.15)" : "rgba(33,150,243,0.1)",
+                          color: r === "Admin" ? "#f5a623" : "#64b5f6" }}>
+                          {r}
+                        </span>
+                      ))}
+                    </div>
                   </td>
                   <td style={{ color: "#888", fontSize: 12 }}>{staff.email}</td>
                 </tr>
@@ -342,7 +346,7 @@ export default function StaffList() {
                     </td>
                   </tr>
                 )}
-              </>
+              </Fragment>
             ))}
           </tbody>
         </table>

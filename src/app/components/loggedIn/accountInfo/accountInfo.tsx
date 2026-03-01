@@ -90,10 +90,12 @@ export default function AccountInfo() {
           {initials(user?.firstName, user?.lastName)}
         </div>
         <div className={styles.profileMeta}>
-          <p className={styles.fullName}>{user?.firstName ?? "Not working"}</p>
+          <p className={styles.fullName}>{fullName}</p>
           <p className={styles.email}>{user?.email ?? "—"}</p>
           <div className={styles.profileBadgeRow}>
-            <span className={styles.roleBadge}>{user?.role ?? "SalesRep"}</span>
+            {(user?.roles?.length ? user.roles : [user?.role ?? "SalesRep"]).map((r) => (
+              <span key={r} className={styles.roleBadge}>{r}</span>
+            ))}
             {user?.phoneNumber && (
               <span className={styles.phoneBadge}>{user.phoneNumber}</span>
             )}
@@ -156,7 +158,11 @@ export default function AccountInfo() {
 
           <div className={styles.fieldCard}>
             <span className={styles.fieldLabel}>Role</span>
-            <span className={styles.fieldValue}>{user?.role ?? "SalesRep"}</span>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 2 }}>
+              {(user?.roles?.length ? user.roles : [user?.role ?? "SalesRep"]).map((r) => (
+                <span key={r} className={styles.roleBadge}>{r}</span>
+              ))}
+            </div>
           </div>
 
           <div className={styles.fieldCard}>
