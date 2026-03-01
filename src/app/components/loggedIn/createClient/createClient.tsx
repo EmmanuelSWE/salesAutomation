@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createClientAction, type FormState } from "../../../lib/actions";
 import { CreateClientSubmitButton } from "./submitButton/submitButton";
@@ -30,13 +30,10 @@ const INDUSTRIES = [
 
 const CreateClient =()=> {
   const { styles } = useCreateClientStyles();
-  const [token, setToken] = useState("");
+  const formRef = useRef<HTMLFormElement>(null);
+  const [, startTransition] = useTransition();
   const [state, formAction] = useActionState(createClientAction, initialState);
   const router = useRouter();
-
-  useEffect(() => {
-    setToken(localStorage.getItem("auth_token") ?? "");
-  }, []);
 
   useEffect(() => {
     if (state.status === "success") {
@@ -45,10 +42,16 @@ const CreateClient =()=> {
     }
   }, [state.status]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  function handleSubmit() {
+    if (!formRef.current) return;
+    const fd = new FormData(formRef.current);
+    fd.set("_token", localStorage.getItem("auth_token") ?? "");
+    startTransition(() => formAction(fd));
+  }
+
   return (
     <div className={styles.page}>
-      <form action={formAction} className={styles.form}>
-        <input type="hidden" name="_token" value={token} />
+      <form ref={formRef} onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className={styles.form}>
         <h1 className={styles.formTitle}>Create New Client</h1>
 
         {/* ── Success banner ── */}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useTransition } from "react";
 import { createPricingRequestAction, type FormState } from "../../../lib/actions";
 import { SubmitButton } from "../form/submitButton";
 import { useFormStyles } from "../form/form.module";
@@ -10,7 +10,8 @@ const initial: FormState = { status: "idle" };
 
 export default function CreatePricingRequest() {
   const { styles } = useFormStyles();
-  const [token, setToken] = useState("");
+  const formRef = useRef<HTMLFormElement>(null);
+  const [, startTransition] = useTransition();
   const [state, formAction] = useActionState(createPricingRequestAction, initial);
 
   const { users, isPending: usersPending } = useUserState();
@@ -19,7 +20,6 @@ export default function CreatePricingRequest() {
   const { getClients } = useClientAction();
 
   useEffect(() => {
-    setToken(localStorage.getItem("auth_token") ?? "");
     getUsers({ isActive: true });
     getClients({ pageSize: 200 });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -27,10 +27,16 @@ export default function CreatePricingRequest() {
   const activeUsers = users ?? [];
   const activeClients = clients ?? [];
 
+  function handleSubmit() {
+    if (!formRef.current) return;
+    const fd = new FormData(formRef.current);
+    fd.set("_token", localStorage.getItem("auth_token") ?? "");
+    startTransition(() => formAction(fd));
+  }
+
   return (
     <div className={styles.page}>
-      <form action={formAction} className={styles.form}>
-        <input type="hidden" name="_token" value={token} />
+      <form ref={formRef} onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className={styles.form}>
         <h1 className={styles.formTitle}>Create Pricing Request</h1>
 
         {state.status === "success" && (

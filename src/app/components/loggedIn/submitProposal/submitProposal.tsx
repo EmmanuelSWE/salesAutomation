@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useRef, useTransition } from "react";
 import { submitProposalAction, type ProposalFormState } from "../../../lib/actions";
 import { ScopeItems }   from "../../dashboard/scopeItems/scopeItems";
 import { SubmitButton } from "../submitButton/submitButton";
@@ -17,20 +17,26 @@ interface SubmitProposalProps {
 
 const SubmitProposal = ({ prefillClientId, prefillClientName, prefillOpportunityId }: Readonly<SubmitProposalProps> = {}) => {
   const { styles } = useSubmitProposalStyles();
-  const [token, setToken] = useState("");
+  const formRef = useRef<HTMLFormElement>(null);
+  const [, startTransition] = useTransition();
   const [state, formAction] = useActionState(submitProposalAction, initialState);
   const { user } = useUserState();
 
-  useEffect(() => { setToken(localStorage.getItem("auth_token") ?? ""); }, []);
-
   const requesterName = user ? `${user.firstName} ${user.lastName}`.trim() : "";
+
+  function handleSubmit() {
+    if (!formRef.current) return;
+    const fd = new FormData(formRef.current);
+    fd.set("_token",        localStorage.getItem("auth_token") ?? "");
+    fd.set("clientId",      prefillClientId ?? "");
+    fd.set("requestedById", user?.id ?? "");
+    if (prefillOpportunityId) fd.set("opportunityId", prefillOpportunityId);
+    startTransition(() => formAction(fd));
+  }
 
   return (
     <div className={styles.page}>
-      <form action={formAction} className={styles.form} encType="multipart/form-data">
-        <input type="hidden" name="_token"       value={token} />
-        <input type="hidden" name="clientId"     value={prefillClientId ?? ""} />
-        <input type="hidden" name="requestedById" value={user?.id ?? ""} />
+      <form ref={formRef} onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className={styles.form} encType="multipart/form-data">
         <h1 className={styles.formTitle}>Proposal Request Form</h1>
 
         {/* ── Success banner ── */}

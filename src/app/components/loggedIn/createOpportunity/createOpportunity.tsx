@@ -1,5 +1,6 @@
 "use client";
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { createOpportunityAction, type FormState } from "../../../lib/actions";
 import { SubmitButton } from "../form/submitButton";
 import { useFormStyles } from "../form/form.module";
@@ -13,8 +14,10 @@ const CURRENCIES = ["ZAR","USD","EUR","GBP"];
 interface Props { clientId: string; }
 
 export default function CreateOpportunity({ clientId }: Readonly<Props>) {
+  const router = useRouter();
   const { styles } = useFormStyles();
-  const [token, setToken] = useState("");
+  const formRef = useRef<HTMLFormElement>(null);
+  const [, startTransition] = useTransition();
   const [state, formAction] = useActionState(createOpportunityAction, initial);
 
   const { users, isPending: usersPending } = useUserState();
@@ -24,40 +27,38 @@ export default function CreateOpportunity({ clientId }: Readonly<Props>) {
   const { getContactsByClient } = useContactAction();
 
   useEffect(() => {
-    setToken(localStorage.getItem("auth_token") ?? "");
     getUsers({ role: "SalesRep", isActive: true });
     getContactsByClient(clientId);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const salesReps = users ?? [];
-  const primaryContact = (contacts ?? []).find((c) => c.isPrimaryContact);
+  // Once contacts load, redirect if client has none — first contact created will become primary
+  useEffect(() => {
+    if (!contactsPending && contacts?.length === 0) {
+      router.replace(`/Client/${clientId}/createContact`);
+    }
+  }, [contactsPending, contacts, clientId, router]);
 
-  function renderPrimaryContact() {
-    if (contactsPending) {
-      return <div className={styles.input} style={{ background: "#f5f5f5", color: "#aaa", cursor: "not-allowed" }}>Loading…</div>;
-    }
-    if (primaryContact) {
-      return (
-        <div className={styles.input} style={{ background: "#f5f5f5", color: "#555", cursor: "not-allowed", display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ fontSize: 12 }}>🔒</span>
-          <span>{primaryContact.firstName} {primaryContact.lastName}</span>
-          <span style={{ marginLeft: "auto", fontSize: 11, color: "#aaa" }}>{primaryContact.email}</span>
-        </div>
-      );
-    }
-    return (
-      <div className={styles.input} style={{ background: "#fff8e1", color: "#b26a00", cursor: "not-allowed", fontSize: 13 }}>
-        ⚠ No primary contact on file for this client
-      </div>
-    );
+  const salesReps = users ?? [];
+  // Primary contact: flagged one, or fall back to first contact
+  const primaryContact = (contacts ?? []).find((c) => c.isPrimaryContact) ?? contacts?.[0];
+
+  function handleSubmit() {
+    if (!formRef.current) return;
+    const fd = new FormData(formRef.current);
+    fd.set("_token",    localStorage.getItem("auth_token") ?? "");
+    fd.set("clientId",  clientId);
+    fd.set("contactId", primaryContact?.id ?? "");
+    startTransition(() => formAction(fd));
   }
+
+  const isLoading = contactsPending || contacts === undefined;
 
   return (
     <div className={styles.page}>
-      <form action={formAction} className={styles.form}>
-        <input type="hidden" name="_token" value={token} />
-        <input type="hidden" name="clientId" value={clientId} />
-        <input type="hidden" name="contactId" value={primaryContact?.id ?? ""} />
+      {isLoading ? (
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: 200 }}>Loading…</div>
+      ) : (
+      <form ref={formRef} onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className={styles.form}>
         <h1 className={styles.formTitle}>Create Opportunity</h1>
         {state.status === "success" && <div className={styles.successBanner}>{state.message}</div>}
 
@@ -68,19 +69,6 @@ export default function CreateOpportunity({ clientId }: Readonly<Props>) {
             <input id="title" name="title" className={styles.input} placeholder="Big Deal"
               style={state.errors?.title ? { borderColor: "#f44336" } : {}} />
             {state.errors?.title && <span className={styles.errorText}>{state.errors.title}</span>}
-          </div>
-          <div className={styles.row2}>
-            <div className={styles.field}>
-              <span className={styles.label}>Client</span>
-              <div className={styles.input} style={{ background: "#f5f5f5", color: "#888", cursor: "not-allowed", display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ fontSize: 12 }}>🔒</span>
-                <span style={{ fontFamily: "monospace", fontSize: 12 }}>{clientId}</span>
-              </div>
-            </div>
-            <div className={styles.field}>
-              <span className={styles.label}>Primary Contact</span>
-              {renderPrimaryContact()}
-            </div>
           </div>
           <div className={styles.field}>
             <label className={styles.label} htmlFor="description">Description</label>
@@ -162,6 +150,7 @@ export default function CreateOpportunity({ clientId }: Readonly<Props>) {
           <SubmitButton label="Create Opportunity" pendingLabel="Creating…" />
         </div>
       </form>
+      )}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 "use client";
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useTransition } from "react";
 import { createActivityAction, type FormState } from "../../../lib/actions";
 import { SubmitButton } from "../form/submitButton";
 import { useFormStyles } from "../form/form.module";
@@ -26,23 +26,29 @@ const RELATED_TO_TYPES = [
 
 export default function CreateActivity() {
   const { styles } = useFormStyles();
-  const [token, setToken] = useState("");
+  const formRef = useRef<HTMLFormElement>(null);
+  const [, startTransition] = useTransition();
   const [state, formAction] = useActionState(createActivityAction, initial);
 
   const { users, isPending: usersPending } = useUserState();
   const { getUsers }   = useUserAction();
 
   useEffect(() => {
-    setToken(localStorage.getItem("auth_token") ?? "");
     getUsers({ role: "SalesRep", isActive: true });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const salesReps = users ?? [];
 
+  function handleSubmit() {
+    if (!formRef.current) return;
+    const fd = new FormData(formRef.current);
+    fd.set("_token", localStorage.getItem("auth_token") ?? "");
+    startTransition(() => formAction(fd));
+  }
+
   return (
     <div className={styles.page}>
-      <form action={formAction} className={styles.form}>
-        <input type="hidden" name="_token" value={token} />
+      <form ref={formRef} onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className={styles.form}>
         <h1 className={styles.formTitle}>Create Activity</h1>
         {state.status === "success" && <div className={styles.successBanner}>{state.message}</div>}
 

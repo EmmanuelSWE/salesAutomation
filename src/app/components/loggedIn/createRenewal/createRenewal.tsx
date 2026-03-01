@@ -1,5 +1,5 @@
 "use client";
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useRef, useTransition } from "react";
 import { createRenewalAction, type FormState } from "../../../lib/actions";
 import { SubmitButton } from "../form/submitButton";
 import { useFormStyles } from "../form/form.module";
@@ -10,19 +10,23 @@ const initial: FormState = { status: "idle" };
 
 export default function CreateRenewal({ contractId }: Readonly<Props>) {
   const { styles } = useFormStyles();
-  const [token, setToken] = useState("");
+  const formRef = useRef<HTMLFormElement>(null);
+  const [, startTransition] = useTransition();
   const [state, formAction] = useActionState(createRenewalAction, initial);
 
-  useEffect(() => { setToken(localStorage.getItem("auth_token") ?? ""); }, []);
+  function handleSubmit() {
+    if (!formRef.current) return;
+    const fd = new FormData(formRef.current);
+    fd.set("_token", localStorage.getItem("auth_token") ?? "");
+    if (contractId) fd.set("contractId", contractId);
+    startTransition(() => formAction(fd));
+  }
 
   return (
     <div className={styles.page}>
-      <form action={formAction} className={styles.form}>
-        <input type="hidden" name="_token" value={token} />
+      <form ref={formRef} onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className={styles.form}>
         <h1 className={styles.formTitle}>Create Renewal</h1>
         {state.status === "success" && <div className={styles.successBanner}>{state.message}</div>}
-
-        {contractId && <input type="hidden" name="contractId" value={contractId} />}
 
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Renewal Dates</h2>
