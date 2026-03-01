@@ -22,14 +22,14 @@ function formatDate(iso?: string): string {
 
 export default function AccountInfo() {
   const { styles } = useAccountInfoStyles();
-  const { user, isPending } = useUserState();
+  const { user, isPending, isInitialized } = useUserState();
   const { logoutUser, getOneUser } = useUserAction();
   const router = useRouter();
 
-  // Re-fetch the full profile whenever we have a user id
+  // Wait for the /auth/me boot check to finish, then fetch the full profile
   useEffect(() => {
-    if (user?.id) getOneUser(user.id);
-  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (isInitialized && user?.id) getOneUser(user.id);
+  }, [isInitialized, user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleLogout() {
     logoutUser();
@@ -38,7 +38,7 @@ export default function AccountInfo() {
 
   const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(" ") || "Unknown User";
 
-  if (isPending) return (
+  if (isPending || !isInitialized) { return (
     <div className={styles.page}>
       <h1 className={styles.title}>Account Info</h1>
 
@@ -79,7 +79,7 @@ export default function AccountInfo() {
       </div>
     </div>
   );
-
+}
   return (
     <div className={styles.page}>
       <h1 className={styles.title}>Account Info</h1>
@@ -90,9 +90,19 @@ export default function AccountInfo() {
           {initials(user?.firstName, user?.lastName)}
         </div>
         <div className={styles.profileMeta}>
-          <p className={styles.fullName}>{fullName}</p>
+          <p className={styles.fullName}>{user?.firstName ?? "Not working"}</p>
           <p className={styles.email}>{user?.email ?? "—"}</p>
-          <span className={styles.roleBadge}>{user?.role ?? "SalesRep"}</span>
+          <div className={styles.profileBadgeRow}>
+            <span className={styles.roleBadge}>{user?.role ?? "SalesRep"}</span>
+            {user?.phoneNumber && (
+              <span className={styles.phoneBadge}>{user.phoneNumber}</span>
+            )}
+          </div>
+          {user?.id && (
+            <span className={styles.idChip} title={user.id}>
+              ID&nbsp;·&nbsp;{user.id}
+            </span>
+          )}
         </div>
       </div>
 

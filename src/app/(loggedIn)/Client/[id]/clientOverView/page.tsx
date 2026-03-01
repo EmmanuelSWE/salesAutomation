@@ -1,6 +1,6 @@
 "use client";
 
-import { useContext, useEffect, useState } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 import { useParams }    from "next/navigation";
 import Link             from "next/link";
 import ClientOverviewCard  from "../../../../components/loggedIn/clientOverview/clientOverviewCard/clientOverViewCard";
@@ -15,30 +15,23 @@ import {
   ContactActionsContext,
   OpportunityStateContext,
   OpportunityActionsContext,
+  ProposalStateContext,
+  ProposalActionsContext,
 } from "../../../../lib/providers/context";
 
 import type { ProposalStep }   from "../../../../components/loggedIn/clientOverview/clientOverviewCard/clientOverViewCard";
 import type { ContactCard }    from "../../../../components/loggedIn/clientOverview/clientContactDetails/clientContactDetails";
 import type { InvoiceRow }     from "../../../../components/loggedIn/clientOverview/clientDocumentHistory/clientDocumentHistory";
 import type { OpportunityRow } from "../../../../components/loggedIn/clientOverview/clientOpportunities/clientOpportunites";
+import ClientProposals         from "../../../../components/loggedIn/clientOverview/clientProposals/clientProposals";
 
-/* ── Placeholder data for features not yet implemented ── */
-const PLACEHOLDER_STEPS: ProposalStep[] = [
-  { label: "Initial client discovery call",      done: true  },
-  { label: "Proposal document drafted",          done: true  },
-  { label: "Pricing review with finance team",   done: true  },
-  { label: "Legal review of terms",              done: true  },
-  { label: "Client approval on scope",           done: false },
-  { label: "Contract signing",                   done: false },
-  { label: "Onboarding kick-off scheduled",      done: false },
-];
-
+/* ── Placeholder invoices (until invoice API is ready) ── */
 const PLACEHOLDER_INVOICES: InvoiceRow[] = [
-  { id: "1", date: "Feb 5, 2026", description: "Invoice for October 2026",   amount: "$123.79" },
-  { id: "2", date: "Feb 4, 2026", description: "Invoice for September 2026", amount: "$98.03"  },
-  { id: "3", date: "Feb 3, 2026", description: "Paypal",                     amount: "$35.07"  },
-  { id: "4", date: "Feb 2, 2026", description: "Invoice for July 2026",      amount: "$142.80" },
-  { id: "5", date: "Feb 1, 2026", description: "Invoice for June 2026",      amount: "$123.79" },
+  { id: "1", date: "Feb 5, 2026",  description: "Invoice for October 2026",   amount: "$123.79" },
+  { id: "2", date: "Feb 4, 2026",  description: "Invoice for September 2026", amount: "$98.03"  },
+  { id: "3", date: "Feb 3, 2026",  description: "Paypal",                     amount: "$35.07"  },
+  { id: "4", date: "Feb 2, 2026",  description: "Invoice for July 2026",      amount: "$142.80" },
+  { id: "5", date: "Feb 1, 2026",  description: "Invoice for June 2026",      amount: "$123.79" },
 ];
 
 export default function ClientOverview() {
@@ -53,6 +46,9 @@ export default function ClientOverview() {
   
   const opportunityState = useContext(OpportunityStateContext);
   const opportunityActions = useContext(OpportunityActionsContext);
+
+  const proposalState   = useContext(ProposalStateContext);
+  const proposalActions = useContext(ProposalActionsContext);
 
   const [contacts, setContacts] = useState<ContactCard[]>([]);
   const [opportunities, setOpportunities] = useState<OpportunityRow[]>([]);
@@ -77,6 +73,13 @@ export default function ClientOverview() {
       opportunityActions.getOpportunities({ clientId });
     }
   }, [clientId, opportunityActions]);
+
+  // Fetch proposals for this client
+  useEffect(() => {
+    if (clientId && proposalActions?.getProposals) {
+      proposalActions.getProposals({ clientId });
+    }
+  }, [clientId, proposalActions]);
 
   // Transform contacts from API to ContactCard format
   useEffect(() => {
@@ -112,6 +115,43 @@ export default function ClientOverview() {
 
   const clientName = clientState?.client?.name || "Loading...";
 
+  /* ── Derive current proposal (most recent) ── */
+  const allProposals  = useMemo(() => proposalState?.proposals ?? [], [proposalState?.proposals]);
+  const currentProposal = useMemo(() => {
+    if (allProposals.length === 0) return null;
+    return [...allProposals].sort((a, b) =>
+      new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime()
+    )[0];
+  }, [allProposals]);
+
+  /* Line items → ProposalStep[]
+     A line item is "done" when the proposal has been Approved.    */
+  const proposalSteps: ProposalStep[] = useMemo(() => {
+    if (!currentProposal?.lineItems?.length) return [];
+    const isDone = currentProposal.status === "Approved";
+    return currentProposal.lineItems.map((item) => ({
+      label: item.productServiceName,
+      done:  isDone,
+    }));
+  }, [currentProposal]);
+
+  /* Total value of current proposal */
+  const proposalTotal = useMemo(() => {
+    if (!currentProposal?.lineItems?.length) return "—";
+    const total = currentProposal.lineItems.reduce((sum, item) => {
+      const base     = item.quantity * item.unitPrice;
+      const afterDis = base * (1 - (item.discount ?? 0) / 100);
+      const withTax  = afterDis * (1 + (item.taxRate ?? 0) / 100);
+      return sum + (item.lineTotal ?? withTax);
+    }, 0);
+    return `$${total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }, [currentProposal]);
+
+  const activeUntil = currentProposal?.validUntil ?? "";
+  const subscriptionNote = currentProposal
+    ? `${currentProposal.title} · ${currentProposal.currency}`
+    : "No active proposal for this client.";
+
   return (
     <div
       style={{
@@ -144,13 +184,15 @@ export default function ClientOverview() {
         </Link>
       </div>
 
-      {/* 1. Client name + project steps + active date + pricing + alert */}
+      {/* 1. Client name + current proposal line items + active date + pricing + alert */}
       <ClientOverviewCard
         clientName={clientName}
-        steps={PLACEHOLDER_STEPS}
-        activeUntil="Dec 9, 2026"
-        subscriptionNote="We will send you a notification upon Subscription expiration."
-        pricePerMonth="$24.99"
+        steps={proposalSteps}
+        proposalTitle={currentProposal?.title}
+        proposalIsPending={proposalState?.isPending ?? false}
+        activeUntil={activeUntil}
+        subscriptionNote={subscriptionNote}
+        pricePerMonth={proposalTotal}
         onCancelProject={() => console.log("cancel")}
         onRenewContract={() => console.log("renew")}
       />
@@ -168,6 +210,15 @@ export default function ClientOverview() {
       <ClientOpportunities 
         opportunities={opportunities.length > 0 ? opportunities : []} 
         defaultPeriod="Month" 
+      />
+
+      {/* 5. Proposals */}
+      <ClientProposals
+        proposals={proposalState?.proposals ?? []}
+        isPending={proposalState?.isPending ?? false}
+        isError={proposalState?.isError ?? false}
+        clientId={clientId}
+        createHref={`/Client/${clientId}/createOpportunity`}
       />
     </div>
   );

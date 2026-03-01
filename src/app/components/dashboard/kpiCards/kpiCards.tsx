@@ -30,6 +30,7 @@ export default function KpiCards({ data }: Readonly<KpiCardsProps>) {
       icon:    <FundOutlined />,
       gold:    false,
       trend:   null,
+      accent:  "#5c6bc0",
     },
     {
       label:   "Win Rate",
@@ -38,6 +39,7 @@ export default function KpiCards({ data }: Readonly<KpiCardsProps>) {
       icon:    <TrophyOutlined />,
       gold:    true,
       trend:   null,
+      accent:  "#1a0e00",
     },
     {
       label:   "Pipeline Value",
@@ -46,6 +48,7 @@ export default function KpiCards({ data }: Readonly<KpiCardsProps>) {
       icon:    <DollarOutlined />,
       gold:    false,
       trend:   null,
+      accent:  "#26a69a",
     },
     {
       label:   "Active Contracts",
@@ -54,6 +57,7 @@ export default function KpiCards({ data }: Readonly<KpiCardsProps>) {
       icon:    <FileProtectOutlined />,
       gold:    false,
       trend:   data.expiringThisMonth > 0 ? "warn" : null,
+      accent:  "#f39c12",
     },
   ];
 
@@ -61,10 +65,18 @@ export default function KpiCards({ data }: Readonly<KpiCardsProps>) {
     <section className={styles.grid} aria-label="KPI cards">
       {cards.map((c) => (
         <div key={c.label} className={cx(styles.card, c.gold && styles.cardGold)}>
-          <span className={styles.icon}>{c.icon}</span>
-          <div className={styles.label}>{c.label}</div>
-          <div className={styles.value}>{c.value}</div>
-          <div className={c.trend === "warn" ? styles.trendDown : styles.sub}>
+          <div
+            className={styles.iconBubble}
+            style={{
+              background: c.gold ? "rgba(0,0,0,0.15)" : `${c.accent}22`,
+              color: c.gold ? c.accent : c.accent,
+            }}
+          >
+            {c.icon}
+          </div>
+          <div className={cx(styles.label, c.gold && styles.labelGold)}>{c.label}</div>
+          <div className={cx(styles.value, c.gold && styles.valueGold)}>{c.value}</div>
+          <div className={c.trend === "warn" ? styles.trendDown : cx(styles.sub, c.gold && styles.subGold)}>
             {c.sub}
           </div>
         </div>

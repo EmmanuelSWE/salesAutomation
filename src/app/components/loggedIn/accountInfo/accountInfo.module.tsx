@@ -51,7 +51,9 @@ export const useAccountInfoStyles = createStyles(({ css }) => ({
   profileMeta: css`
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    gap: 5px;
+    min-width: 0;
+    flex: 1;
   `,
 
   fullName: css`
@@ -67,10 +69,17 @@ export const useAccountInfoStyles = createStyles(({ css }) => ({
     margin: 0;
   `,
 
+  profileBadgeRow: css`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+  `,
+
   roleBadge: css`
     display: inline-flex;
     align-items: center;
-    margin-top: 6px;
     background: #3a3a3a;
     border-radius: 20px;
     padding: 3px 12px;
@@ -78,7 +87,38 @@ export const useAccountInfoStyles = createStyles(({ css }) => ({
     font-weight: 600;
     color: #f5a623;
     letter-spacing: 0.4px;
-    width: fit-content;
+  `,
+
+  phoneBadge: css`
+    display: inline-flex;
+    align-items: center;
+    background: rgba(38,166,154,0.12);
+    border: 1px solid rgba(38,166,154,0.25);
+    border-radius: 20px;
+    padding: 3px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #26a69a;
+    letter-spacing: 0.2px;
+  `,
+
+  idChip: css`
+    display: inline-block;
+    margin-top: 2px;
+    width: 100%;
+    max-width: 420px;
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 11px;
+    color: #555;
+    background: #1a1a1a;
+    border: 1px solid #2a2a2a;
+    border-radius: 6px;
+    padding: 4px 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    cursor: default;
+    letter-spacing: 0.3px;
   `,
 
   detailsGrid: css`

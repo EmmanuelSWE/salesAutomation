@@ -76,20 +76,22 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   const [authToken, setAuthToken] = useState<string | undefined>(undefined);
 
   useEffect(() => {
-    const token = globalThis.window
-      ? localStorage.getItem("auth_token")
-      : null;
+    const token  = globalThis.window ? localStorage.getItem("auth_token")   : null;
+    const userId = globalThis.window ? localStorage.getItem("auth_user_id") : null;
 
-    if (token) {
+    if (token && userId) {
       dispatch(loginPending());
-      api.get("/auth/me")
+      api.get(`/users/${userId}`)
         .then(res => {
+          console.log("[UserProvider] /users/:id success:", res.data);
           dispatch(loginSuccess({ ...res.data, token }));
           setAuthToken(token);
           setIsInitialized(true);
         })
-        .catch(() => {
+        .catch((err) => {
+          console.error("[UserProvider] /users/:id failed — status:", err.response?.status, "| data:", err.response?.data, "| message:", err.message);
           localStorage.removeItem("auth_token");
+          localStorage.removeItem("auth_user_id");
           dispatch(loginError());
           setIsInitialized(true);
         });
@@ -114,6 +116,7 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 
   const logoutUser = () => {
     localStorage.removeItem("auth_token");
+    localStorage.removeItem("auth_user_id");
     setAuthToken(undefined);
     dispatch(loginError());
     globalThis.location.href = "/login";
@@ -124,8 +127,14 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     [state.token] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
+  const userStateValue = useMemo(
+    () => ({ ...state, token: authToken, isInitialized }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [state, authToken, isInitialized]
+  );
+
   return (
-    <UserStateContext.Provider value={{ ...state, token: authToken, isInitialized }}>
+    <UserStateContext.Provider value={userStateValue}>
       <UserActionsContext.Provider value={userActions}>
         {children}
       </UserActionsContext.Provider>

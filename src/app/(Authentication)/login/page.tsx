@@ -14,9 +14,10 @@ const Login = () => {
   useEffect(() => {
     if (state.status === "success" && state.token) {
       setToken(state.token);
-      window.location.href = "/admin/dashboard";
+      if (state.userId) localStorage.setItem("auth_user_id", state.userId);
+      globalThis.window.location.href = "/admin/dashboard";
     }
-  }, [state.status, state.token]);
+  }, [state.status, state.token, state.userId]);
 
   return (
     <div className={styles.container}>

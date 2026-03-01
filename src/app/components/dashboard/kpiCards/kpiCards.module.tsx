@@ -29,19 +29,31 @@ export const useKpiStyles = createStyles(({ css }) => ({
   `,
 
   icon: css`
-    position: absolute;
-    top: 14px;
-    right: 16px;
-    font-size: 18px;
-    opacity: 0.55;
+    display: none;
+  `,
+
+  iconBubble: css`
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 19px;
+    margin-bottom: 4px;
+    flex-shrink: 0;
   `,
 
   label: css`
     font-size: 11px;
-    color: #c8922a;
+    color: #888;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+  `,
+
+  labelGold: css`
+    color: rgba(26,14,0,0.65);
   `,
 
   value: css`
@@ -51,10 +63,18 @@ export const useKpiStyles = createStyles(({ css }) => ({
     color: #fff;
   `,
 
+  valueGold: css`
+    color: #1a0e00;
+  `,
+
   sub: css`
     font-size: 11px;
-    color: #b07d2e;
+    color: #666;
     margin-top: 2px;
+  `,
+
+  subGold: css`
+    color: rgba(26,14,0,0.55);
   `,
 
   trendUp: css`

@@ -60,7 +60,8 @@ export type FormState = {
 export type LoginFormState = {
   status: "idle" | "success" | "error";
   message?: string;
-  token?: string; // returned to client → stored in localStorage
+  token?:  string; // returned to client → stored in localStorage
+  userId?: string; // returned to client → stored in localStorage for rehydration
   errors?: Partial<Record<string, string>>;
 };
 
@@ -115,8 +116,8 @@ export async function loginAction(
     }
 
     console.log("[loginAction] Login successful, token received");
-    // Return token to client — client stores it in localStorage
-    return { status: "success", token: data.token };
+    // Return token + userId to client — client stores both in localStorage
+    return { status: "success", token: data.token, userId: data.userId };
   } catch (err) {
     console.error("[loginAction] Exception:", err);
     return { status: "error", message: "Login failed. Please try again." };
@@ -162,7 +163,7 @@ export async function registerAction(
     confirmPassword: (formData.get("confirmPassword") as string) || "",
     tenantName:      (formData.get("tenantName")      as string) || "",
     tenantId:        (formData.get("tenantId")        as string) || "",
-    role:            (formData.get("role")            as string) || "",
+    role:            (formData.get("role")            as string) || 'SalesRep',
   };
 
   const errors = validateRegister(fields);
