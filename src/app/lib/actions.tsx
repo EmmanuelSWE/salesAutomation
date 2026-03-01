@@ -212,6 +212,7 @@ export async function createClientAction(_prev: FormState, formData: FormData): 
     return { status: "error", errors };
   }
 
+  let newClientId: string | undefined;
   try {
     console.log("[createClientAction] Calling API with data:", { name, industry, clientType });
     const data = await apiPost("/clients", {
@@ -221,12 +222,13 @@ export async function createClientAction(_prev: FormState, formData: FormData): 
     }, token);
     console.log("[createClientAction] Success, client ID:", data.id);
     revalidatePath("/clients");
-    redirect(`/Client/${data.id}`);
+    newClientId = data.id;
   } catch (err: unknown) {
     console.error("[createClientAction] Error:", err);
     const e = err as { data?: { message?: string } };
     return { status: "error", message: e.data?.message ?? "Failed to create client." };
   }
+  redirect(`/Client/${newClientId}/clientOverView`);
 }
 
 /* ══════════════════════════════════════════════════════
@@ -309,12 +311,12 @@ export async function createOpportunityAction(_prev: FormState, formData: FormDa
     }, token);
     console.log("[createOpportunityAction] Success, opportunity ID:", data.id);
     revalidatePath("/opportunities");
-    redirect(`/opportunities/${data.id}`);
   } catch (err: unknown) {
     console.error("[createOpportunityAction] Error:", err);
     const e = err as { data?: { message?: string } };
     return { status: "error", message: e.data?.message ?? "Failed to create opportunity." };
   }
+  redirect(`/Client/${clientId}/clientOverView`);
 }
 
 /* ══════════════════════════════════════════════════════
@@ -567,6 +569,7 @@ export async function submitProposalAction(
     return { status: "error", errors };
   }
 
+  let redirectTo: string | undefined;
   try {
     console.log("[submitProposalAction] Calling API with data:", { opportunityId, clientName, scopeItems });
     const data = await apiPost("/proposals", {
@@ -578,15 +581,17 @@ export async function submitProposalAction(
     console.log("[submitProposalAction] Success, proposal ID:", data.id);
     if (clientId?.trim()) {
       revalidatePath(`/Client/${clientId}/clientOverView`);
-      redirect(`/Client/${clientId}/clientOverView`);
+      redirectTo = `/Client/${clientId}/clientOverView`;
+    } else {
+      revalidatePath("/opportunities");
+      redirectTo = `/proposals/${data.id}`;
     }
-    revalidatePath("/opportunities");
-    redirect(`/proposals/${data.id}`);
   } catch (err: unknown) {
     console.error("[submitProposalAction] Error:", err);
     const e = err as { data?: { message?: string } };
     return { status: "error", message: e.data?.message ?? "Failed to submit proposal." };
   }
+  redirect(redirectTo ?? "/opportunities");
 }
 
 /* ══════════════════════════════════════════════════════

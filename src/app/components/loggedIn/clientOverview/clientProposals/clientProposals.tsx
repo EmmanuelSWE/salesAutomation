@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useCardStyles } from "../card/card.module";
 import { useClientProposalsStyles } from "./clientProposals.module";
 import type { IProposal } from "../../../../lib/providers/context";
@@ -47,9 +46,6 @@ export default function ClientProposals({
       {/* Header */}
       <div className={card.cardHeader}>
         <h3 className={card.cardTitle}>Proposal History</h3>
-        <Link href={createHref} className={styles.createBtn}>
-          + New Proposal
-        </Link>
       </div>
 
       <hr className={card.divider} />
@@ -83,11 +79,8 @@ export default function ClientProposals({
           <div className={styles.emptyIcon}>📄</div>
           <p className={styles.emptyTitle}>No proposals yet</p>
           <p className={styles.emptySub}>
-            There are no proposals for this client. Create one to get started.
+            Select an opportunity above and click <strong>+ Proposal</strong> to create one.
           </p>
-          <Link href={createHref} className={styles.emptyBtn}>
-            Create First Proposal
-          </Link>
         </div>
       )}
 

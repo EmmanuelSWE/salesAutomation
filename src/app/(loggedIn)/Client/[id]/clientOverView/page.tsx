@@ -2,7 +2,6 @@
 
 import { useContext, useEffect, useMemo, useState } from "react";
 import { useParams }    from "next/navigation";
-import Link             from "next/link";
 import ClientOverviewCard  from "../../../../components/loggedIn/clientOverview/clientOverviewCard/clientOverViewCard";
 import ClientContactDetails from "../../../../components/loggedIn/clientOverview/clientContactDetails/clientContactDetails";
 import ClientDocumentHistory from "../../../../components/loggedIn/clientOverview/clientDocumentHistory/clientDocumentHistory";
@@ -164,25 +163,6 @@ export default function ClientOverview() {
         boxSizing: "border-box",
       }}
     >
-      {/* ── Action bar ── */}
-      <div style={{ display: "flex", gap: 10, justifyContent: "flex-end" }}>
-        <Link
-          href={`/Client/${clientId}/createProposal`}
-          style={{
-            display:        "inline-block",
-            padding:        "8px 18px",
-            borderRadius:   8,
-            background:     "#4caf50",
-            color:          "#fff",
-            fontWeight:     600,
-            fontSize:       13,
-            textDecoration: "none",
-            letterSpacing:  "0.02em",
-          }}
-        >
-          + Create Proposal
-        </Link>
-      </div>
 
       {/* 1. Client name + current proposal line items + active date + pricing + alert */}
       <ClientOverviewCard
@@ -207,9 +187,11 @@ export default function ClientOverview() {
       <ClientDocumentHistory invoices={PLACEHOLDER_INVOICES} defaultPeriod="Month" />
 
       {/* 4. Opportunities - Now using real data from API */}
-      <ClientOpportunities 
-        opportunities={opportunities.length > 0 ? opportunities : []} 
-        defaultPeriod="Month" 
+      <ClientOpportunities
+        opportunities={opportunities.length > 0 ? opportunities : []}
+        defaultPeriod="Month"
+        createHref={`/Client/${clientId}/createOpportunity`}
+        createProposalHref={(oppId) => `/Client/${clientId}/createProposal?opportunityId=${oppId}`}
       />
 
       {/* 5. Proposals */}
@@ -218,7 +200,7 @@ export default function ClientOverview() {
         isPending={proposalState?.isPending ?? false}
         isError={proposalState?.isError ?? false}
         clientId={clientId}
-        createHref={`/Client/${clientId}/createOpportunity`}
+        createHref=""
       />
     </div>
   );

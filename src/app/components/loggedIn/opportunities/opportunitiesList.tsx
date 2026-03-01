@@ -1,12 +1,10 @@
 ﻿"use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import {
   SearchOutlined,
   SwapOutlined,
   FilterOutlined,
-  PlusOutlined,
   CalendarOutlined,
   LeftOutlined,
   RightOutlined,
@@ -144,9 +142,6 @@ export default function OpportunitiesList() {
           </div>
           <button className={styles.iconBtn} type="button" title="Sort"><SwapOutlined rotate={90} /></button>
           <button className={styles.iconBtn} type="button" title="Filter"><FilterOutlined /></button>
-          <Link href="/opportunities/create">
-            <button className={styles.addBtn} type="button" title="New opportunity"><PlusOutlined /></button>
-          </Link>
         </div>
 
         {/* â”€â”€ Table â”€â”€ */}
