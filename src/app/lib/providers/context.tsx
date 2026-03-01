@@ -15,7 +15,8 @@ export interface IUser {
   phoneNumber?:  string;          // optional
   tenantName?:   string;          // optional — creates new org, caller becomes Admin
            //            mutually exclusive with tenantId
-  tenantId?:     string;          // optional guid — joins existing org by ID
+  tenantId?:     string;          // optional guid — joins existing org by ID (flat FK)
+  tenant?:       { id: string; name?: string };  // nested tenant object returned by API
   role?:         string;          // optional — defaults to "SalesRep"
   roles?:        string[];        // array of roles returned by the API
   isActive?:     boolean;

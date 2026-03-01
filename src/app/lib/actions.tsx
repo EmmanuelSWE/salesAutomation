@@ -724,3 +724,44 @@ export async function completeRenewalAction(_prev: FormState, formData: FormData
     return { status: "error", message: e.data?.message ?? "Failed to complete renewal." };
   }
 }
+
+/* ══════════════════════════════════════════════════════
+   STAFF INVITATION
+   Sends an invitation email with a pre-filled signup link
+══════════════════════════════════════════════════════ */
+export type InviteFormState = {
+  status: "idle" | "success" | "error";
+  message?: string;
+  previewUrl?: string;
+  errors?: Partial<Record<string, string>>;
+};
+
+export async function sendInvitationAction(
+  _prev: InviteFormState,
+  formData: FormData
+): Promise<InviteFormState> {
+  const email        = (formData.get("email")        as string)?.trim();
+  const role         = (formData.get("role")         as string)?.trim();
+  const tenantId     = (formData.get("tenantId")     as string)?.trim();
+  const inviterName  = (formData.get("inviterName")  as string)?.trim() || "Your admin";
+
+  const errors: Partial<Record<string, string>> = {};
+  if (!email)    errors.email    = "Email address is required.";
+  if (!role)     errors.role     = "Please select a role.";
+  if (!tenantId) errors.tenantId = "Organisation ID is missing — make sure you are logged in.";
+  if (Object.keys(errors).length > 0) return { status: "error", errors };
+
+  try {
+    const { sendInvitationEmail } = await import("./utils/mailer");
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+    const { previewUrl } = await sendInvitationEmail({ toEmail: email, role, tenantId, inviterName, appUrl });
+    return {
+      status: "success",
+      message: `Invitation sent to ${email}.`,
+      ...(previewUrl ? { previewUrl } : {}),
+    };
+  } catch (err: unknown) {
+    console.error("[sendInvitationAction] error:", err);
+    return { status: "error", message: "Failed to send invitation email. Check SMTP configuration." };
+  }
+}

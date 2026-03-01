@@ -2,7 +2,7 @@
 
 import { Input, Select } from "antd";
 import { useActionState, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useSignupStyles } from "../../components/signup/signup.module";
 import { registerAction } from "../../lib/actions";
 import { setToken } from "../../lib/utils/axiosInstance";
@@ -10,8 +10,9 @@ import Link from "next/link";
 import { AuthButton } from "../../components/auth/authButton";
 
 const ROLE_OPTIONS = [
-  { value: "SalesRep", label: "Sales Rep" },
-  { value: "SalesManager", label: "Sales Manager" },
+  { value: "SalesRep",      label: "Sales Rep" },
+  { value: "SalesManager",  label: "Sales Manager" },
+  { value: "Admin",         label: "Admin" },
 ];
 
 type Scenario = "quickstart" | "create-org" | "join-org";
@@ -73,9 +74,30 @@ const PersonalFields = ({ styles, errors }: Readonly<{ styles: Record<string, st
 const Signup = () => {
   const { styles } = useSignupStyles();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [state, formAction] = useActionState(registerAction, { status: "idle" });
-  const [scenario, setScenario] = useState<Scenario>("quickstart");
-  const [roleValue, setRoleValue] = useState("SalesRep");
+
+  // Pre-fill from invitation URL (?tenantId=xxx&role=yyy)
+  // Fall back to the env-configured default org so staff always join the right tenant
+  const envDefaultTenantId = process.env.NEXT_PUBLIC_DEFAULT_TENANT_ID ?? "";
+  const urlTenantId        = searchParams.get("tenantId") ?? "";
+  const inviteTenantId     = urlTenantId || envDefaultTenantId;
+  const inviteRole         = searchParams.get("role") ?? "";
+  const isInvite           = Boolean(urlTenantId);   // true only when from a real invite link
+  const hasDefault         = !isInvite && Boolean(envDefaultTenantId); // env fallback, no URL
+
+  const [scenario,    setScenario]   = useState<Scenario>((isInvite || hasDefault) ? "join-org" : "quickstart");
+  const [roleValue,   setRoleValue]  = useState(inviteRole || "SalesRep");
+  const [tenantIdVal, setTenantIdVal] = useState(inviteTenantId);
+
+  // If page is loaded with invite / default params after hydration, ensure state is set
+  useEffect(() => {
+    if (inviteTenantId) {
+      setScenario("join-org");
+      setTenantIdVal(inviteTenantId);
+    }
+    if (inviteRole) setRoleValue(inviteRole);
+  }, [inviteTenantId, inviteRole]);
 
   useEffect(() => {
     if (state.status === "success") {
@@ -96,21 +118,53 @@ const Signup = () => {
       <div className={styles.card}>
         <div className={styles.logo}>⚡</div>
         <h1 className={styles.title}>Create Account</h1>
-        <p className={styles.subtitle}>Choose how you want to get started</p>
 
-        {/* Scenario tabs */}
-        <div className={styles.tabs}>
-          {SCENARIOS.map((s) => (
-            <button
-              key={s.key}
-              type="button"
-              className={scenario === s.key ? styles.tabActive : styles.tab}
-              onClick={() => setScenario(s.key)}
-            >
-              {s.label}
-            </button>
-          ))}
-        </div>
+        {/* Invitation banner */}
+        {isInvite ? (
+          <div style={{
+            background: "rgba(245,166,35,0.1)",
+            border: "1px solid rgba(245,166,35,0.3)",
+            borderRadius: 10,
+            padding: "10px 14px",
+            marginBottom: 16,
+            fontSize: 13,
+            color: "#f5a623",
+            textAlign: "left",
+          }}>
+            🎉 You have been invited to join an organisation as <strong>{inviteRole || "a team member"}</strong>. Your details are pre-filled below.
+          </div>
+        ) : hasDefault ? (
+          <div style={{
+            background: "rgba(82,196,26,0.08)",
+            border: "1px solid rgba(82,196,26,0.3)",
+            borderRadius: 10,
+            padding: "10px 14px",
+            marginBottom: 16,
+            fontSize: 13,
+            color: "#52c41a",
+            textAlign: "left",
+          }}>
+            🏢 The organisation ID has been pre-filled. Complete the form below to join.
+          </div>
+        ) : (
+          <p className={styles.subtitle}>Choose how you want to get started</p>
+        )}
+
+        {/* Scenario tabs — hide when coming from an invite link or when default org is set */}
+        {!isInvite && !hasDefault && (
+          <div className={styles.tabs}>
+            {SCENARIOS.map((s) => (
+              <button
+                key={s.key}
+                type="button"
+                className={scenario === s.key ? styles.tabActive : styles.tab}
+                onClick={() => setScenario(s.key)}
+              >
+                {s.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Scenario description */}
         <p className={styles.scenarioNote}>{activeScenario.note}</p>
@@ -153,7 +207,17 @@ const Signup = () => {
                   name="tenantId"
                   placeholder="e.g. acme-corp-123"
                   className={styles.input}
+                  value={tenantIdVal}
+                  onChange={(e) => setTenantIdVal(e.target.value)}
+                  readOnly={isInvite}
+                  style={isInvite ? { opacity: 0.7, cursor: "not-allowed" } : {}}
                 />
+                {isInvite && (
+                  <span style={{ fontSize: 11, color: "#666" }}>Pre-filled from your invitation link</span>
+                )}
+                {hasDefault && (
+                  <span style={{ fontSize: 11, color: "#52c41a" }}>Default organisation — you can change this if needed</span>
+                )}
                 {state.errors?.tenantId && (
                   <span className={styles.errorPill}>{state.errors.tenantId}</span>
                 )}
@@ -168,8 +232,12 @@ const Signup = () => {
                   onChange={(value) => setRoleValue(value)}
                   popupMatchSelectWidth={false}
                   options={ROLE_OPTIONS}
+                  disabled={isInvite}
                 />
                 <input type="hidden" name="role" value={roleValue} />
+                {isInvite && (
+                  <span style={{ fontSize: 11, color: "#666" }}>Pre-filled from your invitation link</span>
+                )}
                 {state.errors?.role && (
                   <span className={styles.errorPill}>{state.errors.role}</span>
                 )}
@@ -188,5 +256,11 @@ const Signup = () => {
     </div>
   );
 };
+
+function getSubmitLabel(scenario: "quickstart" | "create-org" | "join-org"): string {
+  if (scenario === "create-org") return "Create Organization";
+  if (scenario === "join-org")   return "Join Organization";
+  return "Create Account";
+}
 
 export default Signup;
