@@ -17,7 +17,6 @@ export default function CreateRenewal({ contractId }: Readonly<Props>) {
   function handleSubmit() {
     if (!formRef.current) return;
     const fd = new FormData(formRef.current);
-    fd.set("_token", localStorage.getItem("auth_token") ?? "");
     if (contractId) fd.set("contractId", contractId);
     startTransition(() => formAction(fd));
   }

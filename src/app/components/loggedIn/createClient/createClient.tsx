@@ -45,7 +45,6 @@ const CreateClient =()=> {
   function handleSubmit() {
     if (!formRef.current) return;
     const fd = new FormData(formRef.current);
-    fd.set("_token", localStorage.getItem("auth_token") ?? "");
     startTransition(() => formAction(fd));
   }
 

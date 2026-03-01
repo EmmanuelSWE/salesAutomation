@@ -2,13 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 
 const BASE = (process.env.NEXT_PUBLIC_API_URL ?? process.env.API_BASE_URL ?? "").replace(/\/$/, "");
 
 /* ══════════════════════════════════════════════════════
    HELPERS
-   Token comes from a hidden _token form field on every
-   form — client reads it from localStorage and injects it
+   Token is read from the auth_token HTTP cookie that
+   loginAction sets on successful authentication.
 ══════════════════════════════════════════════════════ */
 class ApiError extends Error {
   status: number;
@@ -20,7 +21,8 @@ class ApiError extends Error {
   }
 }
 
-async function apiPost(path: string, body: object, token?: string) {
+async function apiPost(path: string, body: object) {
+  const token = (await cookies()).get("auth_token")?.value;
   const res = await fetch(`${BASE}${path}`, {
     method: "POST",
     headers: {
@@ -34,7 +36,8 @@ async function apiPost(path: string, body: object, token?: string) {
   return data;
 }
 
-async function apiPut(path: string, body: object, token?: string) {
+async function apiPut(path: string, body: object) {
+  const token = (await cookies()).get("auth_token")?.value;
   const res = await fetch(`${BASE}${path}`, {
     method: "PUT",
     headers: {
@@ -80,9 +83,10 @@ export type ProposalFormState = {
 
 /* ══════════════════════════════════════════════════════
    AUTH
-   No cookie logic — token is returned in state.
-   Client useEffect watches for state.token, calls
-   setToken(state.token) then redirects to dashboard.
+   loginAction sets auth_token as an httpOnly cookie so
+   server actions can read it via cookies(). The token is
+   also returned in state so the client can store it in
+   localStorage for client-side axios calls.
 ══════════════════════════════════════════════════════ */
 export async function loginAction(
   _prev: LoginFormState,
@@ -116,12 +120,20 @@ export async function loginAction(
     }
 
     console.log("[loginAction] Login successful, token received");
+    (await cookies()).set("auth_token", data.token, {
+      path: "/",
+      sameSite: "lax",
+    });
     // Return token + userId to client — client stores both in localStorage
     return { status: "success", token: data.token, userId: data.userId };
   } catch (err) {
     console.error("[loginAction] Exception:", err);
     return { status: "error", message: "Login failed. Please try again." };
   }
+}
+
+export async function logoutAction(): Promise<void> {
+  (await cookies()).delete("auth_token");
 }
 
 function validateRegister(fields: Record<string, string>) {
@@ -192,7 +204,6 @@ export async function registerAction(
 ══════════════════════════════════════════════════════ */
 export async function createClientAction(_prev: FormState, formData: FormData): Promise<FormState> {
   console.log("[createClientAction] Starting client creation...");
-  const token          = formData.get("_token")         as string;
   const name           = formData.get("name")           as string;
   const industry       = formData.get("industry")       as string;
   const clientType     = formData.get("clientType")     as string;
@@ -219,7 +230,7 @@ export async function createClientAction(_prev: FormState, formData: FormData): 
       name: name.trim(), industry: industry.trim(),
       clientType: Number(clientType), website,
       billingAddress, taxNumber, companySize,
-    }, token);
+    });
     console.log("[createClientAction] Success, client ID:", data.id);
     revalidatePath("/clients");
     newClientId = data.id;
@@ -236,7 +247,6 @@ export async function createClientAction(_prev: FormState, formData: FormData): 
 ══════════════════════════════════════════════════════ */
 export async function createContactAction(_prev: FormState, formData: FormData): Promise<FormState> {
   console.log("[createContactAction] Starting contact creation...");
-  const token            = formData.get("_token")           as string;
   const clientId         = formData.get("clientId")         as string;
   const firstName        = formData.get("firstName")        as string;
   const lastName         = formData.get("lastName")         as string;
@@ -260,7 +270,7 @@ export async function createContactAction(_prev: FormState, formData: FormData):
     console.log("[createContactAction] Calling API with data:", { clientId, firstName, lastName, email });
     await apiPost("/contacts", {
       clientId, firstName, lastName, email, phoneNumber, position, isPrimaryContact,
-    }, token);
+    });
     console.log("[createContactAction] Contact created successfully");
   } catch (err: unknown) {
     console.error("[createContactAction] Error:", err);
@@ -277,7 +287,6 @@ export async function createContactAction(_prev: FormState, formData: FormData):
 ══════════════════════════════════════════════════════ */
 export async function createOpportunityAction(_prev: FormState, formData: FormData): Promise<FormState> {
   console.log("[createOpportunityAction] Starting opportunity creation...");
-  const token             = formData.get("_token")            as string;
   const title             = formData.get("title")             as string;
   const clientId          = formData.get("clientId")          as string;
   const contactId         = formData.get("contactId")         as string;
@@ -308,7 +317,7 @@ export async function createOpportunityAction(_prev: FormState, formData: FormDa
       estimatedValue: Number(estimatedValue), currency,
       stage: Number(stage), source: Number(source),
       probability: Number(probability), expectedCloseDate, description,
-    }, token);
+    });
     console.log("[createOpportunityAction] Success, opportunity ID:", data.id);
     revalidatePath("/opportunities");
   } catch (err: unknown) {
@@ -324,7 +333,6 @@ export async function createOpportunityAction(_prev: FormState, formData: FormDa
 ══════════════════════════════════════════════════════ */
 export async function createPricingRequestAction(_prev: FormState, formData: FormData): Promise<FormState> {
   console.log("[createPricingRequestAction] Starting pricing request creation...");
-  const token          = formData.get("_token")         as string;
   const title          = formData.get("title")          as string;
   const description    = formData.get("description")    as string;
   const clientId       = formData.get("clientId")       as string;
@@ -347,7 +355,7 @@ export async function createPricingRequestAction(_prev: FormState, formData: For
     await apiPost("/pricingrequests", {
       title, description, clientId, opportunityId,
       requestedById, priority: Number(priority), requiredByDate,
-    }, token);
+    });
     console.log("[createPricingRequestAction] Pricing request created successfully");
   } catch (err: unknown) {
     console.error("[createPricingRequestAction] Error:", err);
@@ -364,7 +372,6 @@ export async function createPricingRequestAction(_prev: FormState, formData: For
 ══════════════════════════════════════════════════════ */
 export async function createContractAction(_prev: FormState, formData: FormData): Promise<FormState> {
   console.log("[createContractAction] Starting contract creation...");
-  const token               = formData.get("_token")              as string;
   const clientId            = formData.get("clientId")            as string;
   const opportunityId       = formData.get("opportunityId")       as string;
   const proposalId          = formData.get("proposalId")          as string;
@@ -397,7 +404,7 @@ export async function createContractAction(_prev: FormState, formData: FormData)
       startDate, endDate, ownerId,
       renewalNoticePeriod: Number(renewalNoticePeriod),
       autoRenew, terms,
-    }, token);
+    });
     console.log("[createContractAction] Contract created successfully");
   } catch (err: unknown) {
     console.error("[createContractAction] Error:", err);
@@ -414,7 +421,6 @@ export async function createContractAction(_prev: FormState, formData: FormData)
 ══════════════════════════════════════════════════════ */
 export async function createRenewalAction(_prev: FormState, formData: FormData): Promise<FormState> {
   console.log("[createRenewalAction] Starting renewal creation...");
-  const token             = formData.get("_token")          as string;
   const contractId        = formData.get("contractId")        as string;
   const clientId          = formData.get("clientId")          as string;
   const proposedStartDate = formData.get("proposedStartDate") as string;
@@ -437,7 +443,7 @@ export async function createRenewalAction(_prev: FormState, formData: FormData):
     await apiPost(`/contracts/${contractId}/renewals`, {
       proposedStartDate, proposedEndDate,
       proposedValue: Number(proposedValue), notes,
-    }, token);
+    });
     console.log("[createRenewalAction] Renewal created successfully");
   } catch (err: unknown) {
     console.error("[createRenewalAction] Error:", err);
@@ -454,7 +460,6 @@ export async function createRenewalAction(_prev: FormState, formData: FormData):
 ══════════════════════════════════════════════════════ */
 export async function createActivityAction(_prev: FormState, formData: FormData): Promise<FormState> {
   console.log("[createActivityAction] Starting activity creation...");
-  const token         = formData.get("_token")       as string;
   const type          = formData.get("type")          as string;
   const subject       = formData.get("subject")       as string;
   const description   = formData.get("description")   as string;
@@ -482,7 +487,7 @@ export async function createActivityAction(_prev: FormState, formData: FormData)
       priority: Number(priority), dueDate, assignedToId,
       relatedToType: Number(relatedToType), relatedToId,
       duration: Number(duration), location,
-    }, token);
+    });
     console.log("[createActivityAction] Activity created successfully");
   } catch (err: unknown) {
     console.error("[createActivityAction] Error:", err);
@@ -499,7 +504,6 @@ export async function createActivityAction(_prev: FormState, formData: FormData)
 ══════════════════════════════════════════════════════ */
 export async function createNoteAction(_prev: FormState, formData: FormData): Promise<FormState> {
   console.log("[createNoteAction] Starting note creation...");
-  const token         = formData.get("_token")        as string;
   const content       = formData.get("content")       as string;
   const relatedToType = formData.get("relatedToType") as string;
   const relatedToId   = formData.get("relatedToId")   as string;
@@ -519,7 +523,7 @@ export async function createNoteAction(_prev: FormState, formData: FormData): Pr
     console.log("[createNoteAction] Calling API with data:", { relatedToType, relatedToId, isPrivate });
     await apiPost("/notes", {
       content, relatedToType: Number(relatedToType), relatedToId, isPrivate,
-    }, token);
+    });
     console.log("[createNoteAction] Note created successfully");
   } catch (err: unknown) {
     console.error("[createNoteAction] Error:", err);
@@ -540,10 +544,10 @@ export async function submitProposalAction(
   formData: FormData
 ): Promise<ProposalFormState> {
   console.log("[submitProposalAction] Starting proposal submission...");
-  const token            = formData.get("_token")          as string;
   const clientId         = formData.get("clientId")         as string;
   const requestedById    = formData.get("requestedById")    as string;
   const clientName       = formData.get("clientName")       as string;
+  const title            = formData.get("title")            as string;
   const opportunityId    = formData.get("opportunityId")    as string;
   const deadline         = formData.get("deadline")         as string;
   const requirements     = formData.get("requirements")     as string;
@@ -552,15 +556,34 @@ export async function submitProposalAction(
   const services         = formData.get("services")         as string;
   const attachments      = formData.getAll("attachments")   as File[];
 
-  const scopeItems: string[] = [];
+  const currency = (formData.get("currency") as string) || "ZAR";
+
+  // Parse structured line item fields: scopeItem_0_productServiceName, etc.
+  const scopeItemRe = /^scopeItem_(\d+)_(.+)$/;
+  const lineItemMap = new Map<number, Record<string, string>>();
   for (const [key, val] of formData.entries()) {
-    if (key.startsWith("scopeItem_") && typeof val === "string" && val.trim()) {
-      scopeItems.push(val.trim());
-    }
+    const match = scopeItemRe.exec(key);
+    if (!match || typeof val !== "string") continue;
+    const idx   = Number.parseInt(match[1], 10);
+    const field = match[2];
+    if (!lineItemMap.has(idx)) lineItemMap.set(idx, {});
+    lineItemMap.get(idx)![field] = val;
   }
+  const lineItems = Array.from(lineItemMap.entries())
+    .sort(([a], [b]) => a - b)
+    .map(([, item]) => ({
+      productServiceName: item.productServiceName?.trim() ?? "",
+      description:        item.description?.trim() ?? "",
+      quantity:           Number.parseFloat(item.quantity)  || 1,
+      unitPrice:          Number.parseFloat(item.unitPrice) || 0,
+      discount:           Number.parseFloat(item.discount)  || 0,
+      taxRate:            Number.parseFloat(item.taxRate)   || 0,
+    }))
+    .filter((item) => item.productServiceName.length > 0);
 
   const errors: Partial<Record<string, string>> = {};
   if (!clientName?.trim())    errors.clientName    = "Client name is required.";
+  if (!title?.trim())         errors.title         = "Proposal title is required.";
   if (!opportunityId?.trim()) errors.opportunityId = "Opportunity ID is required.";
   if (!deadline)              errors.deadline      = "Deadline is required.";
   if (!requirements?.trim())  errors.requirements  = "Requirements are required.";
@@ -571,13 +594,13 @@ export async function submitProposalAction(
 
   let redirectTo: string | undefined;
   try {
-    console.log("[submitProposalAction] Calling API with data:", { opportunityId, clientName, scopeItems });
+    console.log("[submitProposalAction] Calling API with data:", { opportunityId, title, currency, lineItems });
     const data = await apiPost("/proposals", {
-      opportunityId, title: clientName, description: requirements,
-      validUntil: deadline, licenses, contractDuration, services,
-      scopeItems, attachmentCount: attachments.filter(f => f.size > 0).length,
+      opportunityId, clientId, title, description: requirements,
+      currency, validUntil: deadline, licenses, contractDuration, services,
+      lineItems, attachmentCount: attachments.filter(f => f.size > 0).length,
       ...(requestedById ? { requestedById } : {}),
-    }, token);
+    });
     console.log("[submitProposalAction] Success, proposal ID:", data.id);
     if (clientId?.trim()) {
       revalidatePath(`/Client/${clientId}/clientOverView`);
@@ -599,7 +622,6 @@ export async function submitProposalAction(
    PUT /opportunities/{id}/stage
 ══════════════════════════════════════════════════════ */
 export async function advanceStageAction(_prev: FormState, formData: FormData): Promise<FormState> {
-  const token         = formData.get("_token")         as string;
   const opportunityId = formData.get("opportunityId")  as string;
   const stage         = formData.get("stage")          as string;
   const reason        = formData.get("reason")         as string;
@@ -609,7 +631,7 @@ export async function advanceStageAction(_prev: FormState, formData: FormData): 
   if (!stage)                 return { status: "error", errors: { stage: "Stage is required." } };
 
   try {
-    await apiPut(`/opportunities/${opportunityId}/stage`, { stage: Number(stage), reason }, token);
+    await apiPut(`/opportunities/${opportunityId}/stage`, { stage: Number(stage), reason });
     revalidatePath(redirectPath?.trim() || "/");
     return { status: "success", message: "Stage updated." };
   } catch (err: unknown) {
@@ -623,7 +645,6 @@ export async function advanceStageAction(_prev: FormState, formData: FormData): 
    POST /pricingrequests/{id}/assign
 ══════════════════════════════════════════════════════ */
 export async function assignPricingRequestAction(_prev: FormState, formData: FormData): Promise<FormState> {
-  const token            = formData.get("_token")           as string;
   const pricingRequestId = formData.get("pricingRequestId") as string;
   const assignedToId     = formData.get("assignedToId")     as string;
   const clientId         = formData.get("clientId")         as string;
@@ -632,7 +653,7 @@ export async function assignPricingRequestAction(_prev: FormState, formData: For
   if (!assignedToId?.trim())     return { status: "error", errors: { assignedToId: "Assignee is required." } };
 
   try {
-    await apiPost(`/pricingrequests/${pricingRequestId}/assign`, { assignedToId }, token);
+    await apiPost(`/pricingrequests/${pricingRequestId}/assign`, { assignedToId });
     if (clientId) revalidatePath(`/Client/${clientId}`);
     return { status: "success", message: "Pricing request assigned." };
   } catch (err: unknown) {
@@ -646,14 +667,13 @@ export async function assignPricingRequestAction(_prev: FormState, formData: For
    PUT /proposals/{id}/approve
 ══════════════════════════════════════════════════════ */
 export async function approveProposalAction(_prev: FormState, formData: FormData): Promise<FormState> {
-  const token      = formData.get("_token")     as string;
   const proposalId = formData.get("proposalId") as string;
   const comment    = formData.get("comment")    as string;
 
   if (!proposalId?.trim()) return { status: "error", errors: { proposalId: "Proposal ID is required." } };
 
   try {
-    await apiPut(`/proposals/${proposalId}/approve`, comment ? { comment } : {}, token);
+    await apiPut(`/proposals/${proposalId}/approve`, comment ? { comment } : {});
     revalidatePath(`/proposals/${proposalId}`);
     return { status: "success", message: "Proposal approved." };
   } catch (err: unknown) {
@@ -667,14 +687,13 @@ export async function approveProposalAction(_prev: FormState, formData: FormData
    PUT /contracts/{id}/activate
 ══════════════════════════════════════════════════════ */
 export async function activateContractAction(_prev: FormState, formData: FormData): Promise<FormState> {
-  const token      = formData.get("_token")     as string;
   const contractId = formData.get("contractId") as string;
   const clientId   = formData.get("clientId")   as string;
 
   if (!contractId?.trim()) return { status: "error", errors: { contractId: "Contract ID is required." } };
 
   try {
-    await apiPut(`/contracts/${contractId}/activate`, {}, token);
+    await apiPut(`/contracts/${contractId}/activate`, {});
     if (clientId) revalidatePath(`/Client/${clientId}`);
     revalidatePath(`/contracts`);
     return { status: "success", message: "Contract activated." };
@@ -689,7 +708,6 @@ export async function activateContractAction(_prev: FormState, formData: FormDat
    PUT /contracts/renewals/{renewalId}/complete
 ══════════════════════════════════════════════════════ */
 export async function completeRenewalAction(_prev: FormState, formData: FormData): Promise<FormState> {
-  const token      = formData.get("_token")      as string;
   const renewalId  = formData.get("renewalId")   as string;
   const contractId = formData.get("contractId")  as string;
   const clientId   = formData.get("clientId")    as string;
@@ -697,7 +715,7 @@ export async function completeRenewalAction(_prev: FormState, formData: FormData
   if (!renewalId?.trim()) return { status: "error", errors: { renewalId: "Renewal ID is required." } };
 
   try {
-    await apiPut(`/contracts/renewals/${renewalId}/complete`, {}, token);
+    await apiPut(`/contracts/renewals/${renewalId}/complete`, {});
     if (contractId) revalidatePath(`/contracts/${contractId}`);
     if (clientId)   revalidatePath(`/Client/${clientId}`);
     return { status: "success", message: "Renewal completed." };

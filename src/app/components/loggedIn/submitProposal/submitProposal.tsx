@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useRef, useTransition } from "react";
+import { useActionState, useRef, useTransition, useState } from "react";
 import { submitProposalAction, type ProposalFormState } from "../../../lib/actions";
 import { ScopeItems }   from "../../dashboard/scopeItems/scopeItems";
 import { SubmitButton } from "../submitButton/submitButton";
@@ -21,14 +21,17 @@ const SubmitProposal = ({ prefillClientId, prefillClientName, prefillOpportunity
   const [, startTransition] = useTransition();
   const [state, formAction] = useActionState(submitProposalAction, initialState);
   const { user } = useUserState();
-
-  const requesterName = user ? `${user.firstName} ${user.lastName}`.trim() : "";
+  const [clientName, setClientName] = useState(prefillClientName ?? "");
+  const [title, setTitle] = useState("");
+  const [currency, setCurrency] = useState("ZAR");
 
   function handleSubmit() {
     if (!formRef.current) return;
     const fd = new FormData(formRef.current);
-    fd.set("_token",        localStorage.getItem("auth_token") ?? "");
     fd.set("clientId",      prefillClientId ?? "");
+    fd.set("clientName",    clientName);
+    fd.set("title",         title);
+    fd.set("currency",      currency);
     fd.set("requestedById", user?.id ?? "");
     if (prefillOpportunityId) fd.set("opportunityId", prefillOpportunityId);
     startTransition(() => formAction(fd));
@@ -58,14 +61,10 @@ const SubmitProposal = ({ prefillClientId, prefillClientName, prefillOpportunity
             <label className={styles.label} htmlFor="clientName">Client Name</label>
             <input
               id="clientName"
-              name="clientName"
               className={styles.input}
-              defaultValue={prefillClientName ?? ""}
-              readOnly={!!prefillClientName}
-              style={{
-                ...(state.errors?.clientName ? { borderColor: "#f44336" } : {}),
-                ...(prefillClientName ? { opacity: 0.7, cursor: "not-allowed" } : {}),
-              }}
+              value={clientName}
+              onChange={(e) => setClientName(e.target.value)}
+              style={state.errors?.clientName ? { borderColor: "#f44336" } : {}}
             />
             {state.errors?.clientName && (
               <span style={{ color: "#f44336", fontSize: 11 }}>{state.errors.clientName}</span>
@@ -73,29 +72,33 @@ const SubmitProposal = ({ prefillClientId, prefillClientName, prefillOpportunity
           </div>
 
           <div className={styles.field}>
-            <label className={styles.label} htmlFor="requestedByName">Requested By</label>
+            <label className={styles.label} htmlFor="proposalTitle">Proposal Title</label>
             <input
-              id="requestedByName"
-              name="requestedByName"
+              id="proposalTitle"
               className={styles.input}
-              value={requesterName}
-              readOnly
-              style={{ opacity: 0.7, cursor: "not-allowed" }}
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Enter a title for this proposal"
+              style={state.errors?.title ? { borderColor: "#f44336" } : {}}
             />
+            {state.errors?.title && (
+              <span style={{ color: "#f44336", fontSize: 11 }}>{state.errors.title}</span>
+            )}
           </div>
 
           <div className={styles.field}>
-            <label className={styles.label} htmlFor="opportunityId">Opportunity ID</label>
-            <input
-              id="opportunityId"
-              name="opportunityId"
+            <label className={styles.label} htmlFor="currency">Currency</label>
+            <select
+              id="currency"
               className={styles.input}
-              defaultValue={prefillOpportunityId ?? ""}
-              style={state.errors?.opportunityId ? { borderColor: "#f44336" } : {}}
-            />
-            {state.errors?.opportunityId && (
-              <span style={{ color: "#f44336", fontSize: 11 }}>{state.errors.opportunityId}</span>
-            )}
+              value={currency}
+              onChange={(e) => setCurrency(e.target.value)}
+            >
+              <option value="ZAR">ZAR – South African Rand</option>
+              <option value="USD">USD – US Dollar</option>
+              <option value="EUR">EUR – Euro</option>
+              <option value="GBP">GBP – British Pound</option>
+            </select>
           </div>
 
           <div className={styles.field}>

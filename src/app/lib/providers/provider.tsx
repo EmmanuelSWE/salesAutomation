@@ -1,6 +1,7 @@
 'use client';
 
 import { ReactNode, useContext, useReducer, useEffect, useMemo, useState } from "react";
+import { logoutAction } from "../actions";
 
 /* ── axios instance ── */
 import api from "../utils/axiosInstance";
@@ -80,6 +81,8 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
     const userId = globalThis.window ? localStorage.getItem("auth_user_id") : null;
 
     if (token && userId) {
+      // Sync token into cookie so server actions can read it (handles pre-cookie sessions)
+      document.cookie = `auth_token=${token}; path=/; SameSite=Lax`;
       dispatch(loginPending());
       api.get(`/users/${userId}`)
         .then(res => {
@@ -117,9 +120,10 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
   const logoutUser = () => {
     localStorage.removeItem("auth_token");
     localStorage.removeItem("auth_user_id");
+    document.cookie = "auth_token=; path=/; SameSite=Lax; max-age=0";
     setAuthToken(undefined);
     dispatch(loginError());
-    globalThis.location.href = "/login";
+    logoutAction().finally(() => { globalThis.location.href = "/login"; });
   };
 
   const userActions = useMemo(

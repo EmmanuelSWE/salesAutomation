@@ -76,7 +76,9 @@ export default function ClientOpportunities({
             <th className={card.th}>Title</th>
             <th className={card.th}>Stage</th>
             <th className={card.th}>Value</th>
-            <th className={card.th}>Close Date</th>              <th className={card.th} />          </tr>
+            <th className={card.th}>Close Date</th>
+            <th className={card.th} />
+          </tr>
         </thead>
         <tbody>
           {opportunities.map((opp) => (

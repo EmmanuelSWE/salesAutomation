@@ -73,7 +73,7 @@ export default function ClientOverview() {
     }
   }, [clientId, opportunityActions]);
 
-  // Fetch proposals for this client
+  // Fetch proposals list for this client
   useEffect(() => {
     if (clientId && proposalActions?.getProposals) {
       proposalActions.getProposals({ clientId });
@@ -114,42 +114,83 @@ export default function ClientOverview() {
 
   const clientName = clientState?.client?.name || "Loading...";
 
-  /* ── Derive current proposal (most recent) ── */
+  /* ── Derive current proposal (most recent open one) ── */
   const allProposals  = useMemo(() => proposalState?.proposals ?? [], [proposalState?.proposals]);
   const currentProposal = useMemo(() => {
-    if (allProposals.length === 0) return null;
-    return [...allProposals].sort((a, b) =>
+    // Only consider open proposals — exclude Rejected
+    const open = allProposals.filter((p) => p.status !== "Rejected");
+    if (open.length === 0) return null;
+    return [...open].sort((a, b) =>
       new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime()
     )[0];
   }, [allProposals]);
 
+  // Once the most-recent open proposal is identified, fetch its full record (includes lineItems)
+  useEffect(() => {
+    if (currentProposal?.id && proposalActions?.getOneProposal) {
+      proposalActions.getOneProposal(currentProposal.id);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentProposal?.id]);
+
+  // Use the fully-fetched proposal (has lineItems) when available, fall back to the list item
+  const fullProposal =
+    proposalState?.proposal?.id != null && proposalState.proposal.id === currentProposal?.id
+      ? proposalState.proposal
+      : currentProposal;
+
+  console.log("[clientOverView] fullProposal:", fullProposal);
+
   /* Line items → ProposalStep[]
-     A line item is "done" when the proposal has been Approved.    */
+     Prefer structured lineItems; fall back to scopeItems (plain strings from form).
+     A step is "done" (purple) when the proposal is Approved, otherwise grey.    */
   const proposalSteps: ProposalStep[] = useMemo(() => {
-    if (!currentProposal?.lineItems?.length) return [];
-    const isDone = currentProposal.status === "Approved";
-    return currentProposal.lineItems.map((item) => ({
-      label: item.productServiceName,
-      done:  isDone,
-    }));
-  }, [currentProposal]);
+    if (!fullProposal) return [];
+    const isDone = fullProposal.status === "Approved";
+
+    if (fullProposal.lineItems?.length) {
+      return fullProposal.lineItems.map((item) => ({
+        label: item.productServiceName || "Item",
+        done:  isDone,
+      }));
+    }
+
+    if (fullProposal.scopeItems?.length) {
+      return fullProposal.scopeItems.map((text) => ({
+        label: text,
+        done:  isDone,
+      }));
+    }
+
+    return [];
+  }, [fullProposal]);
 
   /* Total value of current proposal */
   const proposalTotal = useMemo(() => {
-    if (!currentProposal?.lineItems?.length) return "—";
-    const total = currentProposal.lineItems.reduce((sum, item) => {
+    if (!fullProposal?.lineItems?.length) return "—";
+    const total = fullProposal.lineItems.reduce((sum, item) => {
       const base     = item.quantity * item.unitPrice;
       const afterDis = base * (1 - (item.discount ?? 0) / 100);
       const withTax  = afterDis * (1 + (item.taxRate ?? 0) / 100);
       return sum + (item.lineTotal ?? withTax);
     }, 0);
     return `$${total.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-  }, [currentProposal]);
+  }, [fullProposal]);
 
-  const activeUntil = currentProposal?.validUntil ?? "";
-  const subscriptionNote = currentProposal
-    ? `${currentProposal.title} · ${currentProposal.currency}`
+  const activeUntil = fullProposal?.validUntil ?? "";
+  const subscriptionNote = fullProposal
+    ? `${fullProposal.title} · ${fullProposal.currency}`
     : "No active proposal for this client.";
+
+  async function handleCancelProject() {
+    const opportunityId = fullProposal?.opportunityId;
+    if (!opportunityId) return;
+    if (!globalThis.confirm("Cancel this project? This will mark the opportunity as Closed Lost.")) return;
+    await opportunityActions.advanceStage(opportunityId, 6, "Project cancelled");
+    // Refresh both opportunities and proposals for this client
+    opportunityActions.getOpportunities({ clientId });
+    proposalActions.getProposals({ clientId });
+  }
 
   return (
     <div
@@ -168,12 +209,12 @@ export default function ClientOverview() {
       <ClientOverviewCard
         clientName={clientName}
         steps={proposalSteps}
-        proposalTitle={currentProposal?.title}
+        proposalTitle={fullProposal?.title}
         proposalIsPending={proposalState?.isPending ?? false}
         activeUntil={activeUntil}
         subscriptionNote={subscriptionNote}
         pricePerMonth={proposalTotal}
-        onCancelProject={() => console.log("cancel")}
+        onCancelProject={() => handleCancelProject()}
         onRenewContract={() => console.log("renew")}
       />
 

@@ -101,7 +101,7 @@ export default function ClientProposals({
               const expired  = isExpired(p.validUntil);
               const status   = p.status ?? "Draft";
               const key      = STATUS_KEY[status];
-              const itemCount = p.lineItems?.length ?? 0;
+              const itemCount = p.lineItems?.length ?? p.scopeItems?.length ?? 0;
 
               return (
                 <tr key={p.id}>

@@ -89,10 +89,10 @@ export default function ClientOverviewCard({
           </div>
         )}
 
-        {/* Empty — no proposals yet */}
+        {/* Empty — no open proposals */}
         {!proposalIsPending && steps.length === 0 && (
           <div className={styles.noProposal}>
-            No proposals have been submitted for this client yet.
+            No open proposals for this client.
           </div>
         )}
 

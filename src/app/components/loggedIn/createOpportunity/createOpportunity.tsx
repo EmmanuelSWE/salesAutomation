@@ -45,7 +45,6 @@ export default function CreateOpportunity({ clientId }: Readonly<Props>) {
   function handleSubmit() {
     if (!formRef.current) return;
     const fd = new FormData(formRef.current);
-    fd.set("_token",    localStorage.getItem("auth_token") ?? "");
     fd.set("clientId",  clientId);
     fd.set("contactId", primaryContact?.id ?? "");
     startTransition(() => formAction(fd));

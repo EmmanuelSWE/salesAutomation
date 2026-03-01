@@ -253,6 +253,7 @@ export interface IProposal {
   validUntil:     string;           // ISO date string
   status?:        ProposalStatus;   // default "Draft" on creation
   lineItems?:     IProposalLineItem[];
+  scopeItems?:    string[];         // simple text items submitted from the proposal form
   createdAt?:     string;
   updatedAt?:     string;
 }
