@@ -32,6 +32,12 @@ export const useActivitiesStyles = createStyles(({ css }) => ({
     border-bottom: 1px solid #333;
   `,
 
+  listContainer: css`
+    border-radius: 10px;
+    box-shadow: 0 6px 24px rgba(243, 156, 18, 0.12), 0 2px 8px rgba(255, 200, 100, 0.07);
+    overflow: hidden;
+  `,
+
   searchWrap: css`
     flex: 1;
     display: flex;
@@ -217,5 +223,54 @@ export const useActivitiesStyles = createStyles(({ css }) => ({
     background: #f5a623 !important;
     color: #1a1000 !important;
     font-weight: 700;
+  `,
+
+  skeletonBlock: css`
+    height: 14px;
+    border-radius: 4px;
+    background: #2e2e2e;
+    animation: skel 1.4s ease-in-out infinite;
+    @keyframes skel {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.4; }
+    }
+  `,
+
+  skeletonAvatar: css`
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: #2e2e2e;
+    flex-shrink: 0;
+    animation: skel 1.4s ease-in-out infinite;
+    @keyframes skel {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.4; }
+    }
+  `,
+
+  skeletonSearch: css`
+    flex: 1;
+    height: 34px;
+    border-radius: 8px;
+    background: #2e2e2e;
+    animation: skel 1.4s ease-in-out infinite;
+    @keyframes skel {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.4; }
+    }
+  `,
+
+  skeletonBtn: css`
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+    background: #2e2e2e;
+    flex-shrink: 0;
+    animation: skel 1.4s ease-in-out infinite;
+    @keyframes skel {
+      0%, 100% { opacity: 1; }
+      50%       { opacity: 0.4; }
+    }
   `,
 }));

@@ -43,29 +43,29 @@ export enum UserActionEnums {
   deleteUserError   = "DELETE_USER_ERROR",
 }
 
-export const loginPending  = createAction<IUserStateContext>(UserActionEnums.loginPending,  () => ({ isPending: true,  isSuccess: false, isError: false }));
-export const loginSuccess  = createAction<IUserStateContext, IUser>(UserActionEnums.loginSuccess, (user: IUser) => ({ isPending: false, isSuccess: true,  isError: false, user }));
-export const loginError    = createAction<IUserStateContext>(UserActionEnums.loginError,    () => ({ isPending: false, isSuccess: false, isError: true  }));
+export const loginPending  = createAction<IUserStateContext>(UserActionEnums.loginPending,  () => ({ isPending: true,  isSuccess: false, isError: false, isInitialized: false }));
+export const loginSuccess  = createAction<IUserStateContext, IUser>(UserActionEnums.loginSuccess, (user: IUser) => ({ isPending: false, isSuccess: true,  isError: false, isInitialized: true, user }));
+export const loginError    = createAction<IUserStateContext>(UserActionEnums.loginError,    () => ({ isPending: false, isSuccess: false, isError: true, isInitialized: true  }));
 
-export const registerPending = createAction<IUserStateContext>(UserActionEnums.registerPending, () => ({ isPending: true,  isSuccess: false, isError: false }));
-export const registerSuccess = createAction<IUserStateContext, IUser>(UserActionEnums.registerSuccess, (user: IUser) => ({ isPending: false, isSuccess: true,  isError: false, user }));
-export const registerError   = createAction<IUserStateContext>(UserActionEnums.registerError,   () => ({ isPending: false, isSuccess: false, isError: true  }));
+export const registerPending = createAction<IUserStateContext>(UserActionEnums.registerPending, () => ({ isPending: true,  isSuccess: false, isError: false, isInitialized: false }));
+export const registerSuccess = createAction<IUserStateContext, IUser>(UserActionEnums.registerSuccess, (user: IUser) => ({ isPending: false, isSuccess: true,  isError: false, isInitialized: true, user }));
+export const registerError   = createAction<IUserStateContext>(UserActionEnums.registerError,   () => ({ isPending: false, isSuccess: false, isError: true, isInitialized: true  }));
 
-export const getUsersPending = createAction<IUserStateContext>(UserActionEnums.getUsersPending, () => ({ isPending: true,  isSuccess: false, isError: false }));
-export const getUsersSuccess = createAction<IUserStateContext, IUser[]>(UserActionEnums.getUsersSuccess, (users: IUser[]) => ({ isPending: false, isSuccess: true,  isError: false, users }));
-export const getUsersError   = createAction<IUserStateContext>(UserActionEnums.getUsersError,   () => ({ isPending: false, isSuccess: false, isError: true  }));
+export const getUsersPending = createAction<IUserStateContext>(UserActionEnums.getUsersPending, () => ({ isPending: true,  isSuccess: false, isError: false, isInitialized: false }));
+export const getUsersSuccess = createAction<IUserStateContext, IUser[]>(UserActionEnums.getUsersSuccess, (users: IUser[]) => ({ isPending: false, isSuccess: true,  isError: false, isInitialized: true, users }));
+export const getUsersError   = createAction<IUserStateContext>(UserActionEnums.getUsersError,   () => ({ isPending: false, isSuccess: false, isError: true, isInitialized: true  }));
 
-export const getOneUserPending = createAction<IUserStateContext>(UserActionEnums.getOneUserPending, () => ({ isPending: true,  isSuccess: false, isError: false }));
-export const getOneUserSuccess = createAction<IUserStateContext, IUser>(UserActionEnums.getOneUserSuccess, (user: IUser) => ({ isPending: false, isSuccess: true,  isError: false, user }));
-export const getOneUserError   = createAction<IUserStateContext>(UserActionEnums.getOneUserError,   () => ({ isPending: false, isSuccess: false, isError: true  }));
+export const getOneUserPending = createAction<IUserStateContext>(UserActionEnums.getOneUserPending, () => ({ isPending: true,  isSuccess: false, isError: false, isInitialized: false }));
+export const getOneUserSuccess = createAction<IUserStateContext, IUser>(UserActionEnums.getOneUserSuccess, (user: IUser) => ({ isPending: false, isSuccess: true,  isError: false, isInitialized: true, user }));
+export const getOneUserError   = createAction<IUserStateContext>(UserActionEnums.getOneUserError,   () => ({ isPending: false, isSuccess: false, isError: true, isInitialized: true  }));
 
-export const updateUserPending = createAction<IUserStateContext>(UserActionEnums.updateUserPending, () => ({ isPending: true,  isSuccess: false, isError: false }));
-export const updateUserSuccess = createAction<IUserStateContext>(UserActionEnums.updateUserSuccess, () => ({ isPending: false, isSuccess: true,  isError: false }));
-export const updateUserError   = createAction<IUserStateContext>(UserActionEnums.updateUserError,   () => ({ isPending: false, isSuccess: false, isError: true  }));
+export const updateUserPending = createAction<IUserStateContext>(UserActionEnums.updateUserPending, () => ({ isPending: true,  isSuccess: false, isError: false, isInitialized: false }));
+export const updateUserSuccess = createAction<IUserStateContext>(UserActionEnums.updateUserSuccess, () => ({ isPending: false, isSuccess: true,  isError: false, isInitialized: true }));
+export const updateUserError   = createAction<IUserStateContext>(UserActionEnums.updateUserError,   () => ({ isPending: false, isSuccess: false, isError: true, isInitialized: true  }));
 
-export const deleteUserPending = createAction<IUserStateContext>(UserActionEnums.deleteUserPending, () => ({ isPending: true,  isSuccess: false, isError: false }));
-export const deleteUserSuccess = createAction<IUserStateContext>(UserActionEnums.deleteUserSuccess, () => ({ isPending: false, isSuccess: true,  isError: false }));
-export const deleteUserError   = createAction<IUserStateContext>(UserActionEnums.deleteUserError,   () => ({ isPending: false, isSuccess: false, isError: true  }));
+export const deleteUserPending = createAction<IUserStateContext>(UserActionEnums.deleteUserPending, () => ({ isPending: true,  isSuccess: false, isError: false, isInitialized: false }));
+export const deleteUserSuccess = createAction<IUserStateContext>(UserActionEnums.deleteUserSuccess, () => ({ isPending: false, isSuccess: true,  isError: false, isInitialized: true }));
+export const deleteUserError   = createAction<IUserStateContext>(UserActionEnums.deleteUserError,   () => ({ isPending: false, isSuccess: false, isError: true, isInitialized: true  }));
 
 /* ══════════════════════════════════════════════════════
    CLIENT

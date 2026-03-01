@@ -36,8 +36,16 @@ export const useSidebarStyles = createStyles(({ css }) => ({
   `,
 
   logoIcon: css`
-    font-size: 22px;
-    line-height: 1;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 17px;
+    flex-shrink: 0;
+    box-shadow: 0 3px 12px rgba(243, 156, 18, 0.45);
   `,
 
   navItem: css`
@@ -92,5 +100,53 @@ export const useSidebarStyles = createStyles(({ css }) => ({
     overflow: hidden;
     font-size: 15px;
     flex-shrink: 0;
+  `,
+
+  /* ── Collapsed variants ── */
+  sidebarCollapsed: css`
+    width: 64px;
+    padding: 28px 8px 24px;
+    align-items: center;
+  `,
+
+  logoCollapsed: css`
+    padding-left: 0;
+    justify-content: center;
+    margin-bottom: 24px;
+  `,
+
+  navItemCollapsed: css`
+    justify-content: center;
+    padding: 10px;
+    gap: 0;
+  `,
+
+  footerCollapsed: css`
+    justify-content: center;
+    padding: 8px;
+  `,
+
+  toggleBtn: css`
+    align-self: flex-end;
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    background: #2e2e2e;
+    border: 1px solid #3a3a3a;
+    color: #888;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 16px;
+    flex-shrink: 0;
+    transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
+    &:hover {
+      background: #f39c12;
+      border-color: #f39c12;
+      color: #000;
+      box-shadow: 0 0 10px rgba(243,156,18,0.4);
+    }
   `,
 }));

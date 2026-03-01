@@ -4,7 +4,7 @@ import SalesActivities        from "../salesActivities/salesActivites";
 import RevenueTrendChart      from "../revenueChart/revenueChart";
 import type {
   DashboardKpis,
-  DashboardPipeline,
+  DashboardFunnel,
   DashboardSalesPerformance,
   DashboardActivities,
   DashboardRevenue,
@@ -14,7 +14,7 @@ export function KpiSection({ data }: Readonly<{ data: DashboardKpis }>) {
   return <KpiCards data={data} />;
 }
 
-export function PipelineSection({ data }: Readonly<{ data: DashboardPipeline }>) {
+export function PipelineSection({ data }: Readonly<{ data: DashboardFunnel }>) {
   return <PipelineChart data={data} />;
 }
 

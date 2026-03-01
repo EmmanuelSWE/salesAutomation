@@ -1,41 +1,61 @@
 "use client";
 
-import { MoreOutlined } from "@ant-design/icons";
-import { Bar } from "react-chartjs-2";
-import { Chart as ChartJS, BarElement, CategoryScale, LinearScale, Tooltip, type TooltipItem } from "chart.js";
-import type { DashboardPipeline } from "../../../lib/placeholderdata";
+import type { DashboardFunnel } from "../../../lib/placeholderdata";
 import { usePipelineChartStyles } from "./pipelineChart.module";
 
-ChartJS.register(BarElement, CategoryScale, LinearScale, Tooltip);
+function fmtK(n: number) {
+  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000)     return `$${(n / 1_000).toFixed(0)}K`;
+  return `$${n}`;
+}
 
-function fmtK(n: number) { return n >= 1000 ? `$${(n / 1000).toFixed(0)}K` : `$${n}`; }
+interface Props { data: DashboardFunnel; }
 
-interface PipelineChartProps { data: DashboardPipeline; }
-
-export default function PipelineChart({ data }: Readonly<PipelineChartProps>) {
+export default function PipelineChart({ data }: Readonly<Props>) {
   const { styles } = usePipelineChartStyles();
-  const chartData = {
-    labels: data.stages.map((s) => s.label),
-    datasets: [{
-      label: "Pipeline Value",
-      data: data.stages.map((s) => s.value),
-      backgroundColor: data.stages.map((s) => s.label === "Closed Won" ? "#7c85ff" : "#3f3f6e"),
-      borderRadius: 4,
-      barPercentage: 0.6,
-    }],
-  };
-  const options = {
-    responsive: true, maintainAspectRatio: false,
-    plugins: { legend: { display: false }, tooltip: { callbacks: { label: (ctx: TooltipItem<"bar">) => ` ${fmtK(ctx.raw as number)}` } } },
-    scales: { x: { grid: { display: false }, ticks: { color: "#555", font: { size: 11 } } }, y: { display: false } },
-  } as const;
+
+  const sorted     = [...data.roles].sort((a, b) => b.revenue - a.revenue);
+  const maxRevenue = sorted[0]?.revenue ?? 1;
+  const totalDeals = sorted.reduce((s, r) => s + r.deals, 0);
+
   return (
-    <section className={styles.card} aria-label="Pipeline by stage">
+    <section className={styles.card} aria-label="Sales pipeline by role">
       <div className={styles.header}>
-        <div className={styles.title}>Pipeline by Stage</div>
-        <div className={styles.moreBtn}><MoreOutlined /></div>
+        <div>
+          <p className={styles.title}>Pipeline</p>
+          <p className={styles.subtitle}>{totalDeals} deals in progress</p>
+        </div>
+        <span className={styles.badge}>by Role</span>
       </div>
-      <div className={styles.chartWrap}><Bar data={chartData} options={options} /></div>
+
+      <div className={styles.rows}>
+        {sorted.map((role, i) => {
+          const pct      = Math.round((role.revenue / maxRevenue) * 100);
+          const rankAlpha = 0.4 + 0.6 * (1 - i / Math.max(sorted.length - 1, 1));
+          return (
+            <div key={role.role} className={styles.row}>
+              <span className={styles.roleLabel}>{role.role}</span>
+              <div className={styles.barTrack}>
+                <div
+                  className={styles.barFill}
+                  style={{ width: `${pct}%`, opacity: rankAlpha }}
+                />
+              </div>
+              <div className={styles.meta}>
+                <span className={styles.value}>{fmtK(role.revenue)}</span>
+                <span className={styles.deals}>{role.deals} deals</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className={styles.footer}>
+        <span className={styles.footerLabel}>Total pipeline</span>
+        <span className={styles.footerValue}>
+          {fmtK(sorted.reduce((s, r) => s + r.revenue, 0))}
+        </span>
+      </div>
     </section>
   );
 }

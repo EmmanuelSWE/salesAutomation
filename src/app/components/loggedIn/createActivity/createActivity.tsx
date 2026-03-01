@@ -29,7 +29,7 @@ export default function CreateActivity() {
   const [token, setToken] = useState("");
   const [state, formAction] = useActionState(createActivityAction, initial);
 
-  const { users }      = useUserState();
+  const { users, isPending: usersPending } = useUserState();
   const { getUsers }   = useUserAction();
 
   useEffect(() => {
@@ -95,13 +95,18 @@ export default function CreateActivity() {
           {/* Assigned To — SalesRep dropdown */}
           <div className={styles.field}>
             <label className={styles.label} htmlFor="assignedToId">Assigned To</label>
-            <select id="assignedToId" name="assignedToId" className={styles.select} defaultValue="">
-              <option value="">Unassigned</option>
-              {salesReps.map((u) => (
-                <option key={u.id} value={u.id ?? ""}>
-                  {u.firstName} {u.lastName}
-                </option>
-              ))}
+            <select id="assignedToId" name="assignedToId" className={styles.select} defaultValue="" disabled={usersPending}>
+              {usersPending
+                ? <option value="">Loading users…</option>
+                : <>
+                    <option value="">Unassigned</option>
+                    {salesReps.map((u) => (
+                      <option key={u.id} value={u.id ?? ""}>
+                        {u.firstName} {u.lastName}
+                      </option>
+                    ))}
+                  </>
+              }
             </select>
           </div>
 

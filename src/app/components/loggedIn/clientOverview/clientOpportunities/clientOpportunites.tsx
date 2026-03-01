@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useCardStyles } from "../card/card.module";
 import { useClientOpportunitiesStyles } from "./clientOpportunites.module";
 
@@ -15,8 +16,10 @@ export interface OpportunityRow {
 type Period = "Month" | "Year" | "All Time";
 
 interface ClientOpportunitiesProps {
-  opportunities:  OpportunityRow[];
-  defaultPeriod?: Period;
+  opportunities:    OpportunityRow[];
+  defaultPeriod?:   Period;
+  createHref:       string;
+  createProposalHref: (opportunityId: string) => string;
 }
 
 const STAGE_KEY: Record<OpportunityRow["stage"], string> = {
@@ -31,6 +34,8 @@ const STAGE_KEY: Record<OpportunityRow["stage"], string> = {
 export default function ClientOpportunities({
   opportunities,
   defaultPeriod = "Month",
+  createHref,
+  createProposalHref,
 }: Readonly<ClientOpportunitiesProps>) {
   const { styles: card, cx } = useCardStyles();
   const { styles }           = useClientOpportunitiesStyles();
@@ -40,6 +45,14 @@ export default function ClientOpportunities({
     <div className={card.card}>
       <div className={card.cardHeader}>
         <h3 className={card.cardTitle}>Opportunities</h3>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        <Link
+          href={createHref}
+          style={{ fontSize: 12, fontWeight: 600, padding: "5px 14px", borderRadius: 7,
+            background: "#f5a623", color: "#1a1000", textDecoration: "none", whiteSpace: "nowrap" }}
+        >
+          + New Opportunity
+        </Link>
         <div className={card.periodTabs}>
           {(["Month", "Year", "All Time"] as Period[]).map((p) => (
             <button
@@ -52,6 +65,7 @@ export default function ClientOpportunities({
             </button>
           ))}
         </div>
+        </div>
       </div>
 
       <hr className={card.divider} />
@@ -62,8 +76,7 @@ export default function ClientOpportunities({
             <th className={card.th}>Title</th>
             <th className={card.th}>Stage</th>
             <th className={card.th}>Value</th>
-            <th className={card.th}>Close Date</th>
-          </tr>
+            <th className={card.th}>Close Date</th>              <th className={card.th} />          </tr>
         </thead>
         <tbody>
           {opportunities.map((opp) => (
@@ -81,6 +94,16 @@ export default function ClientOpportunities({
               </td>
               <td className={cx(card.td, card.tdWhite)}>{opp.value}</td>
               <td className={card.td}>{opp.closeDate}</td>
+              <td className={card.td}>
+                <Link
+                  href={createProposalHref(opp.id)}
+                  style={{ fontSize: 11, fontWeight: 600, padding: "3px 10px", borderRadius: 6,
+                    background: "rgba(76,175,80,0.15)", color: "#4caf50", textDecoration: "none",
+                    whiteSpace: "nowrap" }}
+                >
+                  + Proposal
+                </Link>
+              </td>
             </tr>
           ))}
         </tbody>

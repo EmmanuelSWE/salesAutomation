@@ -22,14 +22,14 @@ function formatDate(iso?: string): string {
 
 export default function AccountInfo() {
   const { styles } = useAccountInfoStyles();
-  const { user, isPending } = useUserState();
+  const { user, isPending, isInitialized } = useUserState();
   const { logoutUser, getOneUser } = useUserAction();
   const router = useRouter();
 
-  // Re-fetch the full profile whenever we have a user id
+  // Wait for the /auth/me boot check to finish, then fetch the full profile
   useEffect(() => {
-    if (user?.id) getOneUser(user.id);
-  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (isInitialized && user?.id) getOneUser(user.id);
+  }, [isInitialized, user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   function handleLogout() {
     logoutUser();
@@ -38,15 +38,48 @@ export default function AccountInfo() {
 
   const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(" ") || "Unknown User";
 
-  if (isPending && !user) {
-    return (
-      <div className={styles.page}>
-        <h1 className={styles.title}>Account Info</h1>
-        <p style={{ color: "#555", fontSize: 14 }}>Loading profile…</p>
-      </div>
-    );
-  }
+  if (isPending || !isInitialized) { return (
+    <div className={styles.page}>
+      <h1 className={styles.title}>Account Info</h1>
 
+      {/* profile card skeleton */}
+      <div className={styles.profileCard}>
+        <div className={styles.skeletonCircle} />
+        <div style={{ display: "flex", flexDirection: "column", gap: 10, flex: 1 }}>
+          <div className={styles.skeletonBlock} style={{ height: 20, width: 180 }} />
+          <div className={styles.skeletonBlock} style={{ height: 14, width: 220 }} />
+          <div className={styles.skeletonBlock} style={{ height: 22, width: 80, borderRadius: 20 }} />
+        </div>
+      </div>
+
+      {/* personal details skeleton */}
+      <div className={styles.section}>
+        <div className={styles.skeletonBlock} style={{ height: 13, width: 120, marginBottom: 16 }} />
+        <div className={styles.detailsGrid}>
+          {["a","b","c","d"].map((k) => (
+            <div key={k} className={styles.fieldCard}>
+              <div className={styles.skeletonBlock} style={{ height: 11, width: 70, marginBottom: 10 }} />
+              <div className={styles.skeletonBlock} style={{ height: 15, width: "60%" }} />
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* organisation skeleton */}
+      <div className={styles.section}>
+        <div className={styles.skeletonBlock} style={{ height: 13, width: 100, marginBottom: 16 }} />
+        <div className={styles.detailsGrid}>
+          {["e","f","g","h"].map((k) => (
+            <div key={k} className={styles.fieldCard}>
+              <div className={styles.skeletonBlock} style={{ height: 11, width: 70, marginBottom: 10 }} />
+              <div className={styles.skeletonBlock} style={{ height: 15, width: "55%" }} />
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
   return (
     <div className={styles.page}>
       <h1 className={styles.title}>Account Info</h1>
@@ -59,7 +92,19 @@ export default function AccountInfo() {
         <div className={styles.profileMeta}>
           <p className={styles.fullName}>{fullName}</p>
           <p className={styles.email}>{user?.email ?? "—"}</p>
-          <span className={styles.roleBadge}>{user?.role ?? "SalesRep"}</span>
+          <div className={styles.profileBadgeRow}>
+            {(user?.roles?.length ? user.roles : [user?.role ?? "SalesRep"]).map((r) => (
+              <span key={r} className={styles.roleBadge}>{r}</span>
+            ))}
+            {user?.phoneNumber && (
+              <span className={styles.phoneBadge}>{user.phoneNumber}</span>
+            )}
+          </div>
+          {user?.id && (
+            <span className={styles.idChip} title={user.id}>
+              ID&nbsp;·&nbsp;{user.id}
+            </span>
+          )}
         </div>
       </div>
 
@@ -113,7 +158,11 @@ export default function AccountInfo() {
 
           <div className={styles.fieldCard}>
             <span className={styles.fieldLabel}>Role</span>
-            <span className={styles.fieldValue}>{user?.role ?? "SalesRep"}</span>
+            <div style={{ display: "flex", gap: 6, flexWrap: "wrap", marginTop: 2 }}>
+              {(user?.roles?.length ? user.roles : [user?.role ?? "SalesRep"]).map((r) => (
+                <span key={r} className={styles.roleBadge}>{r}</span>
+              ))}
+            </div>
           </div>
 
           <div className={styles.fieldCard}>

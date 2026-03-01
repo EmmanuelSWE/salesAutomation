@@ -17,8 +17,8 @@ export interface IUser {
            //            mutually exclusive with tenantId
   tenantId?:     string;          // optional guid — joins existing org by ID
   role?:         string;          // optional — defaults to "SalesRep"
-                                  //            cannot be "Admin" when joining via tenantId
-                                  //            ignored when tenantName is provided
+  roles?:        string[];        // array of roles returned by the API
+  isActive?:     boolean;
   createdAt?:    string;          // ISO date string
   updatedAt?:    string;          // ISO date string
 }
@@ -27,9 +27,10 @@ export interface IUser {
    STATE INTERFACE
 ══════════════════════════════════════════════════════ */
 export interface IUserStateContext {
-  isPending:  boolean;
-  isSuccess:  boolean;
-  isError:    boolean;
+  isPending:     boolean;
+  isSuccess:     boolean;
+  isError:       boolean;
+  isInitialized: boolean;
    token?:        string;
   user?:      IUser;
   users?:     IUser[];
@@ -48,9 +49,10 @@ export interface IUserActionsContext {
    INITIAL STATE
 ══════════════════════════════════════════════════════ */
 export const INITIAL_USER_STATE: IUserStateContext = {
-  isPending: false,
-  isSuccess: false,
-  isError:   false,
+  isPending:     false,
+  isSuccess:     false,
+  isError:       false,
+  isInitialized: false,
 };
 
 /* ══════════════════════════════════════════════════════

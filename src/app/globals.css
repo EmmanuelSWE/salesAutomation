@@ -1,7 +1,31 @@
-@import '~antd/dist/antd.css';
-*{margin: 0; padding: 0; box-sizing: border-box;}
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 
-/* Ant Design Select dropdown styling */
+/* ── Font variables ─────────────────────────────────── */
+:root {
+  --font-inter:   'Inter', system-ui, sans-serif;
+  --font-jakarta: 'Plus Jakarta Sans', system-ui, sans-serif;
+}
+
+/* ── Base typography ────────────────────────────────── */
+html, body {
+  font-family: var(--font-inter);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-jakarta);
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+/* ── Ant Design overrides ───────────────────────────── */
 .ant-select-dropdown {
   background: white !important;
 }

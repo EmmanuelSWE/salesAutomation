@@ -2,7 +2,7 @@
 
 import { createStyles } from "antd-style";
 
-export const useStaffStyles = createStyles(({ css }) => ({
+export const useOpportunitiesStyles = createStyles(({ css }) => ({
   page: css`
     width: 100%;
     min-height: 100vh;
@@ -22,6 +22,12 @@ export const useStaffStyles = createStyles(({ css }) => ({
     margin: 0 0 20px 0;
   `,
 
+  listContainer: css`
+    border-radius: 10px;
+    box-shadow: 0 6px 24px rgba(243, 156, 18, 0.12), 0 2px 8px rgba(255, 200, 100, 0.07);
+    overflow: hidden;
+  `,
+
   toolbar: css`
     display: flex;
     align-items: center;
@@ -30,12 +36,6 @@ export const useStaffStyles = createStyles(({ css }) => ({
     border-radius: 10px 10px 0 0;
     padding: 12px 16px;
     border-bottom: 1px solid #333;
-  `,
-
-  listContainer: css`
-    border-radius: 10px;
-    box-shadow: 0 6px 24px rgba(243, 156, 18, 0.12), 0 2px 8px rgba(255, 200, 100, 0.07);
-    overflow: hidden;
   `,
 
   searchWrap: css`
@@ -146,7 +146,6 @@ export const useStaffStyles = createStyles(({ css }) => ({
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    object-fit: cover;
     flex-shrink: 0;
     background: #444;
     display: flex;
@@ -186,12 +185,6 @@ export const useStaffStyles = createStyles(({ css }) => ({
     white-space: nowrap;
   `,
 
-  badgeInProgress: css`background: rgba(245,166,35,0.15); color: #f5a623;`,
-  badgePending:    css`background: rgba(33,150,243,0.15);  color: #2196f3;`,
-  badgeApproved:   css`background: rgba(76,175,80,0.15);   color: #4caf50;`,
-  badgeComplete:   css`background: rgba(76,175,80,0.15);   color: #4caf50;`,
-  badgeRejected:   css`background: rgba(244,67,54,0.08);   color: #888;`,
-
   pagination: css`
     display: flex;
     gap: 6px;
@@ -223,6 +216,12 @@ export const useStaffStyles = createStyles(({ css }) => ({
     background: #f5a623 !important;
     color: #1a1000 !important;
     font-weight: 700;
+  `,
+
+  emptyRow: css`
+    text-align: center;
+    color: #444;
+    padding: 32px 0 !important;
   `,
 
   skeletonBlock: css`

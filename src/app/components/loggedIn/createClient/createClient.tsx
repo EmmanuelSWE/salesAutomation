@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { createClientAction, type FormState } from "../../../lib/actions";
 import { CreateClientSubmitButton } from "./submitButton/submitButton";
 import { useCreateClientStyles } from "./createClient.module";
@@ -31,10 +32,18 @@ const CreateClient =()=> {
   const { styles } = useCreateClientStyles();
   const [token, setToken] = useState("");
   const [state, formAction] = useActionState(createClientAction, initialState);
+  const router = useRouter();
 
   useEffect(() => {
     setToken(localStorage.getItem("auth_token") ?? "");
   }, []);
+
+  useEffect(() => {
+    if (state.status === "success") {
+      const t = setTimeout(() => router.push("/clients"), 1200);
+      return () => clearTimeout(t);
+    }
+  }, [state.status]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className={styles.page}>
