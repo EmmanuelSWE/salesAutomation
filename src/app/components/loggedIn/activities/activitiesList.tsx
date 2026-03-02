@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { message } from "antd";
 import {
   SearchOutlined,
   SwapOutlined,
@@ -12,6 +14,7 @@ import {
   RightOutlined,
   CloseOutlined,
   EditOutlined,
+  UserAddOutlined,
 } from "@ant-design/icons";
 import { useActivitiesStyles } from "./activities.module";
 import { useActivityState, useActivityAction, useUserState, useUserAction } from "../../../lib/providers/provider";
@@ -26,6 +29,20 @@ const TAB_LABEL: Record<Tab, string> = {
 
 const PAGE_SIZE = 5;
 const AVATAR_COLORS = ["#5c6bc0","#26a69a","#ef5350","#f5a623","#78909c","#ab47bc","#29b6f6","#66bb6a","#ff7043","#8d6e63"];
+
+/** Parse "[LI:{lineItemId}] rest of subject" → id, or null if not a line-item activity. */
+function extractLineItemIdFromSubject(subject: string): string | null {
+  const m = subject.match(/^\[LI:([^\]]+)\]/);
+  return m ? m[1] : null;
+}
+
+const STATUS_COLOR: Record<string, string> = {
+  Scheduled:  "#2979ff",
+  Completed:  "#4caf50",
+  Cancelled:  "#ef5350",
+  InProgress: "#f5a623",
+  Pending:    "#a0a0a0",
+};
 
 const PRIORITY_BADGE: Record<string, string> = {
   High:   "badgeRejected",
@@ -49,8 +66,10 @@ const priLabel  = (p?: string) => p ?? "Medium";
 function EditDrawer({
   activity,
   users,
+  currentUserId,
   onClose,
   onSave,
+  onAccept,
   onComplete,
   onCancel,
   onDelete,
@@ -59,8 +78,10 @@ function EditDrawer({
 }: Readonly<{
   activity: IActivity;
   users?: IUser[];
+  currentUserId?: string;
   onClose: () => void;
   onSave: (patch: Partial<IActivity>) => void;
+  onAccept: () => void;
   onComplete: (outcome: string) => void;
   onCancel: () => void;
   onDelete: () => void;
@@ -219,12 +240,24 @@ function EditDrawer({
             </div>
           )}
 
-          {/* Activity actions row (Complete / Cancel / Delete) */}
+          {/* Activity actions row (Accept / Complete / Cancel / Delete) */}
           {!isClosed && !showComplete && (
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {/* Accept: only show when not already assigned to current user */}
+              {currentUserId && activity.assignedToId !== currentUserId && (
+                <button
+                  onClick={onAccept}
+                  disabled={acting}
+                  aria-label="Accept this activity (self-assign)"
+                  style={{ flex: 1, padding: 9, background: "rgba(33,150,243,0.1)", border: "1px solid rgba(33,150,243,0.3)",
+                    borderRadius: 8, color: "#2196f3", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
+                  <UserAddOutlined style={{ marginRight: 4 }} />Accept
+                </button>
+              )}
               <button
                 onClick={() => setShowComplete(true)}
                 disabled={acting}
+                aria-label="Mark this activity as complete"
                 style={{ flex: 1, padding: 9, background: "rgba(76,175,80,0.1)", border: "1px solid rgba(76,175,80,0.3)",
                   borderRadius: 8, color: "#4caf50", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
                 ✓ Mark Complete
@@ -232,13 +265,15 @@ function EditDrawer({
               <button
                 onClick={onCancel}
                 disabled={acting}
-                style={{ flex: 1, padding: 9, background: "rgba(33,150,243,0.1)", border: "1px solid rgba(33,150,243,0.3)",
-                  borderRadius: 8, color: "#2196f3", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
+                aria-label="Cancel this activity"
+                style={{ flex: 1, padding: 9, background: "rgba(244,67,54,0.08)", border: "1px solid rgba(244,67,54,0.3)",
+                  borderRadius: 8, color: "#ef5350", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
                 ✕ Cancel Activity
               </button>
               <button
                 onClick={onDelete}
                 disabled={acting}
+                aria-label="Delete this activity"
                 style={{ padding: 9, background: "rgba(244,67,54,0.1)", border: "1px solid rgba(244,67,54,0.3)",
                   borderRadius: 8, color: "#ef5350", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
                 Delete
@@ -260,10 +295,11 @@ function EditDrawer({
 }
 
 export default function ActivitiesList() {
+  const router = useRouter();
   const { styles, cx } = useActivitiesStyles();
   const { activities, isPending, isError } = useActivityState();
   const { getActivities, getMyActivities, updateActivity, completeActivity, cancelActivity, deleteActivity } = useActivityAction();
-  const { users } = useUserState();
+  const { users, user } = useUserState();
   const { getUsers } = useUserAction();
   const [tab,     setTab]     = useState<Tab>("all");
   const [search, setSearch]   = useState("");
@@ -341,8 +377,10 @@ export default function ActivitiesList() {
     id:             a.id ?? `activity-${index}`,
     raw:            a,
     subject:        a.subject,
+    lineItemId:     extractLineItemIdFromSubject(a.subject ?? ""),
     type:           a.type,
     priority:       priLabel(a.priority),
+    status:         a.status ?? "Scheduled",
     dueDate:        a.dueDate ? new Date(a.dueDate).toLocaleDateString() : "-",
     avatarInitials: getAvatarInitials(a.subject),
     avatarColor:    AVATAR_COLORS[index % AVATAR_COLORS.length],
@@ -362,39 +400,79 @@ export default function ActivitiesList() {
     setSaving(true);
     try {
       await updateActivity(editing.id, { ...editing, ...patch });
+      message.success("Activity updated");
       setSaving(false);
       setEditing(null);
       fetchForTab(tab);
+      router.refresh();
     } catch {
+      message.error("Failed to update activity");
       setSaving(false);
+    }
+  }
+
+  async function handleAccept() {
+    if (!editing?.id || !user?.id) return;
+    setActing(true);
+    try {
+      await updateActivity(editing.id, { ...editing, assignedToId: user.id });
+      message.success("Activity accepted — assigned to you");
+      setEditing(null);
+      fetchForTab(tab);
+      router.refresh();
+    } catch {
+      message.error("Failed to accept activity");
+    } finally {
+      setActing(false);
     }
   }
 
   async function handleComplete(outcome: string) {
     if (!editing?.id) return;
     setActing(true);
-    await completeActivity(editing.id, outcome);
-    setActing(false);
-    setEditing(null);
-    fetchForTab(tab);
+    try {
+      await completeActivity(editing.id, outcome);
+      message.success("Activity marked as completed");
+      setEditing(null);
+      fetchForTab(tab);
+      router.refresh();
+    } catch {
+      message.error("Failed to complete activity");
+    } finally {
+      setActing(false);
+    }
   }
 
   async function handleCancel() {
     if (!editing?.id) return;
     setActing(true);
-    await cancelActivity(editing.id);
-    setActing(false);
-    setEditing(null);
-    fetchForTab(tab);
+    try {
+      await cancelActivity(editing.id);
+      message.success("Activity cancelled");
+      setEditing(null);
+      fetchForTab(tab);
+      router.refresh();
+    } catch {
+      message.error("Failed to cancel activity");
+    } finally {
+      setActing(false);
+    }
   }
 
   async function handleDelete() {
     if (!editing?.id) return;
     setActing(true);
-    await deleteActivity(editing.id);
-    setActing(false);
-    setEditing(null);
-    fetchForTab(tab);
+    try {
+      await deleteActivity(editing.id);
+      message.success("Activity deleted");
+      setEditing(null);
+      fetchForTab(tab);
+      router.refresh();
+    } catch {
+      message.error("Failed to delete activity");
+    } finally {
+      setActing(false);
+    }
   }
 
   return (
@@ -441,6 +519,7 @@ export default function ActivitiesList() {
             <tr>
               <th>Subject</th>
               <th>Type</th>
+              <th>Status</th>
               <th>Due Date</th>
               <th>Priority</th>
               <th style={{ width: 48 }} />
@@ -454,10 +533,35 @@ export default function ActivitiesList() {
                     <div className={styles.avatar} style={{ background: activity.avatarColor }}>
                       {activity.avatarInitials}
                     </div>
-                    <span className={styles.clientName}>{activity.subject}</span>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                      <span className={styles.clientName}>{activity.subject}</span>
+                      {activity.lineItemId && (
+                        <span
+                          aria-label={`Line item ${activity.lineItemId}`}
+                          style={{
+                            display: "inline-block", fontSize: 10, fontWeight: 600,
+                            background: "rgba(171,71,188,0.15)", color: "#ab47bc",
+                            border: "1px solid rgba(171,71,188,0.3)", borderRadius: 4,
+                            padding: "1px 5px", letterSpacing: "0.3px", width: "fit-content",
+                          }}
+                        >
+                          Line item #{activity.lineItemId}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </td>
                 <td>{activity.type}</td>
+                <td>
+                  <span style={{
+                    fontSize: 11, fontWeight: 600, padding: "2px 8px", borderRadius: 20,
+                    background: `${STATUS_COLOR[activity.status] ?? "#555"}22`,
+                    color: STATUS_COLOR[activity.status] ?? "#aaa",
+                    border: `1px solid ${STATUS_COLOR[activity.status] ?? "#555"}55`,
+                  }}>
+                    {activity.status}
+                  </span>
+                </td>
                 <td>
                   <div className={styles.dateCell}>
                     <CalendarOutlined />
@@ -500,8 +604,10 @@ export default function ActivitiesList() {
         <EditDrawer
           activity={editing}
           users={users}
+          currentUserId={user?.id}
           onClose={() => setEditing(null)}
           onSave={handleSave}
+          onAccept={handleAccept}
           onComplete={handleComplete}
           onCancel={handleCancel}
           onDelete={handleDelete}

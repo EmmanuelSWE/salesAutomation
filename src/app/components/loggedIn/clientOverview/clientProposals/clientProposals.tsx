@@ -1,11 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { CheckOutlined, CloseOutlined, SendOutlined, DeleteOutlined } from "@ant-design/icons";
+import {
+  CheckOutlined, CloseOutlined, SendOutlined, DeleteOutlined,
+  RightOutlined, DownOutlined, CheckCircleFilled,
+} from "@ant-design/icons";
+import { message, Spin } from "antd";
+import api from "../../../../lib/utils/axiosInstance";
 import { useCardStyles } from "../card/card.module";
 import { useClientProposalsStyles } from "./clientProposals.module";
-import type { IProposal } from "../../../../lib/providers/context";
+import type { IProposal, IProposalLineItem, IActivity } from "../../../../lib/providers/context";
 import type { ProposalStatus } from "../../../../lib/utils/apiEnums";
 import { useUserState, useProposalAction } from "../../../../lib/providers/provider";
 
@@ -15,6 +20,14 @@ interface ClientProposalsProps {
   isError:      boolean;
   clientId:     string;
   createHref:   string;
+}
+
+/* ── Helpers ── */
+
+/** Parses "[LI:{uuid}] some text" and returns the uuid, or null */
+function extractLineItemIdFromSubject(subject: string): string | null {
+  const m = subject.match(/^\[LI:([^\]]+)\]/);
+  return m ? m[1] : null;
 }
 
 const STATUS_KEY: Record<ProposalStatus, string> = {
@@ -57,8 +70,71 @@ export default function ClientProposals({
 
   const canManage = canManageProposals(user?.role, user?.roles);
 
-  const [actingId, setActingId]   = useState<string | null>(null);
+  const [actingId, setActingId]       = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+
+  /* ── Expandable line-item row ── */
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  type LineItemDetail = {
+    lineItems:        IProposalLineItem[];
+    completedLineIds: Set<string>;
+    loading:          boolean;
+  };
+  const [detailsCache, setDetailsCache] = useState<Record<string, LineItemDetail>>({});
+
+  const fetchProposalDetails = useCallback(async (proposalId: string) => {
+    // Already loaded — skip
+    if (detailsCache[proposalId] && !detailsCache[proposalId].loading) return;
+
+    setDetailsCache(prev => ({ ...prev, [proposalId]: { lineItems: [], completedLineIds: new Set(), loading: true } }));
+    try {
+      const [proposalRes, activitiesRes] = await Promise.allSettled([
+        api.get<IProposal>(`/proposals/${proposalId}`),
+        // TODO: verify the API actually supports relatedToType + relatedToId filters
+        api.get<{ data?: IActivity[]; items?: IActivity[] } | IActivity[]>(
+          "/activities",
+          { params: { relatedToType: 3, relatedToId: proposalId, pageSize: 100 } }
+        ),
+      ]);
+
+      const lineItems: IProposalLineItem[] =
+        proposalRes.status === "fulfilled"
+          ? (proposalRes.value.data as IProposal).lineItems ?? []
+          : [];
+
+      const completedLineIds = new Set<string>();
+      if (activitiesRes.status === "fulfilled") {
+        const raw = activitiesRes.value.data;
+        const acts: IActivity[] = Array.isArray(raw)
+          ? raw
+          : (raw as { data?: IActivity[]; items?: IActivity[] }).data ??
+            (raw as { data?: IActivity[]; items?: IActivity[] }).items ?? [];
+        for (const act of acts) {
+          if (act.status === "Completed" && act.subject) {
+            const liId = extractLineItemIdFromSubject(act.subject);
+            if (liId) completedLineIds.add(liId);
+          }
+        }
+      }
+
+      setDetailsCache(prev => ({
+        ...prev,
+        [proposalId]: { lineItems, completedLineIds, loading: false },
+      }));
+    } catch {
+      message.error("Failed to load proposal details");
+      setDetailsCache(prev => ({ ...prev, [proposalId]: { lineItems: [], completedLineIds: new Set(), loading: false } }));
+    }
+  }, [detailsCache]);
+
+  function toggleExpand(proposalId: string) {
+    if (expandedId === proposalId) {
+      setExpandedId(null);
+    } else {
+      setExpandedId(proposalId);
+      fetchProposalDetails(proposalId);
+    }
+  }
 
   async function handleStatusChange(proposalId: string, newStatus: ProposalStatus, reason?: string) {
     setActingId(proposalId);
@@ -148,6 +224,7 @@ export default function ClientProposals({
         <table className={card.table}>
           <thead>
             <tr>
+              <th className={card.th} style={{ width: 28 }} />{/* expand toggle */}
               <th className={card.th}>Title</th>
               <th className={card.th}>Status</th>
               <th className={card.th}>Line Items</th>
@@ -165,8 +242,28 @@ export default function ClientProposals({
               const itemCount = p.lineItems?.length ?? p.scopeItems?.length ?? 0;
               const isActing  = actingId === p.id;
 
+              const isExpanded = expandedId === p.id;
+              const detail     = p.id ? detailsCache[p.id] : undefined;
+
               return (
+                <>
                 <tr key={p.id}>
+                  {/* Expand toggle */}
+                  <td className={card.td} style={{ width: 28, paddingRight: 0 }}>
+                    <button
+                      type="button"
+                      onClick={() => p.id && toggleExpand(p.id)}
+                      style={{
+                        background: "none", border: "none", cursor: "pointer",
+                        color: "#555", padding: 0, display: "flex", alignItems: "center",
+                      }}
+                      aria-label={isExpanded ? "Collapse line items" : "Expand line items"}
+                    >
+                      {isExpanded
+                        ? <DownOutlined style={{ fontSize: 10 }} />
+                        : <RightOutlined style={{ fontSize: 10 }} />}
+                    </button>
+                  </td>
                   <td className={cx(card.td, card.tdWhite)}>
                     {p.title || "Untitled"}
                   </td>
@@ -231,6 +328,89 @@ export default function ClientProposals({
                     </td>
                   )}
                 </tr>
+
+                {/* ── Expanded line-item detail row ── */}
+                {isExpanded && (
+                  <tr key={`${p.id}-detail`}>
+                    <td
+                      colSpan={canManage ? 8 : 7}
+                      style={{ padding: 0, background: "#1a1a1a" }}
+                    >
+                      <div style={{
+                        padding: "12px 16px 16px 40px",
+                        borderBottom: "1px solid #2a2a2a",
+                        borderTop: "1px solid #222",
+                      }}>
+                        {detail?.loading && (
+                          <Spin size="small" style={{ color: "#9aa0dc" }} />
+                        )}
+
+                        {!detail?.loading && detail?.lineItems.length === 0 && (
+                          <span style={{ fontSize: 12, color: "#555" }}>No line items found.</span>
+                        )}
+
+                        {!detail?.loading && (detail?.lineItems.length ?? 0) > 0 && (
+                          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                            <thead>
+                              <tr>
+                                {["Product / Service", "Qty", "Unit Price", "Discount", "Tax", "Total", "Status"].map(h => (
+                                  <th key={h} style={{
+                                    textAlign: "left", padding: "4px 8px",
+                                    fontSize: 10, color: "#555", fontWeight: 600,
+                                    borderBottom: "1px solid #2a2a2a",
+                                  }}>{h}</th>
+                                ))}
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {detail!.lineItems.map((li, idx) => {
+                                const done = li.id ? detail!.completedLineIds.has(li.id) : false;
+                                return (
+                                  <tr key={li.id ?? idx}>
+                                    <td style={{ padding: "5px 8px", fontSize: 12, color: "#ccc" }}>
+                                      {li.productServiceName || "—"}
+                                    </td>
+                                    <td style={{ padding: "5px 8px", fontSize: 12, color: "#999" }}>{li.quantity}</td>
+                                    <td style={{ padding: "5px 8px", fontSize: 12, color: "#999" }}>
+                                      ${Number(li.unitPrice).toFixed(2)}
+                                    </td>
+                                    <td style={{ padding: "5px 8px", fontSize: 12, color: "#999" }}>
+                                      {li.discount ? `${li.discount}%` : "—"}
+                                    </td>
+                                    <td style={{ padding: "5px 8px", fontSize: 12, color: "#999" }}>
+                                      {li.taxRate ? `${li.taxRate}%` : "—"}
+                                    </td>
+                                    <td style={{ padding: "5px 8px", fontSize: 12, color: "#ccc" }}>
+                                      {li.lineTotal != null
+                                        ? `$${Number(li.lineTotal).toFixed(2)}`
+                                        : "—"}
+                                    </td>
+                                    <td style={{ padding: "5px 8px" }}>
+                                      {done ? (
+                                        <span style={{
+                                          display: "inline-flex", alignItems: "center", gap: 4,
+                                          fontSize: 10, fontWeight: 600, color: "#4caf50",
+                                          background: "rgba(76,175,80,0.1)",
+                                          border: "1px solid rgba(76,175,80,0.35)",
+                                          borderRadius: 20, padding: "2px 8px",
+                                        }}>
+                                          <CheckCircleFilled style={{ fontSize: 9 }} /> Completed
+                                        </span>
+                                      ) : (
+                                        <span style={{ fontSize: 10, color: "#444" }}>Pending</span>
+                                      )}
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                )}
+                </>
               );
             })}
           </tbody>

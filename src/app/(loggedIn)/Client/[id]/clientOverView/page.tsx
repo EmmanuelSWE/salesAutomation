@@ -1,7 +1,9 @@
 "use client";
 
-import { useContext, useEffect, useMemo, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useParams }    from "next/navigation";
+import { message }     from "antd";
+import api             from "../../../../lib/utils/axiosInstance";
 import ClientOverviewCard  from "../../../../components/loggedIn/clientOverview/clientOverviewCard/clientOverViewCard";
 import ClientContactDetails from "../../../../components/loggedIn/clientOverview/clientContactDetails/clientContactDetails";
 import ClientDocumentHistory from "../../../../components/loggedIn/clientOverview/clientDocumentHistory/clientDocumentHistory";
@@ -60,12 +62,40 @@ export default function ClientOverview() {
   const [contacts, setContacts] = useState<ContactCard[]>([]);
   const [opportunities, setOpportunities] = useState<OpportunityRow[]>([]);
 
+  /* ── Client Stats ── */
+  type ClientStats = {
+    totalOpportunities?: number;
+    totalProposals?:     number;
+    totalContracts?:     number;
+    totalRevenue?:       number;
+    openActivities?:     number;
+    overdueActivities?:  number;
+    [key: string]: unknown;
+  };
+  const [stats,        setStats]        = useState<ClientStats | null>(null);
+  const [statsLoading, setStatsLoading] = useState(false);
+
+  const fetchStats = useCallback(async () => {
+    if (!clientId) return;
+    setStatsLoading(true);
+    try {
+      const { data } = await api.get<ClientStats>(`/clients/${clientId}/stats`);
+      setStats(data);
+    } catch {
+      // Stats are non-critical; fail silently unless needed
+      message.error("Could not load client stats");
+    } finally {
+      setStatsLoading(false);
+    }
+  }, [clientId]);
+
   // Fetch client data
   useEffect(() => {
     if (clientId && clientActions?.getOneClient) {
       clientActions.getOneClient(clientId);
     }
-  }, [clientId, clientActions]);
+    fetchStats();
+  }, [clientId, clientActions, fetchStats]);
 
   // Fetch contacts for this client
   useEffect(() => {
@@ -154,8 +184,6 @@ export default function ClientOverview() {
       ? proposalState.proposal
       : currentProposal;
 
-  console.log("[clientOverView] fullProposal:", fullProposal);
-
   /* Line items → ProposalStep[]
      Prefer structured lineItems; fall back to scopeItems (plain strings from form).
      A step is "done" (purple) when the proposal is Approved, otherwise grey.    */
@@ -219,6 +247,51 @@ export default function ClientOverview() {
         boxSizing: "border-box",
       }}
     >
+      {/* ── Client Stats Grid ── */}
+      {(statsLoading || stats) && (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(140px, 1fr))",
+            gap: 12,
+          }}
+          aria-label="Client statistics"
+        >
+          {[
+            { label: "Opportunities", value: stats?.totalOpportunities,   color: "#2979ff" },
+            { label: "Proposals",     value: stats?.totalProposals,       color: "#9aa0dc" },
+            { label: "Contracts",     value: stats?.totalContracts,       color: "#4caf50" },
+            { label: "Revenue",       value: stats?.totalRevenue != null ? `$${Number(stats.totalRevenue).toLocaleString()}` : undefined, color: "#f5a623" },
+            { label: "Open Activities",   value: stats?.openActivities,    color: "#29b6f6" },
+            { label: "Overdue Activities", value: stats?.overdueActivities, color: "#ef5350" },
+          ].map(({ label, value, color }) => (
+            <div
+              key={label}
+              style={{
+                background: "#252525",
+                borderRadius: 12,
+                padding: "14px 16px",
+                border: "1px solid #333",
+                display: "flex",
+                flexDirection: "column",
+                gap: 4,
+              }}
+            >
+              {statsLoading ? (
+                <div style={{
+                  height: 24, borderRadius: 6, background: "#333",
+                  animation: "pulse 1.4s ease-in-out infinite",
+                }} />
+              ) : (
+                <span style={{ fontSize: 22, fontWeight: 700, color, lineHeight: 1.2 }}>
+                  {value ?? "—"}
+                </span>
+              )}
+              <span style={{ fontSize: 11, color: "#666", fontWeight: 500 }}>{label}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* 1. Client name + current proposal line items + active date + pricing + alert */}
       <ClientOverviewCard

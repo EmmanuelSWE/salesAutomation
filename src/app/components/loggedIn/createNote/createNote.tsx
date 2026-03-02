@@ -38,17 +38,30 @@ export default function CreateNote() {
 
         <section className={styles.section}>
           <div className={styles.field}>
+            <label className={styles.label} htmlFor="relatedToType">Related To (type)</label>
+            <select id="relatedToType" name="relatedToType" className={styles.select} defaultValue=""
+              style={state.errors?.relatedToType ? { borderColor: "#f44336" } : {}}>
+              <option value="" disabled>Select type…</option>
+              <option value="Client">Client</option>
+              <option value="Opportunity">Opportunity</option>
+              <option value="Proposal">Proposal</option>
+              <option value="Contract">Contract</option>
+              <option value="Activity">Activity</option>
+            </select>
+            {state.errors?.relatedToType && <span className={styles.errorText}>{state.errors.relatedToType}</span>}
+          </div>
+          <div className={styles.field}>
             <label className={styles.label} htmlFor="relatedToId">Related To (ID)</label>
-            <input id="relatedToId" name="relatedToId" className={styles.input} />
+            <input id="relatedToId" name="relatedToId" className={styles.input} placeholder="Paste the ID of the linked record" />
           </div>
           <div className={styles.field}>
             <label className={styles.label} htmlFor="content">Content</label>
             <textarea id="content" name="content" className={styles.textarea} />
           </div>
-          <div className={styles.field}>
-            <label className={styles.label} htmlFor="authorId">Author ID</label>
-            <input id="authorId" name="authorId" className={styles.input} />
-          </div>
+          <label className={styles.toggle ?? ""} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14 }}>
+            <input type="checkbox" name="isPrivate" value="true" />
+            {" "}Private note
+          </label>
         </section>
 
         <div className={styles.submitRow}>

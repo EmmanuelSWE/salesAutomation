@@ -4,6 +4,17 @@ import { ReactNode, useContext, useReducer, useEffect, useMemo, useState } from 
 
 /* ── axios instance ── */
 import api from "../utils/axiosInstance";
+import { strictApi, handleProviderError } from "../api/strictApi";
+import {
+  zClientsResponse,
+  zContactsResponse, zContactsArrayResponse,
+  zOpportunitiesResponse, zStageHistoryArrayResponse, zPipelineMetrics, zStageBody,
+  zProposalsResponse,
+  zPricingRequestsResponse,
+  zContractsResponse, zContractsArrayResponse,
+  zActivitiesResponse, zActivitiesArrayResponse, zCreateActivity, zCompleteActivity,
+  zNotesResponse,
+} from "../api/contract";
 
 /* ── contexts ── */
 import {
@@ -63,11 +74,15 @@ import {
 
 import { ACTIVITY_TYPE_NUM, PRIORITY_NUM, RELATED_TO_TYPE_NUM, OPPORTUNITY_STAGE_NUM } from "../utils/apiEnums";
 
-/** Extract items from a paged envelope `{ items: T[] }` or pass through a direct array. */
-function items<T>(data: { items?: T[] } | T[]): T[] {
-  if (Array.isArray(data)) return data;
-  return (data as { items?: T[] }).items ?? [];
-}
+/**
+ * Coerce a Zod-validated API value to a stricter context interface type.
+ * Zod schemas allow `null` on nullable fields; context interfaces use
+ * `string | undefined`. At runtime null/undefined are handled identically
+ * by the reducers, so the cast is safe.
+ */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const cast = (x: unknown) => x as any;
+
 
 /* ══════════════════════════════════════════════════════
    USER PROVIDER
@@ -89,7 +104,6 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       dispatch(loginPending());
       api.get(`/users/${userId}`)
         .then(res => {
-          console.log("[UserProvider] /users/:id success:", res.data);
           dispatch(loginSuccess({ ...res.data, token }));
           setAuthToken(token);
           setIsInitialized(true);
@@ -108,9 +122,12 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 
   const getUsers = async (params?: { role?: string; isActive?: boolean; [key: string]: unknown }) => {
     dispatch(getUsersPending());
-    await api.get("/users", { params })
-      .then(({ data }) => dispatch(getUsersSuccess(Array.isArray(data) ? data : (data.items ?? []))))
-      .catch(err => { console.error("getUsers", err.response?.data); dispatch(getUsersError()); });
+    try {
+      const data = await api.get("/users", { params }).then(r => r.data);
+      dispatch(getUsersSuccess(Array.isArray(data) ? data : (data.items ?? [])));
+    } catch (err) {
+      handleProviderError("getUsers", err, getUsersError);
+    }
   };
 
   const getOneUser = async (id: string) => {
@@ -160,9 +177,12 @@ export const ClientProvider = ({ children }: { children: ReactNode }) => {
 
   const getClients = async (params?: { pageNumber?: number; pageSize?: number; [key: string]: unknown }) => {
     dispatch(getClientsPending());
-    await api.get("/clients", { params })
-      .then(({ data }) => dispatch(getClientsSuccess(data)))
-      .catch(err => { console.error("getClients", err.response?.data); dispatch(getClientsError()); });
+    try {
+      const data = await strictApi.get("/clients", { schema: zClientsResponse, params: params as Record<string, unknown> });
+      dispatch(getClientsSuccess(cast(data)));
+    } catch (err) {
+      handleProviderError("getClients", err, getClientsError);
+    }
   };
 
   const getOneClient = async (id: string) => {
@@ -210,17 +230,23 @@ export const ContactProvider = ({ children }: { children: ReactNode }) => {
   const getContacts = async (params?: object) => {
     // Paged: GET /contacts → { items, pageNumber, pageSize, totalCount }
     dispatch(getContactsPending());
-    await api.get("/contacts", { params })
-      .then(({ data }) => dispatch(getContactsSuccess(items(data))))
-      .catch(err => { console.error("getContacts", err.response?.data); dispatch(getContactsError()); });
+    try {
+      const data = await strictApi.get("/contacts", { schema: zContactsResponse, params: params as Record<string, unknown> });
+      dispatch(getContactsSuccess(cast(data.items ?? [])));
+    } catch (err) {
+      handleProviderError("getContacts", err, getContactsError);
+    }
   };
 
   const getContactsByClient = async (clientId: string) => {
     // Direct array: GET /contacts/by-client/{id} → Contact[]
     dispatch(getContactsPending());
-    await api.get(`/contacts/by-client/${clientId}`)
-      .then(({ data }) => dispatch(getContactsSuccess(Array.isArray(data) ? data : [])))
-      .catch(err => { console.error("getContactsByClient", err.response?.data); dispatch(getContactsError()); });
+    try {
+      const data = await strictApi.get(`/contacts/by-client/${clientId}`, { schema: zContactsArrayResponse });
+      dispatch(getContactsSuccess(cast(data)));
+    } catch (err) {
+      handleProviderError("getContactsByClient", err, getContactsError);
+    }
   };
 
   const getOneContact = async (id: string) => {
@@ -257,65 +283,77 @@ export const OpportunityProvider = ({ children }: { children: ReactNode }) => {
   const getOpportunities = async (params?: object) => {
     // Paged: GET /opportunities → { items, pageNumber, pageSize, totalCount }
     dispatch(getOpportunitiesPending());
-    await api.get("/opportunities", { params })
-      .then(({ data }) => dispatch(getOpportunitiesSuccess(items(data))))
-      .catch(err => { console.error("getOpportunities", err.response?.data); dispatch(getOpportunitiesError()); });
+    try {
+      const data = await strictApi.get("/opportunities", { schema: zOpportunitiesResponse, params: params as Record<string, unknown> });
+      dispatch(getOpportunitiesSuccess(cast(data.items ?? [])));
+    } catch (err) {
+      handleProviderError("getOpportunities", err, getOpportunitiesError);
+    }
   };
 
   const getMyOpportunities = async (params?: object) => {
     // Paged: GET /opportunities/my-opportunities → { items, ... }
     dispatch(getOpportunitiesPending());
-    await api.get("/opportunities/my-opportunities", { params })
-      .then(({ data }) => dispatch(getOpportunitiesSuccess(items(data))))
-      .catch(err => { console.error("getMyOpportunities", err.response?.data); dispatch(getOpportunitiesError()); });
+    try {
+      const data = await strictApi.get("/opportunities/my-opportunities", { schema: zOpportunitiesResponse, params: params as Record<string, unknown> });
+      dispatch(getOpportunitiesSuccess(cast(data.items ?? [])));
+    } catch (err) {
+      handleProviderError("getMyOpportunities", err, getOpportunitiesError);
+    }
   };
 
   const getPipeline = async (ownerId?: string) => {
     // Object: GET /opportunities/pipeline → { stages, weightedPipelineValue, conversionRate }
-    // TODO: add dedicated pipeline metrics to state; currently only the stages array is dispatched
     dispatch(getOpportunitiesPending());
-    await api.get("/opportunities/pipeline", { params: ownerId ? { ownerId } : undefined })
-      .then(({ data }) => dispatch(getOpportunitiesSuccess(
-        Array.isArray(data?.stages) ? data.stages : []
-      )))
-      .catch(err => { console.error("getPipeline", err.response?.data); dispatch(getOpportunitiesError()); });
+    try {
+      const data = await strictApi.get("/opportunities/pipeline", {
+        schema: zPipelineMetrics,
+        params: ownerId ? { ownerId } : undefined,
+      });
+      dispatch(getOpportunitiesSuccess(data.stages as unknown as import('./context').IOpportunity[]));
+    } catch (err) {
+      handleProviderError("getPipeline", err, getOpportunitiesError);
+    }
   };
 
   const getOneOpportunity = async (id: string) => {
     dispatch(getOneOpportunityPending());
-    await api.get(`/opportunities/${id}`)
-      .then(res => dispatch(getOneOpportunitySuccess(res.data)))
-      .catch(err => { console.error("getOneOpportunity", err.response?.data); dispatch(getOneOpportunityError()); });
+    try {
+      const data = await api.get(`/opportunities/${id}`).then(r => r.data);
+      dispatch(getOneOpportunitySuccess(data));
+    } catch (err) {
+      handleProviderError("getOneOpportunity", err, getOneOpportunityError);
+    }
   };
 
   const getStageHistory = async (id: string) => {
     // Direct array: GET /opportunities/{id}/stage-history → StageHistory[]
     dispatch(getStageHistoryPending());
-    await api.get(`/opportunities/${id}/stage-history`)
-      .then(({ data }) => dispatch(getStageHistorySuccess(Array.isArray(data) ? data : [])))
-      .catch(err => { console.error("getStageHistory", err.response?.data); dispatch(getStageHistoryError()); });
+    try {
+      const data = await strictApi.get(`/opportunities/${id}/stage-history`, { schema: zStageHistoryArrayResponse });
+      dispatch(getStageHistorySuccess(cast(data)));
+    } catch (err) {
+      handleProviderError("getStageHistory", err, getStageHistoryError);
+    }
   };
 
-  const advanceStage = async (id: string, stage: number, reason?: string) => {
-    // Body contract: { stage: number, notes: string | null, lossReason: string | null }
-    const item = await api.get(`/opportunities/${id}`).then(r => r.data).catch(() => null);
-    const confirmedId: string | undefined = item?.id;
-    if (!confirmedId) { console.error("advanceStage: item not found", id); return; }
-    await api.put(`/opportunities/${confirmedId}/stage`, {
-      stage,
-      notes:      reason ?? null,
-      lossReason: null,
-    })
-      .then(() => getOneOpportunity(confirmedId))
-      .catch(err => console.error("advanceStage", err.response?.data));
+  const advanceStage = async (id: string, stage: number, reason?: string, lossReason?: string) => {
+    // Body contract: { stage, notes: string|null, lossReason: required when stage===6 }
+    const body = { stage, notes: reason ?? null, lossReason: stage === 6 ? (lossReason ?? null) : null };
+    const parsed = zStageBody.safeParse(body);
+    if (!parsed.success) {
+      const msg = parsed.error.issues.map(i => i.message).join("; ");
+      console.error("advanceStage validation:", msg);
+      return;
+    }
+    await api.put(`/opportunities/${id}/stage`, parsed.data)
+      .then(() => getOneOpportunity(id))
+      .catch(err => { handleProviderError("advanceStage", err); });
   };
 
   const deleteOpportunity = async (id: string) => {
-    const item = await api.get(`/opportunities/${id}`).then(r => r.data).catch(() => null);
-    const confirmedId: string | undefined = item?.id;
-    if (!confirmedId) { console.error("deleteOpportunity: item not found", id); return; }
-    await api.delete(`/opportunities/${confirmedId}`)
-      .catch(err => console.error("deleteOpportunity", err.response?.data));
+    await api.delete(`/opportunities/${id}`)
+      .catch(err => { handleProviderError("deleteOpportunity", err); });
   };
 
   const assignOpportunity = async (id: string, userId: string) => {
@@ -364,64 +402,55 @@ export const ProposalProvider = ({ children }: { children: ReactNode }) => {
   const getProposals = async (params?: object) => {
     // Paged: GET /proposals → { items, pageNumber, pageSize, totalCount }
     dispatch(getProposalsPending());
-    await api.get("/proposals", { params })
-      .then(({ data }) => dispatch(getProposalsSuccess(items(data))))
-      .catch(err => { console.error("getProposals", err.response?.data); dispatch(getProposalsError()); });
+    try {
+      const data = await strictApi.get("/proposals", { schema: zProposalsResponse, params: params as Record<string, unknown> });
+      dispatch(getProposalsSuccess(cast(data.items ?? [])));
+    } catch (err) {
+      handleProviderError("getProposals", err, getProposalsError);
+    }
   };
 
   const getOneProposal = async (id: string) => {
     dispatch(getOneProposalPending());
-    await api.get(`/proposals/${id}`)
-      .then(res => dispatch(getOneProposalSuccess(res.data)))
-      .catch(err => { console.error("getOneProposal", err.response?.data); dispatch(getOneProposalError()); });
+    try {
+      const data = await api.get(`/proposals/${id}`).then(r => r.data);
+      dispatch(getOneProposalSuccess(data));
+    } catch (err) {
+      handleProviderError("getOneProposal", err, getOneProposalError);
+    }
   };
 
   const submitProposal = async (id: string) => {
     // Contract: PUT /proposals/{id}/submit — no body
-    const item = await api.get(`/proposals/${id}`).then(r => r.data).catch(() => null);
-    const confirmedId: string | undefined = item?.id;
-    if (!confirmedId) { console.error("submitProposal: item not found", id); return; }
-    await api.put(`/proposals/${confirmedId}/submit`)
-      .then(() => getOneProposal(confirmedId))
-      .catch(err => console.error("submitProposal", err.response?.data));
+    await api.put(`/proposals/${id}/submit`)
+      .then(() => getOneProposal(id))
+      .catch(err => { handleProviderError("submitProposal", err); });
   };
 
   const approveProposal = async (id: string) => {
     // Contract: PUT /proposals/{id}/approve — no body
-    const item = await api.get(`/proposals/${id}`).then(r => r.data).catch(() => null);
-    const confirmedId: string | undefined = item?.id;
-    if (!confirmedId) { console.error("approveProposal: item not found", id); return; }
-    await api.put(`/proposals/${confirmedId}/approve`)
-      .then(() => getOneProposal(confirmedId))
-      .catch(err => console.error("approveProposal", err.response?.data));
+    await api.put(`/proposals/${id}/approve`)
+      .then(() => getOneProposal(id))
+      .catch(err => { handleProviderError("approveProposal", err); });
   };
 
   const rejectProposal = async (id: string, reason?: string) => {
     // Contract: PUT /proposals/{id}/reject — no body
     // `reason` kept in signature for UI compatibility; not sent to API per contract
-    const item = await api.get(`/proposals/${id}`).then(r => r.data).catch(() => null);
-    const confirmedId: string | undefined = item?.id;
-    if (!confirmedId) { console.error("rejectProposal: item not found", id); return; }
     void reason;
-    await api.put(`/proposals/${confirmedId}/reject`)
-      .then(() => getOneProposal(confirmedId))
-      .catch(err => console.error("rejectProposal", err.response?.data));
+    await api.put(`/proposals/${id}/reject`)
+      .then(() => getOneProposal(id))
+      .catch(err => { handleProviderError("rejectProposal", err); });
   };
 
   const deleteProposal = async (id: string, clientId?: string) => {
-    const item = await api.get(`/proposals/${id}`).then(r => r.data).catch(() => null);
-    const confirmedId: string | undefined = item?.id;
-    if (!confirmedId) { console.error("deleteProposal: item not found", id); return; }
-    await api.delete(`/proposals/${confirmedId}`)
+    await api.delete(`/proposals/${id}`)
       .then(() => { if (clientId) getProposals({ clientId }); })
-      .catch(err => console.error("deleteProposal", err.response?.data));
+      .catch(err => { handleProviderError("deleteProposal", err); });
   };
 
   /** Convenience — picks the right endpoint then re-fetches the client's list */
   const updateStatus = async (id: string, status: import("../utils/apiEnums").ProposalStatus, clientId?: string, reason?: string) => {
-    const item = await api.get(`/proposals/${id}`).then(r => r.data).catch(() => null);
-    const confirmedId: string | undefined = item?.id;
-    if (!confirmedId) { console.error("updateStatus: item not found", id); return; }
     let endpoint: string | null = null;
     if (status === "Submitted") endpoint = "submit";
     else if (status === "Approved") endpoint = "approve";
@@ -429,13 +458,10 @@ export const ProposalProvider = ({ children }: { children: ReactNode }) => {
     if (!endpoint) return;
     // Contract: submit/approve/reject take no body; `reason` kept for UI compatibility
     void reason;
-    function refresh() {
-      if (clientId) return getProposals({ clientId });
-      return getOneProposal(confirmedId!);
-    }
-    await api.put(`/proposals/${confirmedId}/${endpoint}`)
+    const refresh = () => clientId ? getProposals({ clientId }) : getOneProposal(id);
+    await api.put(`/proposals/${id}/${endpoint}`)
       .then(refresh)
-      .catch(err => console.error(`updateStatus → ${endpoint}`, err.response?.data));
+      .catch(err => { handleProviderError(`updateStatus → ${endpoint}`, err); });
   };
 
   const proposalActions = useMemo(
@@ -465,25 +491,34 @@ export const PricingRequestProvider = ({ children }: { children: ReactNode }) =>
   const getPricingRequests = async (params?: object) => {
     // Paged: GET /pricingrequests → { items, pageNumber, pageSize, totalCount }
     dispatch(getPricingRequestsPending());
-    await api.get("/pricingrequests", { params })
-      .then(({ data }) => dispatch(getPricingRequestsSuccess(items(data))))
-      .catch(err => { console.error("getPricingRequests", err.response?.data); dispatch(getPricingRequestsError()); });
+    try {
+      const data = await strictApi.get("/pricingrequests", { schema: zPricingRequestsResponse, params: params as Record<string, unknown> });
+      dispatch(getPricingRequestsSuccess(cast(data.items ?? [])));
+    } catch (err) {
+      handleProviderError("getPricingRequests", err, getPricingRequestsError);
+    }
   };
 
   const getPendingRequests = async () => {
     // Paged: GET /pricingrequests/pending → { items, ... }
     dispatch(getPricingRequestsPending());
-    await api.get("/pricingrequests/pending")
-      .then(({ data }) => dispatch(getPricingRequestsSuccess(items(data))))
-      .catch(err => { console.error("getPendingRequests", err.response?.data); dispatch(getPricingRequestsError()); });
+    try {
+      const data = await strictApi.get("/pricingrequests/pending", { schema: zPricingRequestsResponse });
+      dispatch(getPricingRequestsSuccess(cast(data.items ?? [])));
+    } catch (err) {
+      handleProviderError("getPendingRequests", err, getPricingRequestsError);
+    }
   };
 
   const getMyRequests = async () => {
     // Paged: GET /pricingrequests/my-requests → { items, ... }
     dispatch(getPricingRequestsPending());
-    await api.get("/pricingrequests/my-requests")
-      .then(({ data }) => dispatch(getPricingRequestsSuccess(items(data))))
-      .catch(err => { console.error("getMyRequests", err.response?.data); dispatch(getPricingRequestsError()); });
+    try {
+      const data = await strictApi.get("/pricingrequests/my-requests", { schema: zPricingRequestsResponse });
+      dispatch(getPricingRequestsSuccess(cast(data.items ?? [])));
+    } catch (err) {
+      handleProviderError("getMyRequests", err, getPricingRequestsError);
+    }
   };
 
   const getOnePricingRequest = async (id: string) => {
@@ -502,8 +537,8 @@ export const PricingRequestProvider = ({ children }: { children: ReactNode }) =>
       const res = await api.post("/pricingrequests", body);
       dispatch(createPricingRequestSuccess());
       // Refresh the list so any mounted pricing-request UI picks up the new entry
-      await api.get("/pricingrequests")
-        .then(({ data }) => dispatch(getPricingRequestsSuccess(items(data))))
+      await strictApi.get("/pricingrequests", { schema: zPricingRequestsResponse })
+        .then(data => dispatch(getPricingRequestsSuccess(cast(data.items ?? []))))
         .catch(() => { /* non-fatal */ });
       return res.data?.id as string | undefined;
     } catch (err: unknown) {
@@ -523,21 +558,16 @@ export const PricingRequestProvider = ({ children }: { children: ReactNode }) =>
 
   const completeRequest = async (id: string) => {
     if (!id) return;
-    const item = await api.get(`/pricingrequests/${id}`).then(r => r.data).catch(() => null);
-    const confirmedId: string | undefined = item?.id;
-    if (!confirmedId) { console.error("completeRequest: item not found", id); return; }
-    await api.put(`/pricingrequests/${confirmedId}/complete`)
+    // Contract: PUT /pricingrequests/{id}/complete — no body (§6.9)
+    await api.put(`/pricingrequests/${id}/complete`)
       .then(() => getPricingRequests())
-      .catch(err => { console.error("completeRequest", err.response?.data); throw err; });
+      .catch(err => { handleProviderError("completeRequest", err); throw err; });
   };
 
   const updatePricingRequest = async (id: string, payload: object) => {
-    const item = await api.get(`/pricingrequests/${id}`).then(r => r.data).catch(() => null);
-    const confirmedId: string | undefined = item?.id;
-    if (!confirmedId) { console.error("updatePricingRequest: item not found", id); return; }
-    await api.put(`/pricingrequests/${confirmedId}`, payload)
+    await api.put(`/pricingrequests/${id}`, payload)
       .then(() => getPricingRequests())
-      .catch(err => console.error("updatePricingRequest", err.response?.data));
+      .catch(err => { handleProviderError("updatePricingRequest", err); });
   };
 
   const pricingActions = useMemo(
@@ -567,81 +597,81 @@ export const ContractProvider = ({ children }: { children: ReactNode }) => {
   const getContracts = async (params?: object) => {
     // Paged: GET /contracts → { items, pageNumber, pageSize, totalCount }
     dispatch(getContractsPending());
-    await api.get("/contracts", { params })
-      .then(({ data }) => dispatch(getContractsSuccess(items(data))))
-      .catch(err => { console.error("getContracts", err.response?.data); dispatch(getContractsError()); });
+    try {
+      const data = await strictApi.get("/contracts", { schema: zContractsResponse, params: params as Record<string, unknown> });
+      dispatch(getContractsSuccess(cast(data.items ?? [])));
+    } catch (err) {
+      handleProviderError("getContracts", err, getContractsError);
+    }
   };
 
   const getOneContract = async (id: string) => {
     dispatch(getOneContractPending());
-    await api.get(`/contracts/${id}`)
-      .then(res => dispatch(getOneContractSuccess(res.data)))
-      .catch(err => { console.error("getOneContract", err.response?.data); dispatch(getOneContractError()); });
+    try {
+      const data = await api.get(`/contracts/${id}`).then(r => r.data);
+      dispatch(getOneContractSuccess(data));
+    } catch (err) {
+      handleProviderError("getOneContract", err, getOneContractError);
+    }
   };
 
   const getExpiringContracts = async (daysUntilExpiry?: number) => {
-    // Returns a direct array per API contract
+    // Direct array: GET /contracts/expiring → Contract[]
     dispatch(getContractsPending());
-    await api.get("/contracts/expiring", { params: { daysUntilExpiry } })
-      .then(({ data }) => dispatch(getContractsSuccess(Array.isArray(data) ? data : (data.items ?? []))))
-      .catch(err => { console.error("getExpiringContracts", err.response?.data); dispatch(getContractsError()); });
+    try {
+      const data = await strictApi.get("/contracts/expiring", { schema: zContractsArrayResponse, params: daysUntilExpiry !== undefined ? { daysUntilExpiry } : undefined });
+      dispatch(getContractsSuccess(cast(data)));
+    } catch (err) {
+      handleProviderError("getExpiringContracts", err, getContractsError);
+    }
   };
 
   const getContractsByClient = async (clientId: string) => {
-    // Returns a direct array per API contract
+    // Direct array: GET /contracts/client/{id} → Contract[]
     dispatch(getContractsPending());
-    await api.get(`/contracts/client/${clientId}`)
-      .then(({ data }) => dispatch(getContractsSuccess(Array.isArray(data) ? data : (data.items ?? []))))
-      .catch(err => { console.error("getContractsByClient", err.response?.data); dispatch(getContractsError()); });
+    try {
+      const data = await strictApi.get(`/contracts/client/${clientId}`, { schema: zContractsArrayResponse });
+      dispatch(getContractsSuccess(cast(data)));
+    } catch (err) {
+      handleProviderError("getContractsByClient", err, getContractsError);
+    }
   };
 
   const activateContract = async (id: string) => {
-    const item = await api.get(`/contracts/${id}`).then(r => r.data).catch(() => null);
-    const confirmedId: string | undefined = item?.id;
-    if (!confirmedId) { console.error("activateContract: item not found", id); return; }
-    await api.put(`/contracts/${confirmedId}/activate`, {})
-      .then(() => getOneContract(confirmedId))
-      .catch(err => console.error("activateContract", err.response?.data));
+    // Contract: PUT /contracts/{id}/activate — no body (§7.5)
+    await api.put(`/contracts/${id}/activate`)
+      .then(() => getOneContract(id))
+      .catch(err => { handleProviderError("activateContract", err); });
   };
 
   const cancelContract = async (id: string) => {
-    const item = await api.get(`/contracts/${id}`).then(r => r.data).catch(() => null);
-    const confirmedId: string | undefined = item?.id;
-    if (!confirmedId) { console.error("cancelContract: item not found", id); return; }
-    await api.put(`/contracts/${confirmedId}/cancel`, {})
-      .then(() => getOneContract(confirmedId))
-      .catch(err => console.error("cancelContract", err.response?.data));
+    // Contract: PUT /contracts/{id}/cancel — no body (§7.6)
+    await api.put(`/contracts/${id}/cancel`)
+      .then(() => getOneContract(id))
+      .catch(err => { handleProviderError("cancelContract", err); });
   };
 
   const deleteContract = async (id: string) => {
-    const item = await api.get(`/contracts/${id}`).then(r => r.data).catch(() => null);
-    const confirmedId: string | undefined = item?.id;
-    if (!confirmedId) { console.error("deleteContract: item not found", id); return; }
-    await api.delete(`/contracts/${confirmedId}`)
-      .catch(err => console.error("deleteContract", err.response?.data));
+    await api.delete(`/contracts/${id}`)
+      .catch(err => { handleProviderError("deleteContract", err); });
   };
 
   const updateContract = async (id: string, payload: object) => {
-    const item = await api.get(`/contracts/${id}`).then(r => r.data).catch(() => null);
-    const confirmedId: string | undefined = item?.id;
-    if (!confirmedId) { console.error("updateContract: item not found", id); return; }
-    await api.put(`/contracts/${confirmedId}`, payload)
-      .then(() => getOneContract(confirmedId))
-      .catch(err => console.error("updateContract", err.response?.data));
+    await api.put(`/contracts/${id}`, payload)
+      .then(() => getOneContract(id))
+      .catch(err => { handleProviderError("updateContract", err); });
   };
 
   const createRenewal = async (contractId: string, payload: { renewalOpportunityId?: string; notes?: string }) => {
     await api.post(`/contracts/${contractId}/renewals`, payload)
-      .catch(err => console.error("createRenewal", err.response?.data));
+      .catch(err => { handleProviderError("createRenewal", err); });
   };
 
   const completeRenewal = async (renewalId: string, clientId?: string) => {
-    const item = await api.get(`/contracts/renewals/${renewalId}`).then(r => r.data).catch(() => null);
-    const confirmedId: string | undefined = item?.id;
-    if (!confirmedId) { console.error("completeRenewal: item not found", renewalId); return; }
-    await api.put(`/contracts/renewals/${confirmedId}/complete`, {})
+    // Contract: PUT /contracts/renewals/{id}/complete — no body (§7.10)
+    await api.put(`/contracts/renewals/${renewalId}/complete`)
       .then(() => { if (clientId) getContractsByClient(clientId); })
-      .catch(err => console.error("completeRenewal", err.response?.data));
+      .catch(err => { handleProviderError("completeRenewal", err); });
   };
 
   const createContract = async (payload: object): Promise<string | undefined> => {
@@ -697,87 +727,123 @@ export const ActivityProvider = ({ children }: { children: ReactNode }) => {
   const getActivities = async (params?: object) => {
     // Paged: GET /activities → { items, pageNumber, pageSize, totalCount }
     dispatch(getActivitiesPending());
-    await api.get("/activities", { params })
-      .then(({ data }) => dispatch(getActivitiesSuccess(items(data))))
-      .catch(err => { console.error("getActivities", err.response?.data); dispatch(getActivitiesError()); });
+    try {
+      const data = await strictApi.get("/activities", { schema: zActivitiesResponse, params: params as Record<string, unknown> });
+      dispatch(getActivitiesSuccess(cast(data.items ?? [])));
+    } catch (err) {
+      handleProviderError("getActivities", err, getActivitiesError);
+    }
   };
 
   const getMyActivities = async (params?: object) => {
     // Paged: GET /activities/my-activities → { items, ... }
     dispatch(getActivitiesPending());
-    await api.get("/activities/my-activities", { params })
-      .then(({ data }) => dispatch(getActivitiesSuccess(items(data))))
-      .catch(err => { console.error("getMyActivities", err.response?.data); dispatch(getActivitiesError()); });
+    try {
+      const data = await strictApi.get("/activities/my-activities", { schema: zActivitiesResponse, params: params as Record<string, unknown> });
+      dispatch(getActivitiesSuccess(cast(data.items ?? [])));
+    } catch (err) {
+      handleProviderError("getMyActivities", err, getActivitiesError);
+    }
   };
 
   const getUpcoming = async (daysAhead?: number) => {
     // Paged: GET /activities/upcoming → { items, ... }
     dispatch(getActivitiesPending());
-    await api.get("/activities/upcoming", { params: { daysAhead } })
-      .then(({ data }) => dispatch(getActivitiesSuccess(items(data))))
-      .catch(err => { console.error("getUpcoming", err.response?.data); dispatch(getActivitiesError()); });
+    try {
+      const data = await strictApi.get("/activities/upcoming", { schema: zActivitiesResponse, params: daysAhead !== undefined ? { daysAhead } : undefined });
+      dispatch(getActivitiesSuccess(cast(data.items ?? [])));
+    } catch (err) {
+      handleProviderError("getUpcoming", err, getActivitiesError);
+    }
   };
 
   const getOverdue = async () => {
-    // Returns a direct array per API contract
+    // Direct array: GET /activities/overdue → Activity[]
     dispatch(getActivitiesPending());
-    await api.get("/activities/overdue")
-      .then(({ data }) => dispatch(getActivitiesSuccess(Array.isArray(data) ? data : (data.items ?? []))))
-      .catch(err => { console.error("getOverdue", err.response?.data); dispatch(getActivitiesError()); });
+    try {
+      const data = await strictApi.get("/activities/overdue", { schema: zActivitiesArrayResponse });
+      dispatch(getActivitiesSuccess(cast(data)));
+    } catch (err) {
+      handleProviderError("getOverdue", err, getActivitiesError);
+    }
   };
 
   const getOneActivity = async (id: string) => {
     dispatch(getOneActivityPending());
-    await api.get(`/activities/${id}`)
-      .then(res => dispatch(getOneActivitySuccess(res.data)))
-      .catch(err => { console.error("getOneActivity", err.response?.data); dispatch(getOneActivityError()); });
+    try {
+      const data = await api.get(`/activities/${id}`).then(r => r.data);
+      dispatch(getOneActivitySuccess(data));
+    } catch (err) {
+      handleProviderError("getOneActivity", err, getOneActivityError);
+    }
   };
 
   const createActivity = async (payload: object) => {
     dispatch(createActivityPending());
-    await api.post("/activities", toActivityNums(payload as Record<string, unknown>))
-      .then(() => dispatch(createActivitySuccess()))
-      .catch(err => { console.error("createActivity", err.response?.data); dispatch(createActivityError()); });
+    const body = toActivityNums(payload as Record<string, unknown>);
+    const parsed = zCreateActivity.safeParse(body);
+    if (!parsed.success) {
+      handleProviderError("createActivity", new (class extends Error { constructor() { super(); } })(), createActivityError);
+      console.error("createActivity validation:", parsed.error.issues);
+      dispatch(createActivityError());
+      return;
+    }
+    try {
+      await api.post("/activities", parsed.data);
+      dispatch(createActivitySuccess());
+    } catch (err) {
+      handleProviderError("createActivity", err, createActivityError);
+    }
   };
 
   const updateActivity = async (id: string, payload: Partial<import('./context').IActivity>) => {
-    const item = await api.get(`/activities/${id}`).then(r => r.data).catch(() => null);
-    const confirmedId: string | undefined = item?.id;
-    if (!confirmedId) { console.error("updateActivity: item not found", id); return; }
     dispatch(updateActivityPending());
-    await api.put(`/activities/${confirmedId}`, toActivityNums(payload as Record<string, unknown>))
-      .then(res => { dispatch(updateActivitySuccess()); dispatch(getOneActivitySuccess(res.data)); })
-      .catch(err => { console.error("updateActivity", err.response?.data); dispatch(updateActivityError()); throw err; });
+    try {
+      const res = await api.put(`/activities/${id}`, toActivityNums(payload as Record<string, unknown>));
+      dispatch(updateActivitySuccess());
+      dispatch(getOneActivitySuccess(res.data));
+    } catch (err) {
+      handleProviderError("updateActivity", err, updateActivityError);
+      throw err;
+    }
   };
 
   const completeActivity = async (id: string, outcome: string) => {
-    const item = await api.get(`/activities/${id}`).then(r => r.data).catch(() => null);
-    const confirmedId: string | undefined = item?.id;
-    if (!confirmedId) { console.error("completeActivity: item not found", id); return; }
+    const parsed = zCompleteActivity.safeParse({ outcome });
+    if (!parsed.success) {
+      console.error("completeActivity validation:", parsed.error.issues);
+      return;
+    }
     dispatch(updateActivityPending());
-    await api.put(`/activities/${confirmedId}/complete`, { outcome })
-      .then(res => { dispatch(updateActivitySuccess()); dispatch(getOneActivitySuccess(res.data)); })
-      .catch(err => { console.error("completeActivity", err.response?.data); dispatch(updateActivityError()); });
+    try {
+      const res = await api.put(`/activities/${id}/complete`, parsed.data);
+      dispatch(updateActivitySuccess());
+      dispatch(getOneActivitySuccess(res.data));
+    } catch (err) {
+      handleProviderError("completeActivity", err, updateActivityError);
+    }
   };
 
   const cancelActivity = async (id: string) => {
-    const item = await api.get(`/activities/${id}`).then(r => r.data).catch(() => null);
-    const confirmedId: string | undefined = item?.id;
-    if (!confirmedId) { console.error("cancelActivity: item not found", id); return; }
+    // Contract: PUT /activities/{id}/cancel — no body (§8.9)
     dispatch(updateActivityPending());
-    await api.put(`/activities/${confirmedId}/cancel`, {})
-      .then(res => { dispatch(updateActivitySuccess()); dispatch(getOneActivitySuccess(res.data)); })
-      .catch(err => { console.error("cancelActivity", err.response?.data); dispatch(updateActivityError()); });
+    try {
+      const res = await api.put(`/activities/${id}/cancel`);
+      dispatch(updateActivitySuccess());
+      dispatch(getOneActivitySuccess(res.data));
+    } catch (err) {
+      handleProviderError("cancelActivity", err, updateActivityError);
+    }
   };
 
   const deleteActivity = async (id: string) => {
-    const item = await api.get(`/activities/${id}`).then(r => r.data).catch(() => null);
-    const confirmedId: string | undefined = item?.id;
-    if (!confirmedId) { console.error("deleteActivity: item not found", id); return; }
     dispatch(deleteActivityPending());
-    await api.delete(`/activities/${confirmedId}`)
-      .then(() => dispatch(deleteActivitySuccess()))
-      .catch(err => { console.error("deleteActivity", err.response?.data); dispatch(deleteActivityError()); });
+    try {
+      await api.delete(`/activities/${id}`);
+      dispatch(deleteActivitySuccess());
+    } catch (err) {
+      handleProviderError("deleteActivity", err, deleteActivityError);
+    }
   };
 
   const activityActions = useMemo(
@@ -807,9 +873,12 @@ export const NoteProvider = ({ children }: { children: ReactNode }) => {
   const getNotes = async (params?: object) => {
     // Paged: GET /notes → { items, pageNumber, pageSize, totalCount }
     dispatch(getNotesPending());
-    await api.get("/notes", { params })
-      .then(({ data }) => dispatch(getNotesSuccess(items(data))))
-      .catch(err => { console.error("getNotes", err.response?.data); dispatch(getNotesError()); });
+    try {
+      const data = await strictApi.get("/notes", { schema: zNotesResponse, params: params as Record<string, unknown> });
+      dispatch(getNotesSuccess(cast(data.items ?? [])));
+    } catch (err) {
+      handleProviderError("getNotes", err, getNotesError);
+    }
   };
 
   const getOneNote = async (id: string) => {

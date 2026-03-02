@@ -9,6 +9,7 @@
 import api from "./axiosInstance";
 import {
   ACTIVITY_TYPE_NUM,
+  CLIENT_TYPE_NUM,
   PRIORITY_NUM,
   RELATED_TO_TYPE_NUM,
   OPPORTUNITY_STAGE_NUM,
@@ -50,8 +51,25 @@ export const registerUser = (payload: object) =>
 /* ══════════════════════════════════════════════════════
    CLIENTS
 ══════════════════════════════════════════════════════ */
-export const createClient = (payload: object) =>
-  api.post<{ id: string }>("/clients", payload);
+export const createClient = (payload: {
+  name: string;
+  industry: string;
+  clientType: string;
+  companySize?: string;
+  website?: string;
+  billingAddress?: string;
+  taxNumber?: string;
+}) =>
+  api.post<{ id: string }>("/clients", {
+    name:           payload.name,
+    industry:       payload.industry,
+    // API always expects the integer enum value for clientType
+    clientType:     CLIENT_TYPE_NUM[payload.clientType] ?? Number(payload.clientType),
+    ...(payload.companySize?.trim()    ? { companySize:    payload.companySize.trim()    } : {}),
+    ...(payload.website?.trim()        ? { website:        payload.website.trim()        } : {}),
+    ...(payload.billingAddress?.trim() ? { billingAddress: payload.billingAddress.trim() } : {}),
+    ...(payload.taxNumber?.trim()      ? { taxNumber:      payload.taxNumber.trim()      } : {}),
+  });
 
 /* ══════════════════════════════════════════════════════
    CONTACTS
@@ -88,6 +106,9 @@ export const createOpportunity = (payload: {
   if (payload.contactId?.trim())      body.contactId    = payload.contactId.trim();
   if (payload.ownerId?.trim())        body.ownerId      = payload.ownerId.trim();
   if (payload.source?.trim())         body.source       = OPPORTUNITY_SOURCE_NUM[payload.source.trim()] ?? Number(payload.source);
+  // Ensure expectedCloseDate is full ISO datetime (date-inputs give YYYY-MM-DD)
+  if (body.expectedCloseDate && !(body.expectedCloseDate as string).includes("T"))
+    body.expectedCloseDate = `${body.expectedCloseDate}T00:00:00`;
   return api.post<{ id: string }>("/opportunities", body);
 };
 
@@ -105,7 +126,10 @@ export const createPricingRequest = (payload: {
 }) =>
   api.post("/pricingrequests", {
     title:          payload.title,
-    requiredByDate: payload.requiredByDate,
+    // Ensure ISO datetime — date inputs give YYYY-MM-DD
+    requiredByDate: payload.requiredByDate.includes("T")
+      ? payload.requiredByDate
+      : `${payload.requiredByDate}T00:00:00`,
     priority:       PRIORITY_NUM[payload.priority] ?? 2,
     ...(payload.description?.trim()   ? { description:   payload.description.trim()   } : {}),
     ...(payload.clientId?.trim()      ? { clientId:      payload.clientId.trim()      } : {}),
@@ -166,7 +190,8 @@ export const createNote = (payload: {
 }) =>
   api.post("/notes", {
     content:       payload.content,
-    relatedToType: Number(payload.relatedToType),
+    // API always expects the integer enum; use the lookup map, not Number()
+    relatedToType: RELATED_TO_TYPE_NUM[payload.relatedToType] ?? Number(payload.relatedToType),
     relatedToId:   payload.relatedToId,
     isPrivate:     payload.isPrivate ?? false,
   });
@@ -213,7 +238,8 @@ export const createProposal = (
     title:         opts.title,
     description:   requirements,
     currency:      opts.currency,
-    validUntil:    deadline,
+    // Ensure ISO datetime — date inputs give YYYY-MM-DD
+    validUntil:    deadline && !deadline.includes("T") ? `${deadline}T00:00:00` : deadline,
   };
   if (lineItems.length)         body.lineItems        = lineItems;
   if (licenses?.trim())         body.licenses         = Number(licenses)         || licenses.trim();
@@ -226,17 +252,22 @@ export const createProposal = (
 /* ══════════════════════════════════════════════════════
    AGGREGATE BUTTON ACTIONS
 ══════════════════════════════════════════════════════ */
-export const advanceStage = (opportunityId: string, stage: number, reason?: string) =>
-  api.put(`/opportunities/${opportunityId}/stage`, { stage, reason });
+export const advanceStage = (opportunityId: string, stage: number, reason?: string, lossReason?: string) =>
+  api.put(`/opportunities/${opportunityId}/stage`, {
+    stage,
+    notes:      reason ?? null,
+    lossReason: stage === 6 ? (lossReason ?? null) : null,
+  });
 
 export const assignPricingRequest = (id: string, assignedToId: string) =>
-  api.post(`/pricingrequests/${id}/assign`, { assignedToId });
+  // API contract §6.8: body is { userId }, not { assignedToId }
+  api.post(`/pricingrequests/${id}/assign`, { userId: assignedToId });
 
-export const approveProposal = (id: string, comment?: string) =>
-  api.put(`/proposals/${id}/approve`, comment ? { comment } : {});
+export const approveProposal = (id: string) =>
+  api.put(`/proposals/${id}/approve`);
 
 export const activateContract = (id: string) =>
-  api.put(`/contracts/${id}/activate`, {});
+  api.put(`/contracts/${id}/activate`);
 
 export const completeRenewal = (renewalId: string) =>
-  api.put(`/contracts/renewals/${renewalId}/complete`, {});
+  api.put(`/contracts/renewals/${renewalId}/complete`);

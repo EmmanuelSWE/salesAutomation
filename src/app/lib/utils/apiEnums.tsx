@@ -81,6 +81,10 @@ export type RelatedToType =
    (POST / PUT). Use these to convert string labels
    before sending any activity payload.
 ══════════════════════════════════════════════════════ */
+export const CLIENT_TYPE_NUM: Record<string, number> = {
+  Government: 1, Private: 2, Partner: 3,
+};
+
 export const ACTIVITY_TYPE_NUM: Record<string, number> = {
   Meeting: 1, Call: 2, Email: 3, Task: 4, Presentation: 5, Other: 6,
 };
