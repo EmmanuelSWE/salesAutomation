@@ -6,7 +6,6 @@ import { message }     from "antd";
 import api             from "../../../../lib/utils/axiosInstance";
 import ClientOverviewCard  from "../../../../components/loggedIn/clientOverview/clientOverviewCard/clientOverViewCard";
 import ClientContactDetails from "../../../../components/loggedIn/clientOverview/clientContactDetails/clientContactDetails";
-import ClientDocumentHistory from "../../../../components/loggedIn/clientOverview/clientDocumentHistory/clientDocumentHistory";
 import ClientOpportunities  from "../../../../components/loggedIn/clientOverview/clientOpportunities/clientOpportunites";
 
 import { 
@@ -24,21 +23,11 @@ import {
 
 import type { ProposalStep }   from "../../../../components/loggedIn/clientOverview/clientOverviewCard/clientOverViewCard";
 import type { ContactCard }    from "../../../../components/loggedIn/clientOverview/clientContactDetails/clientContactDetails";
-import type { InvoiceRow }     from "../../../../components/loggedIn/clientOverview/clientDocumentHistory/clientDocumentHistory";
 import type { OpportunityRow } from "../../../../components/loggedIn/clientOverview/clientOpportunities/clientOpportunites";
 import ClientProposals         from "../../../../components/loggedIn/clientOverview/clientProposals/clientProposals";
 import ClientContracts         from "../../../../components/loggedIn/clientOverview/clientContracts/clientContracts";
 import ClientActionsCard       from "../../../../components/loggedIn/clientOverview/clientActionsCard/clientActionsCard";
 import ClientPricingRequests   from "../../../../components/loggedIn/clientOverview/clientPricingRequests/clientPricingRequests";
-
-/* ── Placeholder invoices (until invoice API is ready) ── */
-const PLACEHOLDER_INVOICES: InvoiceRow[] = [
-  { id: "1", date: "Feb 5, 2026",  description: "Invoice for October 2026",   amount: "$123.79" },
-  { id: "2", date: "Feb 4, 2026",  description: "Invoice for September 2026", amount: "$98.03"  },
-  { id: "3", date: "Feb 3, 2026",  description: "Paypal",                     amount: "$35.07"  },
-  { id: "4", date: "Feb 2, 2026",  description: "Invoice for July 2026",      amount: "$142.80" },
-  { id: "5", date: "Feb 1, 2026",  description: "Invoice for June 2026",      amount: "$123.79" },
-];
 
 export default function ClientOverview() {
   const params = useParams();
@@ -325,9 +314,6 @@ export default function ClientOverview() {
         contacts={contacts.length > 0 ? contacts : []}
         addContactHref={`/Client/${clientId}/createContact`}
       />
-
-      {/* 3. Document History — invoices (placeholder until invoice API is ready) */}
-      <ClientDocumentHistory invoices={PLACEHOLDER_INVOICES} defaultPeriod="Month" />
 
       {/* 4. Opportunities - Now using real data from API */}
       <ClientOpportunities

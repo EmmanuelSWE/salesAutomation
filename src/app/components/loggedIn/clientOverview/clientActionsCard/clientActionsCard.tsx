@@ -108,15 +108,16 @@ export default function ClientActionsCard({
   }, [proposalStatus]);
 
   /* ── contract check ── */
+  const contractsList = Array.isArray(contracts) ? contracts : [];
   const hasContractForProposal =
-    !!proposal?.id && contracts.some((c) => c.proposalId === proposal.id);
+    !!proposal?.id && contractsList.some((c) => c.proposalId === proposal.id);
 
   const contractHref = proposal?.id
     ? `/contracts/create?clientId=${clientId}&opportunityId=${proposal.opportunityId ?? ""}&proposalId=${proposal.id}`
     : `/contracts/create?clientId=${clientId}`;
 
   /* ── expiring contracts ── */
-  const expiringContracts = contracts.filter((c) => c.isExpiringSoon && c.status === "Active");
+  const expiringContracts = contractsList.filter((c) => c.isExpiringSoon && c.status === "Active");
 
   /* ── handlers ── */
   async function handleStatusChange() {

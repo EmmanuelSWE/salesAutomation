@@ -4,16 +4,10 @@ import { ReactNode, useContext, useReducer, useEffect, useMemo, useState } from 
 
 /* ── axios instance ── */
 import api from "../utils/axiosInstance";
-import { strictApi, handleProviderError } from "../api/strictApi";
+import { handleProviderError } from "../api/strictApi";
 import {
-  zClientsResponse,
-  zContactsResponse, zContactsArrayResponse,
-  zOpportunitiesResponse, zStageHistoryArrayResponse, zPipelineMetrics, zStageBody,
-  zProposalsResponse,
-  zPricingRequestsResponse,
-  zContractsResponse, zContractsArrayResponse,
-  zActivitiesResponse, zActivitiesArrayResponse, zCreateActivity, zCompleteActivity,
-  zNotesResponse,
+  zStageBody,
+  zCreateActivity, zCompleteActivity,
 } from "../api/contract";
 
 /* ── contexts ── */
@@ -73,15 +67,6 @@ import {
 } from "./actions";
 
 import { ACTIVITY_TYPE_NUM, PRIORITY_NUM, RELATED_TO_TYPE_NUM, OPPORTUNITY_STAGE_NUM } from "../utils/apiEnums";
-
-/**
- * Coerce a Zod-validated API value to a stricter context interface type.
- * Zod schemas allow `null` on nullable fields; context interfaces use
- * `string | undefined`. At runtime null/undefined are handled identically
- * by the reducers, so the cast is safe.
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const cast = (x: unknown) => x as any;
 
 
 /* ══════════════════════════════════════════════════════
@@ -178,8 +163,8 @@ export const ClientProvider = ({ children }: { children: ReactNode }) => {
   const getClients = async (params?: { pageNumber?: number; pageSize?: number; [key: string]: unknown }) => {
     dispatch(getClientsPending());
     try {
-      const data = await strictApi.get("/clients", { schema: zClientsResponse, params: params as Record<string, unknown> });
-      dispatch(getClientsSuccess(cast(data)));
+      const data = await api.get("/clients", { params }).then(r => r.data);
+      dispatch(getClientsSuccess(data));
     } catch (err) {
       handleProviderError("getClients", err, getClientsError);
     }
@@ -231,8 +216,8 @@ export const ContactProvider = ({ children }: { children: ReactNode }) => {
     // Paged: GET /contacts → { items, pageNumber, pageSize, totalCount }
     dispatch(getContactsPending());
     try {
-      const data = await strictApi.get("/contacts", { schema: zContactsResponse, params: params as Record<string, unknown> });
-      dispatch(getContactsSuccess(cast(data.items ?? [])));
+      const data = await api.get("/contacts", { params }).then(r => r.data);
+      dispatch(getContactsSuccess(data.items ?? []));
     } catch (err) {
       handleProviderError("getContacts", err, getContactsError);
     }
@@ -242,8 +227,8 @@ export const ContactProvider = ({ children }: { children: ReactNode }) => {
     // Direct array: GET /contacts/by-client/{id} → Contact[]
     dispatch(getContactsPending());
     try {
-      const data = await strictApi.get(`/contacts/by-client/${clientId}`, { schema: zContactsArrayResponse });
-      dispatch(getContactsSuccess(cast(data)));
+      const data = await api.get(`/contacts/by-client/${clientId}`).then(r => r.data);
+      dispatch(getContactsSuccess(data));
     } catch (err) {
       handleProviderError("getContactsByClient", err, getContactsError);
     }
@@ -284,8 +269,8 @@ export const OpportunityProvider = ({ children }: { children: ReactNode }) => {
     // Paged: GET /opportunities → { items, pageNumber, pageSize, totalCount }
     dispatch(getOpportunitiesPending());
     try {
-      const data = await strictApi.get("/opportunities", { schema: zOpportunitiesResponse, params: params as Record<string, unknown> });
-      dispatch(getOpportunitiesSuccess(cast(data.items ?? [])));
+      const data = await api.get("/opportunities", { params }).then(r => r.data);
+      dispatch(getOpportunitiesSuccess(data.items ?? []));
     } catch (err) {
       handleProviderError("getOpportunities", err, getOpportunitiesError);
     }
@@ -295,8 +280,8 @@ export const OpportunityProvider = ({ children }: { children: ReactNode }) => {
     // Paged: GET /opportunities/my-opportunities → { items, ... }
     dispatch(getOpportunitiesPending());
     try {
-      const data = await strictApi.get("/opportunities/my-opportunities", { schema: zOpportunitiesResponse, params: params as Record<string, unknown> });
-      dispatch(getOpportunitiesSuccess(cast(data.items ?? [])));
+      const data = await api.get("/opportunities/my-opportunities", { params }).then(r => r.data);
+      dispatch(getOpportunitiesSuccess(data.items ?? []));
     } catch (err) {
       handleProviderError("getMyOpportunities", err, getOpportunitiesError);
     }
@@ -306,11 +291,8 @@ export const OpportunityProvider = ({ children }: { children: ReactNode }) => {
     // Object: GET /opportunities/pipeline → { stages, weightedPipelineValue, conversionRate }
     dispatch(getOpportunitiesPending());
     try {
-      const data = await strictApi.get("/opportunities/pipeline", {
-        schema: zPipelineMetrics,
-        params: ownerId ? { ownerId } : undefined,
-      });
-      dispatch(getOpportunitiesSuccess(data.stages as unknown as import('./context').IOpportunity[]));
+      const data = await api.get("/opportunities/pipeline", { params: ownerId ? { ownerId } : undefined }).then(r => r.data);
+      dispatch(getOpportunitiesSuccess(data.stages ?? []));
     } catch (err) {
       handleProviderError("getPipeline", err, getOpportunitiesError);
     }
@@ -330,8 +312,8 @@ export const OpportunityProvider = ({ children }: { children: ReactNode }) => {
     // Direct array: GET /opportunities/{id}/stage-history → StageHistory[]
     dispatch(getStageHistoryPending());
     try {
-      const data = await strictApi.get(`/opportunities/${id}/stage-history`, { schema: zStageHistoryArrayResponse });
-      dispatch(getStageHistorySuccess(cast(data)));
+      const data = await api.get(`/opportunities/${id}/stage-history`).then(r => r.data);
+      dispatch(getStageHistorySuccess(data));
     } catch (err) {
       handleProviderError("getStageHistory", err, getStageHistoryError);
     }
@@ -403,8 +385,8 @@ export const ProposalProvider = ({ children }: { children: ReactNode }) => {
     // Paged: GET /proposals → { items, pageNumber, pageSize, totalCount }
     dispatch(getProposalsPending());
     try {
-      const data = await strictApi.get("/proposals", { schema: zProposalsResponse, params: params as Record<string, unknown> });
-      dispatch(getProposalsSuccess(cast(data.items ?? [])));
+      const data = await api.get("/proposals", { params }).then(r => r.data);
+      dispatch(getProposalsSuccess(data.items ?? []));
     } catch (err) {
       handleProviderError("getProposals", err, getProposalsError);
     }
@@ -492,8 +474,8 @@ export const PricingRequestProvider = ({ children }: { children: ReactNode }) =>
     // Paged: GET /pricingrequests → { items, pageNumber, pageSize, totalCount }
     dispatch(getPricingRequestsPending());
     try {
-      const data = await strictApi.get("/pricingrequests", { schema: zPricingRequestsResponse, params: params as Record<string, unknown> });
-      dispatch(getPricingRequestsSuccess(cast(data.items ?? [])));
+      const data = await api.get("/pricingrequests", { params }).then(r => r.data);
+      dispatch(getPricingRequestsSuccess(data.items ?? []));
     } catch (err) {
       handleProviderError("getPricingRequests", err, getPricingRequestsError);
     }
@@ -503,8 +485,8 @@ export const PricingRequestProvider = ({ children }: { children: ReactNode }) =>
     // Paged: GET /pricingrequests/pending → { items, ... }
     dispatch(getPricingRequestsPending());
     try {
-      const data = await strictApi.get("/pricingrequests/pending", { schema: zPricingRequestsResponse });
-      dispatch(getPricingRequestsSuccess(cast(data.items ?? [])));
+      const data = await api.get("/pricingrequests/pending").then(r => r.data);
+      dispatch(getPricingRequestsSuccess(data.items ?? []));
     } catch (err) {
       handleProviderError("getPendingRequests", err, getPricingRequestsError);
     }
@@ -514,8 +496,8 @@ export const PricingRequestProvider = ({ children }: { children: ReactNode }) =>
     // Paged: GET /pricingrequests/my-requests → { items, ... }
     dispatch(getPricingRequestsPending());
     try {
-      const data = await strictApi.get("/pricingrequests/my-requests", { schema: zPricingRequestsResponse });
-      dispatch(getPricingRequestsSuccess(cast(data.items ?? [])));
+      const data = await api.get("/pricingrequests/my-requests").then(r => r.data);
+      dispatch(getPricingRequestsSuccess(data.items ?? []));
     } catch (err) {
       handleProviderError("getMyRequests", err, getPricingRequestsError);
     }
@@ -537,8 +519,8 @@ export const PricingRequestProvider = ({ children }: { children: ReactNode }) =>
       const res = await api.post("/pricingrequests", body);
       dispatch(createPricingRequestSuccess());
       // Refresh the list so any mounted pricing-request UI picks up the new entry
-      await strictApi.get("/pricingrequests", { schema: zPricingRequestsResponse })
-        .then(data => dispatch(getPricingRequestsSuccess(cast(data.items ?? []))))
+      await api.get("/pricingrequests").then(r => r.data)
+        .then(data => dispatch(getPricingRequestsSuccess(data.items ?? [])))
         .catch(() => { /* non-fatal */ });
       return res.data?.id as string | undefined;
     } catch (err: unknown) {
@@ -598,8 +580,8 @@ export const ContractProvider = ({ children }: { children: ReactNode }) => {
     // Paged: GET /contracts → { items, pageNumber, pageSize, totalCount }
     dispatch(getContractsPending());
     try {
-      const data = await strictApi.get("/contracts", { schema: zContractsResponse, params: params as Record<string, unknown> });
-      dispatch(getContractsSuccess(cast(data.items ?? [])));
+      const data = await api.get("/contracts", { params }).then(r => r.data);
+      dispatch(getContractsSuccess(data.items ?? []));
     } catch (err) {
       handleProviderError("getContracts", err, getContractsError);
     }
@@ -619,8 +601,8 @@ export const ContractProvider = ({ children }: { children: ReactNode }) => {
     // Direct array: GET /contracts/expiring → Contract[]
     dispatch(getContractsPending());
     try {
-      const data = await strictApi.get("/contracts/expiring", { schema: zContractsArrayResponse, params: daysUntilExpiry !== undefined ? { daysUntilExpiry } : undefined });
-      dispatch(getContractsSuccess(cast(data)));
+      const data = await api.get("/contracts/expiring", { params: daysUntilExpiry !== undefined ? { daysUntilExpiry } : undefined }).then(r => r.data);
+      dispatch(getContractsSuccess(data));
     } catch (err) {
       handleProviderError("getExpiringContracts", err, getContractsError);
     }
@@ -630,8 +612,8 @@ export const ContractProvider = ({ children }: { children: ReactNode }) => {
     // Direct array: GET /contracts/client/{id} → Contract[]
     dispatch(getContractsPending());
     try {
-      const data = await strictApi.get(`/contracts/client/${clientId}`, { schema: zContractsArrayResponse });
-      dispatch(getContractsSuccess(cast(data)));
+      const data = await api.get(`/contracts/client/${clientId}`).then(r => r.data);
+      dispatch(getContractsSuccess(data));
     } catch (err) {
       handleProviderError("getContractsByClient", err, getContractsError);
     }
@@ -728,8 +710,8 @@ export const ActivityProvider = ({ children }: { children: ReactNode }) => {
     // Paged: GET /activities → { items, pageNumber, pageSize, totalCount }
     dispatch(getActivitiesPending());
     try {
-      const data = await strictApi.get("/activities", { schema: zActivitiesResponse, params: params as Record<string, unknown> });
-      dispatch(getActivitiesSuccess(cast(data.items ?? [])));
+      const data = await api.get("/activities", { params }).then(r => r.data);
+      dispatch(getActivitiesSuccess(data.items ?? []));
     } catch (err) {
       handleProviderError("getActivities", err, getActivitiesError);
     }
@@ -739,8 +721,8 @@ export const ActivityProvider = ({ children }: { children: ReactNode }) => {
     // Paged: GET /activities/my-activities → { items, ... }
     dispatch(getActivitiesPending());
     try {
-      const data = await strictApi.get("/activities/my-activities", { schema: zActivitiesResponse, params: params as Record<string, unknown> });
-      dispatch(getActivitiesSuccess(cast(data.items ?? [])));
+      const data = await api.get("/activities/my-activities", { params }).then(r => r.data);
+      dispatch(getActivitiesSuccess(data.items ?? []));
     } catch (err) {
       handleProviderError("getMyActivities", err, getActivitiesError);
     }
@@ -750,8 +732,8 @@ export const ActivityProvider = ({ children }: { children: ReactNode }) => {
     // Paged: GET /activities/upcoming → { items, ... }
     dispatch(getActivitiesPending());
     try {
-      const data = await strictApi.get("/activities/upcoming", { schema: zActivitiesResponse, params: daysAhead !== undefined ? { daysAhead } : undefined });
-      dispatch(getActivitiesSuccess(cast(data.items ?? [])));
+      const data = await api.get("/activities/upcoming", { params: daysAhead !== undefined ? { daysAhead } : undefined }).then(r => r.data);
+      dispatch(getActivitiesSuccess(data.items ?? []));
     } catch (err) {
       handleProviderError("getUpcoming", err, getActivitiesError);
     }
@@ -761,8 +743,8 @@ export const ActivityProvider = ({ children }: { children: ReactNode }) => {
     // Direct array: GET /activities/overdue → Activity[]
     dispatch(getActivitiesPending());
     try {
-      const data = await strictApi.get("/activities/overdue", { schema: zActivitiesArrayResponse });
-      dispatch(getActivitiesSuccess(cast(data)));
+      const data = await api.get("/activities/overdue").then(r => r.data);
+      dispatch(getActivitiesSuccess(data));
     } catch (err) {
       handleProviderError("getOverdue", err, getActivitiesError);
     }
@@ -874,8 +856,8 @@ export const NoteProvider = ({ children }: { children: ReactNode }) => {
     // Paged: GET /notes → { items, pageNumber, pageSize, totalCount }
     dispatch(getNotesPending());
     try {
-      const data = await strictApi.get("/notes", { schema: zNotesResponse, params: params as Record<string, unknown> });
-      dispatch(getNotesSuccess(cast(data.items ?? [])));
+      const data = await api.get("/notes", { params }).then(r => r.data);
+      dispatch(getNotesSuccess(data.items ?? []));
     } catch (err) {
       handleProviderError("getNotes", err, getNotesError);
     }

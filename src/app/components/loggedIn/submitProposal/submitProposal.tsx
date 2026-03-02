@@ -1,11 +1,12 @@
 ﻿"use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createProposal, createActivity, extractApiMessage, type FormState } from "../../../lib/utils/apiMutations";
 import { ScopeItems }   from "../../dashboard/scopeItems/scopeItems";
 import { SubmitButton } from "../submitButton/submitButton";
 import { useSubmitProposalStyles } from "./submitProposal.module";
+import { useUserState, useUserAction } from "../../../lib/providers/provider";
 
 interface SubmitProposalProps {
   prefillClientId?:      string;
@@ -22,6 +23,17 @@ const SubmitProposal = ({ prefillClientId, prefillClientName, prefillOpportunity
   const [clientName, setClientName] = useState(prefillClientName ?? "");
   const [title, setTitle] = useState("");
   const [currency, setCurrency] = useState("ZAR");
+
+  /* ── Load active non-admin staff so auto-activities have a valid assignedToId ── */
+  const { users } = useUserState();
+  const { getUsers } = useUserAction();
+  useEffect(() => { getUsers({ isActive: true }); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /** First active user whose role is not Admin — used to assign auto-created activities */
+  const defaultAssignee = (users ?? []).find(
+    (u) => u.id && u.isActive !== false &&
+      !([u.role, ...(u.roles ?? [])].some((r) => r?.toLowerCase() === "admin"))
+  );
 
   async function handleSubmit() {
     if (!formRef.current) return;
@@ -60,10 +72,11 @@ const SubmitProposal = ({ prefillClientId, prefillClientName, prefillOpportunity
           .map(([, item]) =>
             createActivity({
               type:          "Task",
-              subject:       `Deliver: ${item.productServiceName.trim()}`,
+              subject:       `Auto Activity : ${item.productServiceName.trim()}`,
               description:   item.description?.trim() || `Line item from proposal "${title}"`,
               priority:      "Medium",
               dueDate:       deadline,
+              ...(defaultAssignee?.id ? { assignedToId: defaultAssignee.id } : {}),
               ...(relType ? { relatedToType: relType } : {}),
               ...(relId   ? { relatedToId:   relId }   : {}),
             })

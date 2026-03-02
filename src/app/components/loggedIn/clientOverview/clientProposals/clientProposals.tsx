@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
   CheckOutlined, CloseOutlined, SendOutlined, DeleteOutlined,
@@ -235,7 +235,7 @@ export default function ClientProposals({
             </tr>
           </thead>
           <tbody>
-            {proposals.map((p) => {
+            {(Array.isArray(proposals) ? proposals : []).map((p) => {
               const expired   = isExpired(p.validUntil);
               const status    = p.status ?? "Draft";
               const key       = STATUS_KEY[status];
@@ -246,8 +246,8 @@ export default function ClientProposals({
               const detail     = p.id ? detailsCache[p.id] : undefined;
 
               return (
-                <>
-                <tr key={p.id}>
+                <Fragment key={p.id}>
+                <tr>
                   {/* Expand toggle */}
                   <td className={card.td} style={{ width: 28, paddingRight: 0 }}>
                     <button
@@ -331,7 +331,7 @@ export default function ClientProposals({
 
                 {/* ── Expanded line-item detail row ── */}
                 {isExpanded && (
-                  <tr key={`${p.id}-detail`}>
+                  <tr>
                     <td
                       colSpan={canManage ? 8 : 7}
                       style={{ padding: 0, background: "#1a1a1a" }}
@@ -410,7 +410,7 @@ export default function ClientProposals({
                     </td>
                   </tr>
                 )}
-                </>
+                </Fragment>
               );
             })}
           </tbody>

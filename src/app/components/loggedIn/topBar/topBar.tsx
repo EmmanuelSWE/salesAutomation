@@ -31,7 +31,7 @@ export default function TopBar({ crumbs = ["Dashboards", "Overview"] }: Readonly
 
       {/* Actions */}
       <div className={styles.right}>
-        <div className={styles.iconBtn}> <NotificationBell /></div>
+        <div className={styles.iconBtn}> <BellOutlined /></div>
       </div>
     </header>
   );

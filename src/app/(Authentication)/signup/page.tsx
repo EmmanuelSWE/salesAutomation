@@ -1,7 +1,7 @@
 ﻿'use client'
 
 import { Input, Select } from "antd";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useSignupStyles } from "../../components/signup/signup.module";
 import { registerUser, extractApiMessage } from "../../lib/utils/apiMutations";
@@ -69,7 +69,7 @@ const PersonalFields = ({ styles, errors }: Readonly<{ styles: Record<string, st
   </>
 );
 
-const Signup = () => {
+const SignupInner = () => {
   const { styles } = useSignupStyles();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -241,5 +241,11 @@ const Signup = () => {
     </div>
   );
 };
+
+const Signup = () => (
+  <Suspense>
+    <SignupInner />
+  </Suspense>
+);
 
 export default Signup;
