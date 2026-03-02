@@ -9,7 +9,6 @@ import {
   Button,
   Skeleton,
   Space,
-  Statistic,
   Table,
   Tag,
   Tooltip,
@@ -26,13 +25,11 @@ import {
   KpiSection,
   PipelineSection,
   SalesActivitiesSection,
-  RevenueTrendSection,
 } from "../../../components/dashboard/sections/sections";
 import type {
   DashboardKpis,
   DashboardFunnel,
   DashboardActivities,
-  DashboardRevenue,
   DashboardSalesPerformance,
 } from "../../../lib/placeholderdata";
 
@@ -264,20 +261,6 @@ export default function DashboardPage() {
       }
     : { upcoming: 0, overdue: 0, completedToday: 0, labels: [], data: [], colors: [], center: "0", centerLabel: "Total" };
 
-  /* ── Map overview.revenue → DashboardRevenue ────────────────── */
-  // monthlyTrend element shape is TODO: missing in contract — RevenueTrendSection
-  // requires labels / thisMonthLine / targetLine; those stay empty until the shape is documented.
-  const revenue: DashboardRevenue = overview.data
-    ? {
-        thisMonth:     overview.data.revenue.thisMonth,
-        thisQuarter:   0,    // TODO: missing in contract
-        thisYear:      overview.data.revenue.projectedThisYear ?? 0,
-        labels:        [],   // TODO: monthlyTrend element shape missing in contract
-        thisMonthLine: [],
-        targetLine:    [],
-      }
-    : { thisMonth: 0, thisQuarter: 0, thisYear: 0, labels: [], thisMonthLine: [], targetLine: [] };
-
   /* ── Contracts-expiring table columns ───────────────────────── */
   const expiringColumns = [
     {
@@ -435,36 +418,6 @@ export default function DashboardPage() {
             />
           )}
         </div>
-      </div>
-
-      {/* ── Revenue Trend ── */}
-      <div style={{ padding: "0 10px" }}>
-        {overview.loading ? (
-          <PanelSkeleton height={260} />
-        ) : overview.error ? (
-          <PanelError message={`Revenue: ${overview.error}`} onRetry={overview.refresh} />
-        ) : (
-          <>
-            <div style={{ display: "flex", gap: 32, marginBottom: 12 }}>
-              <Statistic
-                title={<span style={{ color: "#a0a0a0", fontSize: 12 }}>This Month</span>}
-                value={fmt(revenue.thisMonth)}
-                valueStyle={{ color: "#ef5350", fontSize: 18 }}
-              />
-              {overview.data!.revenue.projectedThisYear != null && (
-                <Statistic
-                  title={<span style={{ color: "#a0a0a0", fontSize: 12 }}>Projected This Year</span>}
-                  value={fmt(overview.data!.revenue.projectedThisYear!)}
-                  valueStyle={{ color: "#26a69a", fontSize: 18 }}
-                />
-              )}
-            </div>
-            {/* TODO: monthlyTrend element shape missing in contract —
-                RevenueTrendSection requires labels/thisMonthLine/targetLine.
-                Chart renders empty until the monthly trend shape is documented. */}
-            <RevenueTrendSection data={revenue} />
-          </>
-        )}
       </div>
 
     </div>
