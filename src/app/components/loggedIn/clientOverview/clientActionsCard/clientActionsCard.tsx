@@ -8,6 +8,7 @@ import {
   useProposalAction,
   usePricingRequestAction,
   useActivityAction,
+  useContractAction,
   useUserState,
   useUserAction,
 } from "../../../../lib/providers/provider";
@@ -70,6 +71,7 @@ export default function ClientActionsCard({
   const proposalActions  = useProposalAction();
   const pricingActions   = usePricingRequestAction();
   const activityActions  = useActivityAction();
+  const contractActions  = useContractAction();
   const { user, users }  = useUserState();
   const { getUsers }     = useUserAction();
 
@@ -112,10 +114,6 @@ export default function ClientActionsCard({
   const hasContractForProposal =
     !!proposal?.id && contractsList.some((c) => c.proposalId === proposal.id);
 
-  const contractHref = proposal?.id
-    ? `/contracts/create?clientId=${clientId}&opportunityId=${proposal.opportunityId ?? ""}&proposalId=${proposal.id}`
-    : `/contracts/create?clientId=${clientId}`;
-
   /* ── expiring contracts ── */
   const expiringContracts = contractsList.filter((c) => c.isExpiringSoon && c.status === "Active");
 
@@ -136,6 +134,45 @@ export default function ClientActionsCard({
       setTimeout(() => setSuccess(null), 3000);
     } catch {
       setError("Failed to update proposal status.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /* ── helpers ── */
+  function todayIso(): string {
+    return new Date().toISOString().split("T")[0] + "T00:00:00Z";
+  }
+  function oneYearIso(): string {
+    const d = new Date();
+    d.setFullYear(d.getFullYear() + 1);
+    return d.toISOString().split("T")[0] + "T00:00:00Z";
+  }
+
+  async function handleCreateContract() {
+    if (!proposal?.id) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const contractValue =
+        proposal.lineItems?.reduce((sum, item) => sum + (item.lineTotal ?? 0), 0) ?? 0;
+
+      await contractActions.createContract({
+        clientId,
+        opportunityId:  proposal.opportunityId || undefined,
+        proposalId:     proposal.id,
+        title:          proposal.title || `Contract for ${clientName}`,
+        contractValue,
+        currency:       proposal.currency || "ZAR",
+        startDate:      todayIso(),
+        endDate:        oneYearIso(),
+        ownerId:        user?.id || undefined,
+      });
+
+      setSuccess("Contract created successfully.");
+      setTimeout(() => setSuccess(null), 4000);
+    } catch {
+      setError("Failed to create contract.");
     } finally {
       setBusy(false);
     }
@@ -260,13 +297,15 @@ export default function ClientActionsCard({
 
               {/* Create Contract — Approved + no contract yet */}
               {proposalStatus === "Approved" && !hasContractForProposal && (
-                <Link
-                  href={contractHref}
+                <button
+                  type="button"
+                  onClick={handleCreateContract}
+                  disabled={busy}
                   style={btn("rgba(76,175,80,0.1)", "rgba(76,175,80,0.35)", "#4caf50")}
                   title="Create a contract from this approved proposal"
                 >
                   <FileAddOutlined style={{ fontSize: 11 }} /> Create Contract
-                </Link>
+                </button>
               )}
             </div>
 
