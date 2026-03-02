@@ -51,6 +51,9 @@ export default function ClientOverview() {
   const [contacts, setContacts] = useState<ContactCard[]>([]);
   const [opportunities, setOpportunities] = useState<OpportunityRow[]>([]);
 
+  /* ── Track which line-item names have a Completed activity ── */
+  const [completedLineItemNames, setCompletedLineItemNames] = useState<Set<string>>(new Set());
+
   /* ── Client Stats ── */
   type ClientStats = {
     totalOpportunities?: number;
@@ -173,29 +176,56 @@ export default function ClientOverview() {
       ? proposalState.proposal
       : currentProposal;
 
+  // When proposal is available, load its related activities to check which line items are done
+  useEffect(() => {
+    if (!fullProposal?.id) return;
+    // Activities are linked to the opportunity (or client as fallback) by submitProposal
+    const relatedToType = fullProposal.opportunityId ? 2 : 1; // Opportunity=2, Client=1
+    const relatedToId   = fullProposal.opportunityId ?? clientId;
+    api.get("/activities", { params: { relatedToType, relatedToId, pageSize: 200 } })
+      .then(r => {
+        const acts: Array<{ status?: string; subject?: string }> =
+          Array.isArray(r.data) ? r.data : (r.data?.items ?? []);
+        const done = new Set<string>();
+        for (const act of acts) {
+          if (
+            (act.status === "Completed" || act.status === "3") &&
+            typeof act.subject === "string" &&
+            act.subject.startsWith("Auto Activity : ")
+          ) {
+            done.add(act.subject.slice("Auto Activity : ".length));
+          }
+        }
+        setCompletedLineItemNames(done);
+      })
+      .catch(() => {}); // non-critical
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fullProposal?.id, fullProposal?.opportunityId, clientId]);
+
   /* Line items → ProposalStep[]
-     Prefer structured lineItems; fall back to scopeItems (plain strings from form).
-     A step is "done" (purple) when the proposal is Approved, otherwise grey.    */
+     A step is "done" when:
+       1. The whole proposal is Approved, OR
+       2. There is a Completed activity whose subject matches "Auto Activity : <itemName>"  */
   const proposalSteps: ProposalStep[] = useMemo(() => {
     if (!fullProposal) return [];
-    const isDone = fullProposal.status === "Approved";
+    const isApproved = fullProposal.status === "Approved";
 
     if (fullProposal.lineItems?.length) {
       return fullProposal.lineItems.map((item) => ({
         label: item.productServiceName || "Item",
-        done:  isDone,
+        done:  isApproved || completedLineItemNames.has(item.productServiceName ?? ""),
       }));
     }
 
     if (fullProposal.scopeItems?.length) {
       return fullProposal.scopeItems.map((text) => ({
         label: text,
-        done:  isDone,
+        done:  isApproved || completedLineItemNames.has(text),
       }));
     }
 
     return [];
-  }, [fullProposal]);
+  }, [fullProposal, completedLineItemNames]);
 
   /* Total value of current proposal */
   const proposalTotal = useMemo(() => {
