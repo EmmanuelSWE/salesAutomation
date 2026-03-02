@@ -144,23 +144,17 @@ export async function getDashboardData(): Promise<DashboardData> {
   };
 
   try {
-    const [kpisRes, pipelineRes, salesRes, activitiesRes, revenueRes] = await Promise.all([
-      api.get("/dashboard/overview").catch(() => ({ data: fallback.kpis })),
-      api.get("/dashboard/pipeline-metrics").catch(() => ({ data: fallback.pipeline })),
-      api.get("/dashboard/sales-performance").catch(() => ({ data: fallback.salesPerformance })),
-      api.get("/dashboard/activities-summary").catch(() => ({ data: fallback.activities })),
-      api.get("/dashboard/revenue").catch(() => ({ data: fallback.revenue })),
-    ]);
-
+    const { data } = await api.get<Partial<DashboardData>>("/dashboard/overview");
     return {
-      kpis:             { ...fallback.kpis,             ...kpisRes.data        },
-      pipeline:         { ...fallback.pipeline,         ...pipelineRes.data    },
-      funnel:           fallback.funnel,
-      salesPerformance: { ...fallback.salesPerformance, ...salesRes.data       },
-      activities:       { ...fallback.activities,       ...activitiesRes.data  },
-      revenue:          { ...fallback.revenue,          ...revenueRes.data     },
+      kpis:             { ...fallback.kpis,             ...(data.kpis             ?? {}) },
+      pipeline:         { ...fallback.pipeline,         ...(data.pipeline         ?? {}) },
+      funnel:           { ...fallback.funnel,           ...(data.funnel           ?? {}) },
+      salesPerformance: { ...fallback.salesPerformance, ...(data.salesPerformance ?? {}) },
+      activities:       { ...fallback.activities,       ...(data.activities       ?? {}) },
+      revenue:          { ...fallback.revenue,          ...(data.revenue          ?? {}) },
     };
-  } catch {
+  } catch (err) {
+    console.error("getDashboardData failed:", (err as { response?: { data?: unknown } }).response?.data ?? err);
     return fallback;
   }
 }

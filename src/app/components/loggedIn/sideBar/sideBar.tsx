@@ -17,7 +17,7 @@ const BASE_NAV = [
   { icon: <HomeOutlined />,     label: "Overview",         href: "/admin/dashboard" },
   { icon: <TeamOutlined />,     label: "Clients",          href: "/clients" },
   { icon: <CalendarOutlined />, label: "Activities",       href: "/activities" },
-  { icon: <FileTextOutlined />, label: "Pricing Requests", href: "/pricingRequests/create" },
+  { icon: <FileTextOutlined />, label: "Pricing Requests", href: "/pricingRequests" },
   { icon: <UserOutlined />,     label: "Account",          href: "/account" },
 ] as const;
 

@@ -1,40 +1,87 @@
-"use client";
+﻿"use client";
 
-import { useActionState, useRef, useTransition, useState } from "react";
-import { submitProposalAction, type ProposalFormState } from "../../../lib/actions";
+import { useState, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { createProposal, createActivity, extractApiMessage, type FormState } from "../../../lib/utils/apiMutations";
 import { ScopeItems }   from "../../dashboard/scopeItems/scopeItems";
 import { SubmitButton } from "../submitButton/submitButton";
 import { useSubmitProposalStyles } from "./submitProposal.module";
-import { useUserState } from "../../../lib/providers/provider";
-
-const initialState: ProposalFormState = { status: "idle" };
 
 interface SubmitProposalProps {
-  prefillClientId?:   string;
-  prefillClientName?: string;
+  prefillClientId?:      string;
+  prefillClientName?:    string;
   prefillOpportunityId?: string;
 }
 
 const SubmitProposal = ({ prefillClientId, prefillClientName, prefillOpportunityId }: Readonly<SubmitProposalProps> = {}) => {
   const { styles } = useSubmitProposalStyles();
   const formRef = useRef<HTMLFormElement>(null);
-  const [, startTransition] = useTransition();
-  const [state, formAction] = useActionState(submitProposalAction, initialState);
-  const { user } = useUserState();
+  const router = useRouter();
+  const [state, setState] = useState<FormState>({ status: "idle" });
+  const [isPending, setIsPending] = useState(false);
   const [clientName, setClientName] = useState(prefillClientName ?? "");
   const [title, setTitle] = useState("");
   const [currency, setCurrency] = useState("ZAR");
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!formRef.current) return;
     const fd = new FormData(formRef.current);
-    fd.set("clientId",      prefillClientId ?? "");
-    fd.set("clientName",    clientName);
-    fd.set("title",         title);
-    fd.set("currency",      currency);
-    fd.set("requestedById", user?.id ?? "");
+    fd.set("clientId",   prefillClientId ?? "");
+    fd.set("clientName", clientName);
+    fd.set("title",      title);
+    fd.set("currency",   currency);
     if (prefillOpportunityId) fd.set("opportunityId", prefillOpportunityId);
-    startTransition(() => formAction(fd));
+
+    setIsPending(true);
+    try {
+      const opportunityId = (fd.get("opportunityId") as string) || prefillOpportunityId || "";
+      const res = await createProposal(fd, {
+        opportunityId,
+        title,
+        currency,
+      });
+      /* ── Create one Task activity per line item ── */
+      const deadline = (fd.get("deadline") as string) || new Date(Date.now() + 86_400_000).toISOString().slice(0, 10);
+      const reScope  = /^scopeItem_(\d+)_(.+)$/;
+      const itemMap  = new Map<number, Record<string, string>>();
+      for (const [key, val] of fd.entries()) {
+        const m = reScope.exec(key);
+        if (!m || typeof val !== "string") continue;
+        const idx = Number.parseInt(m[1], 10);
+        if (!itemMap.has(idx)) itemMap.set(idx, {});
+        itemMap.get(idx)![m[2]] = val;
+      }
+      const relType = opportunityId ? "Opportunity" : prefillClientId ? "Client" : undefined;
+      const relId   = opportunityId || prefillClientId || undefined;
+      await Promise.allSettled(
+        Array.from(itemMap.entries())
+          .sort(([a], [b]) => a - b)
+          .filter(([, item]) => item.productServiceName?.trim())
+          .map(([, item]) =>
+            createActivity({
+              type:          "Task",
+              subject:       `Deliver: ${item.productServiceName.trim()}`,
+              description:   item.description?.trim() || `Line item from proposal "${title}"`,
+              priority:      "Medium",
+              dueDate:       deadline,
+              ...(relType ? { relatedToType: relType } : {}),
+              ...(relId   ? { relatedToId:   relId }   : {}),
+            })
+          )
+      );
+
+      setState({ status: "success", message: "Proposal submitted successfully." });
+      if (prefillClientId) {
+        router.push(`/Client/${prefillClientId}/clientOverView`);
+      } else {
+        router.push(`/proposals/${res.data.id}`);
+      }
+      router.refresh();
+    } catch (err) {
+      setState({ status: "error", message: extractApiMessage(err) });
+    } finally {
+      setIsPending(false);
+    }
   }
 
   return (
@@ -42,7 +89,6 @@ const SubmitProposal = ({ prefillClientId, prefillClientName, prefillOpportunity
       <form ref={formRef} onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className={styles.form} encType="multipart/form-data">
         <h1 className={styles.formTitle}>Proposal Request Form</h1>
 
-        {/* ── Success banner ── */}
         {state.status === "success" && (
           <div style={{
             background: "#1a3a1a", border: "1px solid #4caf50",
@@ -52,8 +98,16 @@ const SubmitProposal = ({ prefillClientId, prefillClientName, prefillOpportunity
             {state.message}
           </div>
         )}
+        {state.status === "error" && (
+          <div style={{
+            background: "rgba(255,107,107,0.08)", border: "1px solid #f44336",
+            borderRadius: 10, padding: "10px 14px",
+            color: "#f44336", fontSize: 13,
+          }}>
+            {state.message}
+          </div>
+        )}
 
-        {/* ── Client Information ── */}
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Client Information</h2>
 
@@ -94,10 +148,10 @@ const SubmitProposal = ({ prefillClientId, prefillClientName, prefillOpportunity
               value={currency}
               onChange={(e) => setCurrency(e.target.value)}
             >
-              <option value="ZAR">ZAR – South African Rand</option>
-              <option value="USD">USD – US Dollar</option>
-              <option value="EUR">EUR – Euro</option>
-              <option value="GBP">GBP – British Pound</option>
+              <option value="ZAR">ZAR - South African Rand</option>
+              <option value="USD">USD - US Dollar</option>
+              <option value="EUR">EUR - Euro</option>
+              <option value="GBP">GBP - British Pound</option>
             </select>
           </div>
 
@@ -116,7 +170,6 @@ const SubmitProposal = ({ prefillClientId, prefillClientName, prefillOpportunity
           </div>
         </section>
 
-        {/* ── Client Requirements ── */}
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Client Requirements</h2>
 
@@ -134,13 +187,11 @@ const SubmitProposal = ({ prefillClientId, prefillClientName, prefillOpportunity
           </div>
         </section>
 
-        {/* ── Scope of Work ── */}
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Scope of Work</h2>
           <ScopeItems />
         </section>
 
-        {/* ── Pricing Inputs ── */}
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Pricing Inputs</h2>
 
@@ -166,9 +217,8 @@ const SubmitProposal = ({ prefillClientId, prefillClientName, prefillOpportunity
           </div>
         </section>
 
-        {/* ── Submit ── */}
         <div className={styles.submitRow}>
-          <SubmitButton />
+          <SubmitButton isPending={isPending} />
         </div>
       </form>
     </div>

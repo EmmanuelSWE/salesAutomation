@@ -1,38 +1,58 @@
-'use client'
+﻿'use client'
 
 import { Input } from "antd";
-import { useActionState, useEffect } from "react";
+import { useState } from "react";
 import { useLoginStyles } from "../../components/login/login.module";
-import { loginAction } from "../../lib/actions";
+import { loginUser, extractApiMessage } from "../../lib/utils/apiMutations";
 import { setToken } from "../../lib/utils/axiosInstance";
 import { AuthButton } from "../../components/auth/authButton";
 
 const Login = () => {
   const { styles } = useLoginStyles();
-  const [state, formAction] = useActionState(loginAction, { status: "idle" });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [apiError, setApiError] = useState("");
+  const [isPending, setIsPending] = useState(false);
 
-  useEffect(() => {
-    if (state.status === "success" && state.token) {
-      setToken(state.token);
-      if (state.userId) localStorage.setItem("auth_user_id", state.userId);
-      globalThis.window.location.href = "/admin/dashboard";
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    const email    = (fd.get("email")    as string)?.trim();
+    const password = (fd.get("password") as string);
+
+    const errs: Record<string, string> = {};
+    if (!email)    errs.email    = "Email is required.";
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errs.email = "Enter a valid email.";
+    if (!password) errs.password = "Password is required.";
+    if (Object.keys(errs).length) { setErrors(errs); return; }
+
+    setIsPending(true);
+    setApiError("");
+    try {
+      const res = await loginUser(email, password);
+      setToken(res.data.token);
+      if (res.data.userId) localStorage.setItem("auth_user_id", res.data.userId);
+      globalThis.window.location.href = "/activities";
+    } catch (err) {
+      setApiError(extractApiMessage(err) || "Invalid credentials.");
+    } finally {
+      setIsPending(false);
     }
-  }, [state.status, state.token, state.userId]);
+  }
 
   return (
     <div className={styles.container}>
       <div className={styles.card}>
-        <div className={styles.logo}>⚡</div>
+        <div className={styles.logo}>&#9889;</div>
         <h1 className={styles.title}>Welcome back</h1>
         <p className={styles.subtitle}>Sign in to your account</p>
 
-        {state.status === "error" && (
+        {apiError && (
           <p style={{ color: "#ff6b6b", marginBottom: 16, fontSize: 13, background: "rgba(255,107,107,0.08)", borderRadius: 8, padding: "10px 14px" }}>
-            {state.message ?? "Invalid credentials."}
+            {apiError}
           </p>
         )}
 
-        <form action={formAction}>
+        <form onSubmit={handleSubmit}>
           <div style={{ marginBottom: 18, textAlign: "left" }}>
             <label className={styles.label} htmlFor="email">Email</label>
             <Input
@@ -42,8 +62,8 @@ const Login = () => {
               className={styles.input}
               autoComplete="email"
             />
-            {state.errors?.email && (
-              <p style={{ color: "#ff6b6b", fontSize: 12, marginTop: 4 }}>{state.errors.email}</p>
+            {errors.email && (
+              <p style={{ color: "#ff6b6b", fontSize: 12, marginTop: 4 }}>{errors.email}</p>
             )}
           </div>
 
@@ -52,16 +72,16 @@ const Login = () => {
             <Input.Password
               id="password"
               name="password"
-              placeholder="••••••••"
+              placeholder=""
               className={styles.input}
               autoComplete="current-password"
             />
-            {state.errors?.password && (
-              <p style={{ color: "#ff6b6b", fontSize: 12, marginTop: 4 }}>{state.errors.password}</p>
+            {errors.password && (
+              <p style={{ color: "#ff6b6b", fontSize: 12, marginTop: 4 }}>{errors.password}</p>
             )}
           </div>
 
-          <AuthButton label="Login" />
+          <AuthButton label={isPending ? "Signing in..." : "Login"} isPending={isPending} />
         </form>
 
         <p className={styles.footer}>

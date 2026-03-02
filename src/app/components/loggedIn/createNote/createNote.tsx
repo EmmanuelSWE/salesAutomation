@@ -1,21 +1,32 @@
-"use client";
-import { useActionState, useRef, useTransition } from "react";
-import { createNoteAction, type FormState } from "../../../lib/actions";
+﻿"use client";
+import { useState, useRef } from "react";
+import { createNote, extractApiMessage, type FormState } from "../../../lib/utils/apiMutations";
 import { SubmitButton } from "../form/submitButton";
 import { useFormStyles } from "../form/form.module";
-
-const initial: FormState = { status: "idle" };
 
 export default function CreateNote() {
   const { styles } = useFormStyles();
   const formRef = useRef<HTMLFormElement>(null);
-  const [, startTransition] = useTransition();
-  const [state, formAction] = useActionState(createNoteAction, initial);
+  const [state, setState] = useState<FormState>({ status: "idle" });
+  const [isPending, setIsPending] = useState(false);
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!formRef.current) return;
     const fd = new FormData(formRef.current);
-    startTransition(() => formAction(fd));
+    setIsPending(true);
+    try {
+      await createNote({
+        content:       fd.get("content")       as string,
+        relatedToType: fd.get("relatedToType") as string,
+        relatedToId:   fd.get("relatedToId")   as string,
+        isPrivate:     fd.get("isPrivate") === "true",
+      });
+      setState({ status: "success", message: "Note created." });
+    } catch (err) {
+      setState({ status: "error", message: extractApiMessage(err) });
+    } finally {
+      setIsPending(false);
+    }
   }
 
   return (
@@ -23,6 +34,7 @@ export default function CreateNote() {
       <form ref={formRef} onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className={styles.form}>
         <h1 className={styles.formTitle}>Create Note</h1>
         {state.status === "success" && <div className={styles.successBanner}>{state.message}</div>}
+        {state.status === "error" && <div className={styles.errorBanner}>{state.message}</div>}
 
         <section className={styles.section}>
           <div className={styles.field}>
@@ -40,7 +52,7 @@ export default function CreateNote() {
         </section>
 
         <div className={styles.submitRow}>
-          <SubmitButton label="Create Note" pendingLabel="Creating…" />
+          <SubmitButton label="Create Note" pendingLabel="Creating..." isPending={isPending} />
         </div>
       </form>
     </div>

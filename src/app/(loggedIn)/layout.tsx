@@ -10,13 +10,13 @@ import { useUserState } from "@/app/lib/providers/provider";
 
 const { Sider, Header, Content, Footer } = Layout;
 
-const VALID_ROLES = ["salesrep", "businessdevelopmentmanager", "salesmanager", "admin"];
+const VALID_ROLES = new Set(["salesrep", "businessdevelopmentmanager", "salesmanager", "admin"]);
 
 export default function DashboardLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
+}>) {
   const { styles } = useDashboardStyles();
   const router = useRouter();
   const { isInitialized, token, user } = useUserState();
@@ -25,7 +25,7 @@ export default function DashboardLayout({
   useEffect(() => {
     if (!isInitialized) return;
     if (!token) { router.replace("/login"); return; }
-    if (user?.role && !VALID_ROLES.includes(user.role.toLowerCase())) {
+    if (user?.role && !VALID_ROLES.has(user.role.toLowerCase())) {
       router.replace("/login");
     }
   }, [isInitialized, token, user?.role, router]);

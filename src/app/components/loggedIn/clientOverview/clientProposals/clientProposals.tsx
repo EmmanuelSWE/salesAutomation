@@ -1,9 +1,13 @@
 "use client";
 
+import { useState } from "react";
+import Link from "next/link";
+import { CheckOutlined, CloseOutlined, SendOutlined, DeleteOutlined } from "@ant-design/icons";
 import { useCardStyles } from "../card/card.module";
 import { useClientProposalsStyles } from "./clientProposals.module";
 import type { IProposal } from "../../../../lib/providers/context";
 import type { ProposalStatus } from "../../../../lib/utils/apiEnums";
+import { useUserState, useProposalAction } from "../../../../lib/providers/provider";
 
 interface ClientProposalsProps {
   proposals:    IProposal[];
@@ -32,14 +36,54 @@ function isExpired(iso?: string) {
   return new Date(iso) < new Date();
 }
 
+/** Returns true when the user has Admin or SalesManager role */
+function canManageProposals(role?: string, roles?: string[]): boolean {
+  const check = (r: string) => r === "Admin" || r === "SalesManager";
+  if (role && check(role)) return true;
+  return roles?.some(check) ?? false;
+}
+
 export default function ClientProposals({
   proposals,
   isPending,
   isError,
+  clientId,
   createHref,
 }: Readonly<ClientProposalsProps>) {
   const { styles: card, cx } = useCardStyles();
   const { styles }           = useClientProposalsStyles();
+  const { user }             = useUserState();
+  const proposalActions      = useProposalAction();
+
+  const canManage = canManageProposals(user?.role, user?.roles);
+
+  const [actingId, setActingId]   = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
+  async function handleStatusChange(proposalId: string, newStatus: ProposalStatus, reason?: string) {
+    setActingId(proposalId);
+    setActionError(null);
+    try {
+      await proposalActions.updateStatus(proposalId, newStatus, clientId, reason);
+    } catch {
+      setActionError(`Failed to change status to ${newStatus}.`);
+    } finally {
+      setActingId(null);
+    }
+  }
+
+  async function handleDelete(proposalId: string) {
+    if (!globalThis.confirm("Delete this draft proposal? This cannot be undone.")) return;
+    setActingId(proposalId);
+    setActionError(null);
+    try {
+      await proposalActions.deleteProposal(proposalId, clientId);
+    } catch {
+      setActionError("Failed to delete proposal.");
+    } finally {
+      setActingId(null);
+    }
+  }
 
   return (
     <div className={card.card}>
@@ -49,6 +93,21 @@ export default function ClientProposals({
       </div>
 
       <hr className={card.divider} />
+
+      {/* Action error */}
+      {actionError && (
+        <div style={{
+          margin: "8px 0",
+          padding: "8px 14px",
+          background: "rgba(244,67,54,0.08)",
+          border: "1px solid rgba(244,67,54,0.3)",
+          borderRadius: 8,
+          color: "#f44336",
+          fontSize: 12,
+        }}>
+          {actionError}
+        </div>
+      )}
 
       {/* Loading */}
       {isPending && (
@@ -94,14 +153,17 @@ export default function ClientProposals({
               <th className={card.th}>Line Items</th>
               <th className={card.th}>Valid Until</th>
               <th className={card.th}>Currency</th>
+              <th className={card.th}>Contract</th>
+              {canManage && <th className={card.th}>Actions</th>}
             </tr>
           </thead>
           <tbody>
             {proposals.map((p) => {
-              const expired  = isExpired(p.validUntil);
-              const status   = p.status ?? "Draft";
-              const key      = STATUS_KEY[status];
+              const expired   = isExpired(p.validUntil);
+              const status    = p.status ?? "Draft";
+              const key       = STATUS_KEY[status];
               const itemCount = p.lineItems?.length ?? p.scopeItems?.length ?? 0;
+              const isActing  = actingId === p.id;
 
               return (
                 <tr key={p.id}>
@@ -129,6 +191,45 @@ export default function ClientProposals({
                   </td>
 
                   <td className={card.td}>{p.currency}</td>
+
+                  {/* Contract — always visible, active only on Approved proposals */}
+                  <td className={card.td}>
+                    {status === "Approved" ? (
+                      <Link
+                        href={`/contracts/create?clientId=${clientId}&opportunityId=${p.opportunityId}&proposalId=${p.id ?? ""}`}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
+                          padding: "3px 12px",
+                          borderRadius: 16,
+                          fontSize: 11,
+                          fontWeight: 600,
+                          border: "1px solid rgba(92,107,192,0.4)",
+                          color: "#9aa0dc",
+                          background: "rgba(92,107,192,0.08)",
+                          textDecoration: "none",
+                        }}
+                        title="Create contract from this proposal"
+                      >
+                        + Contract
+                      </Link>
+                    ) : (
+                      <span style={{ fontSize: 11, color: "#444" }}>—</span>
+                    )}
+                  </td>
+
+                  {canManage && (
+                    <td className={card.td}>
+                      <ProposalActions
+                        proposalId={p.id ?? ""}
+                        status={status}
+                        isActing={isActing}
+                        onAction={handleStatusChange}
+                        onDelete={handleDelete}
+                      />
+                    </td>
+                  )}
                 </tr>
               );
             })}
@@ -137,4 +238,121 @@ export default function ClientProposals({
       )}
     </div>
   );
+}
+
+/* ── Action buttons sub-component ─────────────────────────────── */
+
+interface ProposalActionsProps {
+  proposalId: string;
+  status:     ProposalStatus;
+  isActing:   boolean;
+  onAction:   (id: string, newStatus: ProposalStatus, reason?: string) => void;
+  onDelete:   (id: string) => void;
+}
+
+const btnBase: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 4,
+  padding: "3px 10px",
+  borderRadius: 16,
+  fontSize: 11,
+  fontWeight: 600,
+  border: "1px solid",
+  cursor: "pointer",
+  transition: "opacity 0.15s",
+};
+
+const rejectInput: React.CSSProperties = {
+  background: "#1e1e1e", border: "1px solid rgba(244,67,54,0.4)",
+  color: "#ccc", borderRadius: 6, padding: "4px 8px", fontSize: 11, outline: "none",
+};
+
+function ProposalActions({ proposalId, status, isActing, onAction, onDelete }: Readonly<ProposalActionsProps>) {
+  const [showReason, setShowReason] = useState(false);
+  const [reason, setReason]         = useState("");
+
+  if (isActing) {
+    return <span style={{ fontSize: 11, color: "#888" }}>Updating…</span>;
+  }
+
+  if (status === "Draft") {
+    return (
+      <span style={{ display: "inline-flex", gap: 6 }}>
+        <button
+          type="button"
+          style={{ ...btnBase, background: "rgba(92,107,192,0.12)", borderColor: "rgba(92,107,192,0.35)", color: "#9aa0dc" }}
+          onClick={() => onAction(proposalId, "Submitted")}
+          title="Mark as Submitted"
+        >
+          <SendOutlined style={{ fontSize: 10 }} /> Submit
+        </button>
+        <button
+          type="button"
+          style={{ ...btnBase, background: "rgba(244,67,54,0.08)", borderColor: "rgba(244,67,54,0.3)", color: "#f44336" }}
+          onClick={() => onDelete(proposalId)}
+          title="Delete draft proposal"
+        >
+          <DeleteOutlined style={{ fontSize: 10 }} />
+        </button>
+      </span>
+    );
+  }
+
+  if (status === "Submitted") {
+    if (showReason) {
+      return (
+        <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 200 }}>
+          <input
+            placeholder="Rejection reason (required)"
+            value={reason}
+            onChange={e => setReason(e.target.value)}
+            style={rejectInput}
+          />
+          <span style={{ display: "inline-flex", gap: 6 }}>
+            <button
+              type="button"
+              disabled={!reason.trim()}
+              style={{ ...btnBase, background: "rgba(244,67,54,0.08)", borderColor: "rgba(244,67,54,0.3)", color: "#f44336",
+                opacity: reason.trim() ? 1 : 0.45, cursor: reason.trim() ? "pointer" : "not-allowed" }}
+              onClick={() => { onAction(proposalId, "Rejected", reason); setShowReason(false); setReason(""); }}
+            >
+              Confirm Reject
+            </button>
+            <button
+              type="button"
+              style={{ ...btnBase, background: "#1e1e1e", borderColor: "#333", color: "#888" }}
+              onClick={() => { setShowReason(false); setReason(""); }}
+            >
+              Cancel
+            </button>
+          </span>
+        </div>
+      );
+    }
+
+    return (
+      <span style={{ display: "inline-flex", gap: 6 }}>
+        <button
+          type="button"
+          style={{ ...btnBase, background: "rgba(76,175,80,0.1)", borderColor: "rgba(76,175,80,0.35)", color: "#4caf50" }}
+          onClick={() => onAction(proposalId, "Approved")}
+          title="Approve proposal"
+        >
+          <CheckOutlined style={{ fontSize: 10 }} /> Approve
+        </button>
+        <button
+          type="button"
+          style={{ ...btnBase, background: "rgba(244,67,54,0.08)", borderColor: "rgba(244,67,54,0.3)", color: "#f44336" }}
+          onClick={() => setShowReason(true)}
+          title="Reject proposal"
+        >
+          <CloseOutlined style={{ fontSize: 10 }} /> Reject
+        </button>
+      </span>
+    );
+  }
+
+  /* Rejected — terminal, no further action */
+  return <span style={{ fontSize: 11, color: "#555" }}>—</span>;
 }

@@ -1,25 +1,41 @@
-"use client";
-import { useActionState, useRef, useTransition } from "react";
-import { useParams } from "next/navigation";
-import { createContactAction, type FormState } from "../../../lib/actions";
+﻿"use client";
+import { useState, useRef } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { createContact, extractApiMessage, type FormState } from "../../../lib/utils/apiMutations";
 import { SubmitButton } from "../form/submitButton";
 import { useCreateClientStyles } from "../createClient/createClient.module";
-
-const initial: FormState = { status: "idle" };
 
 export default function CreateContact() {
   const { styles } = useCreateClientStyles();
   const params = useParams();
   const clientId = (params?.id as string) ?? "";
   const formRef = useRef<HTMLFormElement>(null);
-  const [, startTransition] = useTransition();
-  const [state, formAction] = useActionState(createContactAction, initial);
+  const router = useRouter();
+  const [state, setState] = useState<FormState>({ status: "idle" });
+  const [isPending, setIsPending] = useState(false);
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!formRef.current) return;
     const fd = new FormData(formRef.current);
-    fd.set("clientId", clientId);
-    startTransition(() => formAction(fd));
+    setIsPending(true);
+    try {
+      await createContact({
+        clientId,
+        firstName:        fd.get("firstName")        as string,
+        lastName:         fd.get("lastName")         as string,
+        email:            fd.get("email")            as string,
+        phoneNumber:      fd.get("phoneNumber")      as string,
+        position:         fd.get("position")         as string,
+        isPrimaryContact: fd.get("isPrimaryContact") === "true",
+      });
+      setState({ status: "success", message: "Contact created." });
+      router.push(`/Client/${clientId}/clientOverView`);
+      router.refresh();
+    } catch (err) {
+      setState({ status: "error", message: extractApiMessage(err) });
+    } finally {
+      setIsPending(false);
+    }
   }
 
   return (
@@ -27,13 +43,14 @@ export default function CreateContact() {
       <form ref={formRef} onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className={styles.form}>
         <h1 className={styles.formTitle}>Create Contact</h1>
         {state.status === "success" && <div className={styles.successBanner}>{state.message}</div>}
+        {state.status === "error" && <div className={styles.errorBanner}>{state.message}</div>}
 
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Linked Client</h2>
           <div className={styles.field}>
             <span className={styles.label}>Client</span>
             <div className={styles.input} style={{ background: "#f5f5f5", color: "#555", cursor: "not-allowed", display: "flex", alignItems: "center", gap: 6 }}>
-              <span style={{ fontSize: 12 }}>🔒</span>
+              <span style={{ fontSize: 12 }}>&#128274;</span>
               <span style={{ fontFamily: "monospace", fontSize: 12 }}>{clientId}</span>
             </div>
           </div>
@@ -78,7 +95,7 @@ export default function CreateContact() {
         </section>
 
         <div className={styles.submitRow}>
-          <SubmitButton label="Create Contact" pendingLabel="Creating…" />
+          <SubmitButton label="Create Contact" pendingLabel="Creating..." isPending={isPending} />
         </div>
       </form>
     </div>

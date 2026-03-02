@@ -16,6 +16,8 @@ import {
   OpportunityActionsContext,
   ProposalStateContext,
   ProposalActionsContext,
+  ContractStateContext,
+  ContractActionsContext,
 } from "../../../../lib/providers/context";
 
 import type { ProposalStep }   from "../../../../components/loggedIn/clientOverview/clientOverviewCard/clientOverViewCard";
@@ -23,6 +25,9 @@ import type { ContactCard }    from "../../../../components/loggedIn/clientOverv
 import type { InvoiceRow }     from "../../../../components/loggedIn/clientOverview/clientDocumentHistory/clientDocumentHistory";
 import type { OpportunityRow } from "../../../../components/loggedIn/clientOverview/clientOpportunities/clientOpportunites";
 import ClientProposals         from "../../../../components/loggedIn/clientOverview/clientProposals/clientProposals";
+import ClientContracts         from "../../../../components/loggedIn/clientOverview/clientContracts/clientContracts";
+import ClientActionsCard       from "../../../../components/loggedIn/clientOverview/clientActionsCard/clientActionsCard";
+import ClientPricingRequests   from "../../../../components/loggedIn/clientOverview/clientPricingRequests/clientPricingRequests";
 
 /* ── Placeholder invoices (until invoice API is ready) ── */
 const PLACEHOLDER_INVOICES: InvoiceRow[] = [
@@ -48,6 +53,9 @@ export default function ClientOverview() {
 
   const proposalState   = useContext(ProposalStateContext);
   const proposalActions = useContext(ProposalActionsContext);
+
+  const contractState   = useContext(ContractStateContext);
+  const contractActions = useContext(ContractActionsContext);
 
   const [contacts, setContacts] = useState<ContactCard[]>([]);
   const [opportunities, setOpportunities] = useState<OpportunityRow[]>([]);
@@ -79,6 +87,13 @@ export default function ClientOverview() {
       proposalActions.getProposals({ clientId });
     }
   }, [clientId, proposalActions]);
+
+  // Fetch contracts for this client
+  useEffect(() => {
+    if (clientId && contractActions?.getContractsByClient) {
+      contractActions.getContractsByClient(clientId);
+    }
+  }, [clientId, contractActions]);
 
   // Transform contacts from API to ContactCard format
   useEffect(() => {
@@ -215,10 +230,24 @@ export default function ClientOverview() {
         subscriptionNote={subscriptionNote}
         pricePerMonth={proposalTotal}
         onCancelProject={() => handleCancelProject()}
-        onRenewContract={() => console.log("renew")}
+        onRenewContract={() => { /* renewal handled via + Renewal button in ClientContracts */ }}
       />
 
-      {/* 2. Contact details - Now using real data from API */}
+      {/* 2. Quick actions — current proposal management, pricing request, expiring contracts */}
+      <ClientActionsCard
+        proposal={fullProposal ?? null}
+        contracts={contractState?.contracts ?? []}
+        clientId={clientId}
+        clientName={clientName}
+      />
+
+      {/* 3. Pricing Requests for this client */}
+      <ClientPricingRequests
+        opportunityId={fullProposal?.opportunityId}
+        clientId={clientId}
+      />
+
+      {/* Contact details - Now using real data from API */}
       <ClientContactDetails
         contacts={contacts.length > 0 ? contacts : []}
         addContactHref={`/Client/${clientId}/createContact`}
@@ -230,6 +259,7 @@ export default function ClientOverview() {
       {/* 4. Opportunities - Now using real data from API */}
       <ClientOpportunities
         opportunities={opportunities.length > 0 ? opportunities : []}
+        clientId={clientId}
         defaultPeriod="Month"
         createHref={`/Client/${clientId}/createOpportunity`}
         createProposalHref={(oppId) => `/Client/${clientId}/createProposal?opportunityId=${oppId}`}
@@ -242,6 +272,14 @@ export default function ClientOverview() {
         isError={proposalState?.isError ?? false}
         clientId={clientId}
         createHref=""
+      />
+
+      {/* 6. Contracts */}
+      <ClientContracts
+        contracts={contractState?.contracts ?? []}
+        clientId={clientId}
+        isPending={contractState?.isPending}
+        isError={contractState?.isError}
       />
     </div>
   );

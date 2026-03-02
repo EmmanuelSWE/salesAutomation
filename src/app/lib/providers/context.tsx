@@ -112,6 +112,7 @@ export interface IClientStateContext {
 export interface IClientActionsContext {
   getClients:   (params?: { pageNumber?: number; pageSize?: number; [key: string]: unknown }) => Promise<void>;
   getOneClient: (id: string) => Promise<void>;
+  createClient: (payload: object) => Promise<string | undefined>;
 }
 
 /* ── Initial state ── */
@@ -214,6 +215,9 @@ export interface IOpportunityActionsContext {
   getOneOpportunity:  (id: string)       => Promise<void>;
   getStageHistory:    (id: string)       => Promise<void>;
   advanceStage:       (id: string, stage: number, reason?: string) => Promise<void>;
+  deleteOpportunity:  (id: string)                                 => Promise<void>;
+  assignOpportunity:  (id: string, userId: string)                 => Promise<void>;
+  createOpportunity:  (payload: object)                            => Promise<string | undefined>;
 }
 
 /* ── Initial state ── */
@@ -270,10 +274,13 @@ export interface IProposalStateContext {
 
 /* ── Actions ── */
 export interface IProposalActionsContext {
-  getProposals:    (params?: object) => Promise<void>;
-  getOneProposal:  (id: string)      => Promise<void>;
-  submitProposal:  (id: string)      => Promise<void>;
-  approveProposal: (id: string, comment?: string) => Promise<void>;
+  getProposals:    (params?: object)  => Promise<void>;
+  getOneProposal:  (id: string)       => Promise<void>;
+  submitProposal:  (id: string)       => Promise<void>;
+  approveProposal: (id: string) => Promise<void>;
+  rejectProposal:  (id: string, reason?: string)  => Promise<void>;
+  updateStatus:    (id: string, status: import("../utils/apiEnums").ProposalStatus, clientId?: string, reason?: string) => Promise<void>;
+  deleteProposal:  (id: string, clientId?: string) => Promise<void>;
 }
 
 /* ── Initial state ── */
@@ -316,11 +323,14 @@ export interface IPricingRequestStateContext {
 
 /* ── Actions ── */
 export interface IPricingRequestActionsContext {
-  getPricingRequests:   (params?: object)                                   => Promise<void>;
-  getPendingRequests:   ()                                                  => Promise<void>;
-  getMyRequests:        ()                                                  => Promise<void>;
-  getOnePricingRequest: (id: string)                                        => Promise<void>;
-  assignRequest:        (id: string, assignedToId: string)                  => Promise<void>;
+  getPricingRequests:      (params?: object)              => Promise<void>;
+  getPendingRequests:      ()                             => Promise<void>;
+  getMyRequests:           ()                             => Promise<void>;
+  getOnePricingRequest:    (id: string)                   => Promise<void>;
+  createPricingRequest:    (payload: object)              => Promise<string | undefined>;
+  assignRequest:           (id: string, userId: string) => Promise<void>;
+  completeRequest:         (id: string)                   => Promise<void>;
+  updatePricingRequest:    (id: string, payload: object)  => Promise<void>;
 }
 
 /* ── Initial state ── */
@@ -337,13 +347,11 @@ export const PricingRequestActionsContext = createContext<IPricingRequestActions
 
 /* ── Renewal interface ── */
 export interface IContractRenewal {
-  id?:                string;
-  contractId?:        string;
-  proposedStartDate:  string;   // ISO date string
-  proposedEndDate:    string;   // ISO date string
-  proposedValue:      number;
-  notes?:             string;
-  createdAt?:         string;
+  id?:                   string;
+  contractId?:           string;
+  renewalOpportunityId?: string;
+  notes?:                string;
+  createdAt?:            string;
 }
 
 /* ── Contract interface ── */
@@ -382,12 +390,17 @@ export interface IContractStateContext {
 
 /* ── Actions ── */
 export interface IContractActionsContext {
-  getContracts:         (params?: object)          => Promise<void>;
-  getOneContract:       (id: string)               => Promise<void>;
-  getExpiringContracts: (daysUntilExpiry?: number)  => Promise<void>;
-  getContractsByClient: (clientId: string)         => Promise<void>;
-  activateContract:     (id: string)               => Promise<void>;
-  completeRenewal:      (renewalId: string)         => Promise<void>;
+  getContracts:         (params?: object)                                                                 => Promise<void>;
+  getOneContract:       (id: string)                                                                     => Promise<void>;
+  getExpiringContracts: (daysUntilExpiry?: number)                                                       => Promise<void>;
+  getContractsByClient: (clientId: string)                                                               => Promise<void>;
+  updateContract:       (id: string, payload: object)                                                    => Promise<void>;
+  activateContract:     (id: string)                                                                     => Promise<void>;
+  cancelContract:       (id: string)                                                                     => Promise<void>;
+  deleteContract:       (id: string)                                                                     => Promise<void>;
+  createRenewal:        (contractId: string, payload: { renewalOpportunityId?: string; notes?: string }) => Promise<void>;
+  completeRenewal:      (renewalId: string, clientId?: string)                                          => Promise<void>;
+  createContract:       (payload: object)                                                               => Promise<string | undefined>;
 }
 
 /* ── Initial state ── */
@@ -432,12 +445,16 @@ export interface IActivityStateContext {
 
 /* ── Actions ── */
 export interface IActivityActionsContext {
-  getActivities:   (params?: object)    => Promise<void>;
-  getMyActivities: (params?: object)    => Promise<void>;
-  getUpcoming:     (daysAhead?: number) => Promise<void>;
-  getOverdue:      ()                   => Promise<void>;
-  getOneActivity:  (id: string)         => Promise<void>;
-  updateActivity:  (id: string, payload: Partial<IActivity>) => Promise<void>;
+  getActivities:   (params?: object)                         => Promise<void>;
+  getMyActivities: (params?: object)                         => Promise<void>;
+  getUpcoming:      (daysAhead?: number)                      => Promise<void>;
+  getOverdue:       ()                                        => Promise<void>;
+  getOneActivity:   (id: string)                              => Promise<void>;
+  createActivity:   (payload: object)                         => Promise<void>;
+  updateActivity:   (id: string, payload: Partial<IActivity>) => Promise<void>;
+  completeActivity: (id: string, outcome: string)             => Promise<void>;
+  cancelActivity:   (id: string)                              => Promise<void>;
+  deleteActivity:   (id: string)                              => Promise<void>;
 }
 
 /* ── Initial state ── */

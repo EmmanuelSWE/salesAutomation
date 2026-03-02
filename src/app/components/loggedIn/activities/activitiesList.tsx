@@ -14,8 +14,15 @@ import {
   EditOutlined,
 } from "@ant-design/icons";
 import { useActivitiesStyles } from "./activities.module";
-import { useActivityState, useActivityAction } from "../../../lib/providers/provider";
-import type { IActivity } from "../../../lib/providers/context";
+import { useActivityState, useActivityAction, useUserState, useUserAction } from "../../../lib/providers/provider";
+import type { IActivity, IUser } from "../../../lib/providers/context";
+
+type Tab = "all" | "my";
+
+const TAB_LABEL: Record<Tab, string> = {
+  all: "All Activities",
+  my:  "My Activities",
+};
 
 const PAGE_SIZE = 5;
 const AVATAR_COLORS = ["#5c6bc0","#26a69a","#ef5350","#f5a623","#78909c","#ab47bc","#29b6f6","#66bb6a","#ff7043","#8d6e63"];
@@ -41,23 +48,46 @@ const priLabel  = (p?: string) => p ?? "Medium";
 /* ── Inline edit drawer ── */
 function EditDrawer({
   activity,
+  users,
   onClose,
   onSave,
+  onComplete,
+  onCancel,
+  onDelete,
   saving,
+  acting,
 }: Readonly<{
   activity: IActivity;
+  users?: IUser[];
   onClose: () => void;
   onSave: (patch: Partial<IActivity>) => void;
+  onComplete: (outcome: string) => void;
+  onCancel: () => void;
+  onDelete: () => void;
   saving: boolean;
+  acting: boolean;
 }>) {
-  const [subject,     setSubject]     = useState(activity.subject ?? "");
-  const [type,        setType]        = useState(activity.type ?? "");
-  const [description, setDescription] = useState(activity.description ?? "");
-  const [priority,    setPriority]    = useState(String(activity.priority ?? "Medium"));
-  const [dueDate,     setDueDate]     = useState(activity.dueDate ? activity.dueDate.slice(0, 10) : "");
+  const [subject,      setSubject]      = useState(activity.subject ?? "");
+  const [type,         setType]         = useState(activity.type ?? "");
+  const [description,  setDescription]  = useState(activity.description ?? "");
+  const [priority,     setPriority]     = useState(String(activity.priority ?? "Medium"));
+  const [dueDate,      setDueDate]      = useState(activity.dueDate ? activity.dueDate.slice(0, 10) : "");
+  const [assignedToId, setAssignedToId] = useState(activity.assignedToId ?? "");
+  const [outcome,      setOutcome]      = useState("");
+  const [showComplete, setShowComplete] = useState(false);
+
+  const isClosed = activity.status === "Completed" || activity.status === "Cancelled";
 
   function handleSave() {
-    onSave({ subject, type, description, priority: priority as IActivity["priority"], dueDate });
+    onSave({
+      ...activity,
+      subject,
+      type: type as IActivity["type"],
+      description,
+      priority: priority as IActivity["priority"],
+      dueDate,
+      assignedToId: assignedToId || undefined,
+    });
   }
 
   return (
@@ -115,6 +145,18 @@ function EditDrawer({
                 style={{ width: "100%", background: "#333", border: "1px solid #444", borderRadius: 8,
                   padding: "9px 12px", color: "#fff", fontSize: 13 }} />
             )},
+            { label: "Assigned To", node: (
+              <select value={assignedToId} onChange={e => setAssignedToId(e.target.value)}
+                style={{ width: "100%", background: "#333", border: "1px solid #444", borderRadius: 8,
+                  padding: "9px 12px", color: "#fff", fontSize: 13 }}>
+                <option value="">— Unassigned —</option>
+                {(users ?? []).map((u) => (
+                  <option key={u.id} value={u.id ?? ""}>
+                    {`${u.firstName ?? ""} ${u.lastName ?? ""}`.trim()} {u.role ? `(${u.role})` : ""}
+                  </option>
+                ))}
+              </select>
+            )},
             { label: "Description", node: (
               <textarea value={description} onChange={e => setDescription(e.target.value)} rows={4}
                 style={{ width: "100%", background: "#333", border: "1px solid #444", borderRadius: 8,
@@ -129,16 +171,88 @@ function EditDrawer({
         </div>
 
         {/* footer */}
-        <div style={{ padding: "16px 24px", borderTop: "1px solid #333", display: "flex", gap: 10 }}>
-          <button onClick={onClose}
-            style={{ flex: 1, padding: 11, background: "#333", border: "none", borderRadius: 8, color: "#aaa", cursor: "pointer", fontSize: 13 }}>
-            Cancel
-          </button>
-          <button onClick={handleSave} disabled={saving}
-            style={{ flex: 1, padding: 11, background: "#f5a623", border: "none", borderRadius: 8,
-              color: "#1a1000", fontWeight: 700, cursor: "pointer", fontSize: 13, opacity: saving ? 0.6 : 1 }}>
-            {saving ? "Saving…" : "Save Changes"}
-          </button>
+        <div style={{ padding: "16px 24px", borderTop: "1px solid #333", display: "flex", flexDirection: "column", gap: 10 }}>
+          {/* Save / Close row */}
+          {!isClosed && (
+            <div style={{ display: "flex", gap: 10 }}>
+              <button onClick={onClose}
+                style={{ flex: 1, padding: 11, background: "#333", border: "none", borderRadius: 8, color: "#aaa", cursor: "pointer", fontSize: 13 }}>
+                Cancel
+              </button>
+              <button onClick={handleSave} disabled={saving}
+                style={{ flex: 1, padding: 11, background: "#f5a623", border: "none", borderRadius: 8,
+                  color: "#1a1000", fontWeight: 700, cursor: "pointer", fontSize: 13, opacity: saving ? 0.6 : 1 }}>
+                {saving ? "Saving…" : "Save Changes"}
+              </button>
+            </div>
+          )}
+
+          {/* Complete inline form */}
+          {showComplete && !isClosed && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <label htmlFor="outcomeInput" style={{ fontSize: 11, color: "#888" }}>Outcome note (required)</label>
+              <textarea
+                id="outcomeInput"
+                value={outcome}
+                onChange={(e) => setOutcome(e.target.value)}
+                rows={2}
+                placeholder="Describe the result of this activity…"
+                style={{ background: "#333", border: "1px solid #444", borderRadius: 6,
+                  padding: "8px 10px", color: "#fff", fontSize: 13, resize: "vertical",
+                  width: "100%", boxSizing: "border-box" as const }}
+              />
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  onClick={() => onComplete(outcome)}
+                  disabled={acting || !outcome.trim()}
+                  style={{ flex: 1, padding: 10, background: "#4caf50", border: "none", borderRadius: 8,
+                    color: "#fff", fontWeight: 700, cursor: "pointer", fontSize: 13, opacity: acting ? 0.6 : 1 }}>
+                  {acting ? "Marking…" : "Confirm Complete"}
+                </button>
+                <button
+                  onClick={() => { setShowComplete(false); setOutcome(""); }}
+                  style={{ padding: 10, background: "#333", border: "none", borderRadius: 8,
+                    color: "#aaa", cursor: "pointer", fontSize: 13 }}>
+                  Back
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* Activity actions row (Complete / Cancel / Delete) */}
+          {!isClosed && !showComplete && (
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <button
+                onClick={() => setShowComplete(true)}
+                disabled={acting}
+                style={{ flex: 1, padding: 9, background: "rgba(76,175,80,0.1)", border: "1px solid rgba(76,175,80,0.3)",
+                  borderRadius: 8, color: "#4caf50", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
+                ✓ Mark Complete
+              </button>
+              <button
+                onClick={onCancel}
+                disabled={acting}
+                style={{ flex: 1, padding: 9, background: "rgba(33,150,243,0.1)", border: "1px solid rgba(33,150,243,0.3)",
+                  borderRadius: 8, color: "#2196f3", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
+                ✕ Cancel Activity
+              </button>
+              <button
+                onClick={onDelete}
+                disabled={acting}
+                style={{ padding: 9, background: "rgba(244,67,54,0.1)", border: "1px solid rgba(244,67,54,0.3)",
+                  borderRadius: 8, color: "#ef5350", cursor: "pointer", fontSize: 12, fontWeight: 600 }}>
+                Delete
+              </button>
+            </div>
+          )}
+
+          {isClosed && (
+            <button onClick={onClose}
+              style={{ width: "100%", padding: 11, background: "#333", border: "none", borderRadius: 8,
+                color: "#aaa", cursor: "pointer", fontSize: 13 }}>
+              Close
+            </button>
+          )}
         </div>
       </div>
     </>
@@ -148,24 +262,30 @@ function EditDrawer({
 export default function ActivitiesList() {
   const { styles, cx } = useActivitiesStyles();
   const { activities, isPending, isError } = useActivityState();
-  const { getActivities, updateActivity } = useActivityAction();
+  const { getActivities, getMyActivities, updateActivity, completeActivity, cancelActivity, deleteActivity } = useActivityAction();
+  const { users } = useUserState();
+  const { getUsers } = useUserAction();
+  const [tab,     setTab]     = useState<Tab>("all");
   const [search, setSearch]   = useState("");
   const [page, setPage]       = useState(1);
   const [editing, setEditing] = useState<IActivity | null>(null);
   const [saving,  setSaving]  = useState(false);
+  const [acting,  setActing]  = useState(false);
+
+  function fetchForTab(t: Tab) {
+    if (t === "my") getMyActivities({ pageNumber: page, pageSize: PAGE_SIZE });
+    else            getActivities({ pageNumber: page, pageSize: PAGE_SIZE });
+  }
 
   useEffect(() => {
-    getActivities();
+    fetchForTab(tab);
+    if (!users?.length) getUsers();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  /* close drawer after a successful save */
   useEffect(() => {
-    if (!isPending && saving) {
-      setSaving(false);
-      setEditing(null);
-      getActivities();
-    }
-  }, [isPending]); // eslint-disable-line react-hooks/exhaustive-deps
+    fetchForTab(tab);
+    setPage(1);
+  }, [tab]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (isPending) return (
     <div className={styles.page}>
@@ -240,12 +360,60 @@ export default function ActivitiesList() {
   async function handleSave(patch: Partial<IActivity>) {
     if (!editing?.id) return;
     setSaving(true);
-    await updateActivity(editing.id, patch);
+    try {
+      await updateActivity(editing.id, { ...editing, ...patch });
+      setSaving(false);
+      setEditing(null);
+      fetchForTab(tab);
+    } catch {
+      setSaving(false);
+    }
+  }
+
+  async function handleComplete(outcome: string) {
+    if (!editing?.id) return;
+    setActing(true);
+    await completeActivity(editing.id, outcome);
+    setActing(false);
+    setEditing(null);
+    fetchForTab(tab);
+  }
+
+  async function handleCancel() {
+    if (!editing?.id) return;
+    setActing(true);
+    await cancelActivity(editing.id);
+    setActing(false);
+    setEditing(null);
+    fetchForTab(tab);
+  }
+
+  async function handleDelete() {
+    if (!editing?.id) return;
+    setActing(true);
+    await deleteActivity(editing.id);
+    setActing(false);
+    setEditing(null);
+    fetchForTab(tab);
   }
 
   return (
     <div className={styles.page}>
       <h1 className={styles.title}>Activities</h1>
+
+      {/* ── Tabs ── */}
+      <div className={styles.tabsBar}>
+        {(Object.keys(TAB_LABEL) as Tab[]).map((t) => (
+          <button
+            key={t}
+            type="button"
+            className={cx(styles.tab, tab === t && styles.tabActive)}
+            onClick={() => setTab(t)}
+          >
+            {TAB_LABEL[t]}
+          </button>
+        ))}
+      </div>
 
       {/* ── Toolbar ── */}
       <div className={styles.listContainer}>
@@ -331,9 +499,14 @@ export default function ActivitiesList() {
       {editing && (
         <EditDrawer
           activity={editing}
+          users={users}
           onClose={() => setEditing(null)}
           onSave={handleSave}
+          onComplete={handleComplete}
+          onCancel={handleCancel}
+          onDelete={handleDelete}
           saving={saving}
+          acting={acting}
         />
       )}
     </div>

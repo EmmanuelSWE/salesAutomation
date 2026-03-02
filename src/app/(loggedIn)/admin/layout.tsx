@@ -1,18 +1,7 @@
 "use client";
 
-
-export default function DashboardLayout({
+export default function AdminLayout({
   children,
-}: {
-  children: React.ReactNode;
-}) {
-
-
-  return (
-    <div >
-    
-            {children}
-         
-    </div>
-  );
+}: Readonly<{ children: React.ReactNode }>) {
+  return <>{children}</>;
 }
