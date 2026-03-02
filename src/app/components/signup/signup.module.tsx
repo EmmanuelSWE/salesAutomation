@@ -7,93 +7,219 @@ export const useSignupStyles = createStyles(({ css }) => ({
     display: flex;
     justify-content: center;
     align-items: center;
-    background: #000000; /* PURE BLACK BACKGROUND */
-    padding: 20px;
+    background:
+      radial-gradient(ellipse 55% 60% at 95% 50%, rgba(243, 156, 18, 0.45) 0%, transparent 70%),
+      radial-gradient(ellipse 55% 60% at 5% 50%, rgba(230, 126, 34, 0.40) 0%, transparent 70%),
+      radial-gradient(ellipse 40% 40% at 50% 100%, rgba(243, 100, 10, 0.20) 0%, transparent 60%),
+      #050505;
+    padding: 32px 20px;
   `,
 
   card: css`
-    width: 420px;
-    padding: 40px 30px;
-    background: #1b1b1b; /* dark card */
-    border-radius: 16px;
-    box-shadow: 0 0 30px rgba(0,0,0,0.4);
+    width: 460px;
+    padding: 48px 40px;
+    background: #161616;
+    border: 1px solid #2e2e2e;
+    border-radius: 20px;
+    box-shadow: 0 0 60px rgba(243, 156, 18, 0.08), 0 24px 64px rgba(0,0,0,0.6);
     text-align: center;
   `,
 
-  title: css`
-    font-size: 32px;
-    margin-bottom: 10px;
+  logo: css`
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    margin: 0 auto 20px;
+    box-shadow: 0 4px 20px rgba(243, 156, 18, 0.4);
+  `,
+
+  tabs: css`
+    display: flex;
+    gap: 6px;
+    background: #0f0f0f;
+    border: 1px solid #2a2a2a;
+    border-radius: 12px;
+    padding: 4px;
+    margin-bottom: 28px;
+  `,
+
+  tab: css`
+    flex: 1;
+    padding: 8px 4px;
+    border-radius: 9px;
+    border: none;
+    background: transparent;
+    color: #666;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    line-height: 1.3;
+    white-space: nowrap;
+
+    &:hover {
+      color: #999;
+      background: rgba(255,255,255,0.04);
+    }
+  `,
+
+  tabActive: css`
+    flex: 1;
+    padding: 8px 4px;
+    border-radius: 9px;
+    border: none;
+    background: linear-gradient(135deg, #f39c12 0%, #e67e22 100%);
+    color: #000;
+    font-size: 12px;
     font-weight: 700;
-    color: white;
+    cursor: pointer;
+    line-height: 1.3;
+    white-space: nowrap;
+    box-shadow: 0 2px 12px rgba(243, 156, 18, 0.35);
+  `,
+
+  scenarioNote: css`
+    font-size: 13px;
+    color: #666;
+    background: rgba(243, 156, 18, 0.06);
+    border: 1px solid rgba(243, 156, 18, 0.15);
+    border-radius: 8px;
+    padding: 10px 14px;
+    text-align: left;
+    margin-bottom: 22px;
+    line-height: 1.5;
+  `,
+
+  title: css`
+    font-size: 28px;
+    margin: 0 0 6px;
+    font-weight: 800;
+    color: #ffffff;
+    letter-spacing: -0.5px;
   `,
 
   subtitle: css`
     font-size: 14px;
-    color: #888;
-    margin-bottom: 30px;
+    color: #666;
+    margin: 0 0 24px;
+  `,
+
+  label: css`
+    display: block;
     text-align: left;
-    border-bottom: 1px solid #333;
-    padding-bottom: 15px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #999;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 6px;
   `,
 
   input: css`
-    border-radius: 50px !important;
-    border: 2px solid #f39c12 !important; /* orange outline */
-    padding: 10px 18px !important;
-    background: white !important; /* white background */
-    color: black !important; /* black text */
+    width: 100% !important;
+    border-radius: 10px !important;
+    border: 1.5px solid #2e2e2e !important;
+    padding: 11px 16px !important;
+    background: #1f1f1f !important;
+    color: #fff !important;
+    font-size: 14px !important;
+    transition: border-color 0.2s, box-shadow 0.2s !important;
 
     &::placeholder {
-      color: #888888; /* darker placeholder for better contrast */
+      color: #555 !important;
     }
 
-    &:focus {
-      outline: none !important;
+    &:hover {
+      border-color: #444 !important;
+    }
+
+    &:focus, &:focus-within {
       border-color: #f39c12 !important;
-      box-shadow: 0 0 0 3px rgba(243, 156, 18, 0.3) !important; /* orange glow outline */
+      box-shadow: 0 0 0 3px rgba(243, 156, 18, 0.18) !important;
+      background: #222 !important;
     }
 
-    /* Target the actual input element inside AntD components */
     input {
-      background: white !important;
-      color: black !important;
+      background: transparent !important;
+      color: #fff !important;
+      &::placeholder { color: #555 !important; }
     }
 
-    /* For Input.Password specifically */
-    .ant-input-password {
-      background: white !important;
-    }
-
-    .ant-input {
-      background: white !important;
-      color: black !important;
+    .ant-input-password-icon {
+      color: #666 !important;
+      &:hover { color: #f39c12 !important; }
     }
   `,
 
-  button: css`
-    margin-top: 25px;
-    width: 100%;
-    border-radius: 50px !important;
-    padding: 10px 0 !important;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+  select: css`
+    width: 100% !important;
+
+    .ant-select-selector {
+      border-radius: 10px !important;
+      border: 1.5px solid #2e2e2e !important;
+      padding: 11px 16px !important;
+      background: #1f1f1f !important;
+      color: #fff !important;
+      height: auto !important;
+      transition: border-color 0.2s, box-shadow 0.2s !important;
+    }
+
+    &:hover .ant-select-selector {
+      border-color: #444 !important;
+    }
+
+    &.ant-select-focused .ant-select-selector {
+      border-color: #f39c12 !important;
+      box-shadow: 0 0 0 3px rgba(243, 156, 18, 0.18) !important;
+      background: #222 !important;
+    }
+
+    .ant-select-selection-item { color: #fff !important; }
+    .ant-select-selection-placeholder { color: #555 !important; }
+    .ant-select-arrow { color: #666 !important; }
+  `,
+
+  divider: css`
+    border: none;
+    border-top: 1px solid #2a2a2a;
+    margin: 20px 0;
+  `,
+
+  errorPill: css`
+    display: inline-block;
+    color: #ff6b6b;
+    font-size: 12px;
+    text-align: left;
+    margin-top: 4px;
+    padding: 2px 0;
+  `,
+
+  formError: css`
+    background: rgba(255, 107, 107, 0.1);
+    border: 1px solid rgba(255, 107, 107, 0.3);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: #ff6b6b;
+    font-size: 14px;
+    margin-bottom: 20px;
+    text-align: left;
   `,
 
   footer: css`
-    margin-top: 20px;
-    color: #888;
-    font-size: 14px;
-    
+    font-size: 13px;
+    color: #555;
+    margin-top: 24px;
+
     a {
       color: #f39c12;
+      font-weight: 600;
       text-decoration: none;
-      margin-left: 5px;
-      font-weight: 500;
-      
-      &:hover {
-        text-decoration: underline;
-      }
+      &:hover { color: #f7c948; }
     }
   `,
 }));

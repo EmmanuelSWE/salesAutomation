@@ -110,6 +110,14 @@ export const useCreateClientStyles = createStyles(({ css }) => ({
     color: #4caf50;
     font-size: 13px;
   `,
+  errorBanner: css`
+    background: #3a1a1a;
+    border: 1px solid #f44336;
+    border-radius: 10px;
+    padding: 10px 14px;
+    color: #f44336;
+    font-size: 13px;
+  `,
 
   submitRow: css`
     display: flex;
@@ -129,5 +137,22 @@ export const useCreateClientStyles = createStyles(({ css }) => ({
     &:hover { background: #f7c948; }
     &:active { transform: scale(0.97); }
     &:disabled { opacity: 0.6; cursor: not-allowed; }
+  `,
+
+  toggle: css`
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #ccc;
+    font-size: 13px;
+    cursor: pointer;
+    user-select: none;
+  `,
+
+  checkbox: css`
+    width: 16px;
+    height: 16px;
+    accent-color: #f5a623;
+    cursor: pointer;
   `,
 }));

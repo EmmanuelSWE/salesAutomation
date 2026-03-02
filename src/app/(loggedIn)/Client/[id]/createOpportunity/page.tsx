@@ -1,7 +1,10 @@
 import CreateOpportunity from "@/app/components/loggedIn/createOpportunity/createOpportunity"
 
-const createOpportunityPage = () => {
-    return (<CreateOpportunity/>)
+interface Props {
+  params: Promise<{ id: string }>;
 }
 
-export default createOpportunityPage;
+export default async function createOpportunityPage({ params }: Props) {
+  const { id } = await params;
+  return <CreateOpportunity clientId={id} />;
+}

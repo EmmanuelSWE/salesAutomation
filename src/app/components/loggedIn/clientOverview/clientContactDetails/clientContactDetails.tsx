@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { PlusOutlined } from "@ant-design/icons";
 import { useCardStyles } from "../card/card.module";    
 import { useClientContactDetailsStyles } from "./clientContactDetails.module";
@@ -13,14 +14,16 @@ export interface ContactCard {
 }
 
 interface ClientContactDetailsProps {
-  contacts:       ContactCard[];
-  onAddContact?:  () => void;
+  contacts:          ContactCard[];
+  addContactHref?:   string;
+  onAddContact?:     () => void;
 }
 
 export default function ClientContactDetails({
   contacts,
+  addContactHref,
   onAddContact,
-}: ClientContactDetailsProps) {
+}: Readonly<ClientContactDetailsProps>) {
   const { styles: card } = useCardStyles();
   const { styles }       = useClientContactDetailsStyles();
 
@@ -44,9 +47,15 @@ export default function ClientContactDetails({
         ))}
       </div>
 
-      <button className={styles.addContactBtn} onClick={onAddContact}>
-        <PlusOutlined /> Add contact
-      </button>
+      {addContactHref ? (
+        <Link href={addContactHref} className={styles.addContactBtn}>
+          <PlusOutlined /> Add contact
+        </Link>
+      ) : (
+        <button className={styles.addContactBtn} onClick={onAddContact}>
+          <PlusOutlined /> Add contact
+        </button>
+      )}
     </div>
   );
 }

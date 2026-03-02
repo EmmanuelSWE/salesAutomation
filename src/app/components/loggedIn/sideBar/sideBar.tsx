@@ -1,60 +1,119 @@
-/**
- * Sidebar — intentionally a Server Component (no "use client").
- * Static nav: no state, no events, zero JS bundle cost.
- * The CSS module uses createStyles which is client-safe to import from RSC.
- */
+'use client';
 
 import {
   HomeOutlined,
-  ShoppingCartOutlined,
-  FolderOpenOutlined,
-  PictureOutlined,
-  AppstoreOutlined,
   TeamOutlined,
+  CalendarOutlined,
   FileTextOutlined,
-  MessageOutlined,
+  UserOutlined,
+  FundOutlined,
+  UsergroupAddOutlined,
 } from "@ant-design/icons";
 import { useSidebarStyles } from "./sideBar.module";
+import Link from "next/link";
+import { useUserState } from "../../../lib/providers/provider";
 
-const NAV_ITEMS = [
-  { icon: <HomeOutlined />,         label: "Overview",     active: true  },
-  { icon: <ShoppingCartOutlined />, label: "eCommerce",    active: false },
-  { icon: <FolderOpenOutlined />,   label: "Projects",     active: false },
-  { icon: <PictureOutlined />,      label: "User Profile", active: false },
-  { icon: <AppstoreOutlined />,     label: "Account",      active: false },
-  { icon: <TeamOutlined />,         label: "Corporate",    active: false },
-  { icon: <FileTextOutlined />,     label: "Blog",         active: false },
-  { icon: <MessageOutlined />,      label: "Social",       active: false },
+const BASE_NAV = [
+  { icon: <HomeOutlined />,     label: "Overview",         href: "/admin/dashboard" },
+  { icon: <TeamOutlined />,     label: "Clients",          href: "/clients" },
+  { icon: <CalendarOutlined />, label: "Activities",       href: "/activities" },
+  { icon: <FileTextOutlined />, label: "Pricing Requests", href: "/pricingRequests" },
+  { icon: <UserOutlined />,     label: "Account",          href: "/account" },
 ] as const;
 
-export default function Sidebar() {
+const OPPORTUNITY_NAV = { icon: <FundOutlined />,         label: "Opportunities", href: "/opportunities" };
+const USERS_NAV       = { icon: <UsergroupAddOutlined />, label: "Users",         href: "/staff" };
+
+const ROLE_LABELS: Record<string, string> = {
+  SalesRep:                    "Sales Rep",
+  BusinessDevelopmentManager:  "BDM",
+  SalesManager:                "Sales Manager",
+  Admin:                       "Admin",
+};
+
+/* roles that can see Opportunities */
+const OPPORTUNITY_ROLES = new Set(["Admin", "SalesManager", "BusinessDevelopmentManager"]);
+/* roles that can see Users/Staff */
+const USERS_ROLES       = new Set(["Admin", "SalesManager"]);
+
+interface SidebarProps {
+  collapsed: boolean;
+  onToggle: () => void;
+}
+
+export default function Sidebar({ collapsed, onToggle }: Readonly<SidebarProps>) {
   const { styles, cx } = useSidebarStyles();
+  const userState = useUserState();
+
+  const firstName = userState?.user?.firstName || "User";
+  /* roles array from API, e.g. ["Admin"] or ["SalesRep"] */
+  const roles     = userState?.user?.roles ?? (userState?.user?.role ? [userState.user.role] : []);
+
+  /* Label shown in footer: join all role labels */
+  const roleLabel = roles.map((r) => ROLE_LABELS[r] ?? r).join(", ");
+
+  const navItems = [
+    ...BASE_NAV,
+    ...(roles.some((r) => OPPORTUNITY_ROLES.has(r)) ? [OPPORTUNITY_NAV] : []),
+    ...(roles.some((r) => USERS_ROLES.has(r))       ? [USERS_NAV]       : []),
+  ];
 
   return (
-    <aside className={styles.sidebar}>
+    <aside className={cx(styles.sidebar, collapsed && styles.sidebarCollapsed)}>
+      {/* ── Toggle button ── */}
+      <button
+        type="button"
+        className={styles.toggleBtn}
+        onClick={onToggle}
+        aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+      >
+        <svg
+          width="16"
+          height="16"
+          viewBox="0 0 16 16"
+          fill="none"
+          style={{
+            transform: collapsed ? "rotate(180deg)" : "rotate(0deg)",
+            transition: "transform 0.3s cubic-bezier(0.4,0,0.2,1)",
+            display: "block",
+          }}
+        >
+          <path
+            d="M10 3L5 8L10 13"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
+
       {/* ── Top: logo + nav ── */}
       <div className={styles.sidebarTop}>
-        <a href="/" className={styles.logo}>
-          <span className={styles.logoIcon}>❄️</span>
-          <span>snowui</span>
-        </a>
+        <Link href="/" className={cx(styles.logo, collapsed && styles.logoCollapsed)}>
+          <div className={styles.logoIcon}>⚡</div>
+          {!collapsed && <span>TransformSales</span>}
+        </Link>
 
-        {NAV_ITEMS.map(({ icon, label, active }) => (
-          <a
+        {navItems.map(({ icon, label, href }) => (
+          <Link
             key={label}
-            href="#"
-            className={cx(styles.navItem, active && styles.navItemActive)}
+            href={href}
+            className={cx(styles.navItem, collapsed && styles.navItemCollapsed)}
+            title={collapsed ? label : undefined}
           >
             <span className={styles.navIcon}>{icon}</span>
-            {label}
-          </a>
+            {!collapsed && label}
+          </Link>
         ))}
       </div>
 
       {/* ── Bottom: user ── */}
-      <div className={styles.footer}>
+      <div className={cx(styles.footer, collapsed && styles.footerCollapsed)}>
         <div className={styles.avatar}>👤</div>
-        <span>ByeWind</span>
+        {!collapsed && (
+          <span>{firstName}{roleLabel ? ` (${roleLabel})` : ""}</span>
+        )}
       </div>
     </aside>
   );

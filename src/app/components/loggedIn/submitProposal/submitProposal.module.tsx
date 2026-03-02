@@ -16,7 +16,7 @@ export const useSubmitProposalStyles = createStyles(({ css }) => ({
 
   form: css`
     width: 100%;
-    max-width: 420px;
+    max-width: 760px;
     background: #2a2a2a;
     border-radius: 16px;
     padding: 32px 28px;
@@ -117,7 +117,10 @@ export const useSubmitProposalStyles = createStyles(({ css }) => ({
 
   scopeInput: css`
     flex: 1;
-    background: #333;
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    background: #2a2a2a;
     border: 1px solid #3a3a3a;
     border-radius: 8px;
     padding: 8px 12px;
@@ -133,6 +136,42 @@ export const useSubmitProposalStyles = createStyles(({ css }) => ({
     font-size: 12px;
     color: #888;
     margin-bottom: 4px;
+  `,
+
+  /* ── Line item card ── */
+  lineItemCard: css`
+    background: #333;
+    border: 1px solid #3a3a3a;
+    border-radius: 10px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  `,
+
+  lineItemHeader: css`
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  `,
+
+  lineItemRow: css`
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    > * { flex: 1 1 120px; min-width: 0; }
+  `,
+
+  removeItemBtn: css`
+    background: transparent;
+    border: none;
+    color: #888;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 4px;
+    transition: color 0.15s;
+    &:hover { color: #f44336; }
   `,
 
   addItemBtn: css`

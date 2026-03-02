@@ -6,16 +6,18 @@ export const useKpiStyles = createStyles(({ css }) => ({
   grid: css`
     display: grid;
     grid-template-columns: 1fr 1fr 1fr 1fr;
-    gap: 16px;
+    gap: 24px;
   `,
 
   card: css`
     background: #2e2e2e;
-    border-radius: 14px;
-    padding: 16px 20px;
+    border: 1px solid #383838;
+    border-radius: 16px;
+    box-shadow: 0 6px 24px rgba(243, 156, 18, 0.12), 0 2px 8px rgba(255, 200, 100, 0.07);
+    padding: 24px 28px;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
     position: relative;
     overflow: hidden;
     min-width: 0;
@@ -27,31 +29,52 @@ export const useKpiStyles = createStyles(({ css }) => ({
   `,
 
   icon: css`
-    position: absolute;
-    top: 14px;
-    right: 16px;
-    font-size: 18px;
-    opacity: 0.55;
+    display: none;
+  `,
+
+  iconBubble: css`
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 19px;
+    margin-bottom: 4px;
+    flex-shrink: 0;
   `,
 
   label: css`
     font-size: 11px;
-    opacity: 0.7;
-    font-weight: 500;
+    color: #888;
+    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.4px;
+    letter-spacing: 0.5px;
+  `,
+
+  labelGold: css`
+    color: rgba(26,14,0,0.65);
   `,
 
   value: css`
-    font-size: 28px;
+    font-size: 30px;
     font-weight: 700;
     line-height: 1.1;
+    color: #fff;
+  `,
+
+  valueGold: css`
+    color: #1a0e00;
   `,
 
   sub: css`
     font-size: 11px;
-    opacity: 0.6;
+    color: #666;
     margin-top: 2px;
+  `,
+
+  subGold: css`
+    color: rgba(26,14,0,0.55);
   `,
 
   trendUp: css`

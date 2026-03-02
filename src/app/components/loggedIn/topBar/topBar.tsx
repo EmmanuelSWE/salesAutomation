@@ -1,19 +1,15 @@
 "use client";
 
-import {
-  SearchOutlined,
-  SettingOutlined,
-  ReloadOutlined,
-  BellOutlined,
-} from "@ant-design/icons";
+import { BellOutlined } from "@ant-design/icons";
 import { useTopBarStyles } from "./topBar.module";
+import NotificationBell from "../../NotificationBell";
 
 interface TopBarProps {
   /** Breadcrumb trail, e.g. ["Dashboards", "Overview"] */
   crumbs?: string[];
 }
 
-export default function TopBar({ crumbs = ["Dashboards", "Overview"] }: TopBarProps) {
+export default function TopBar({ crumbs = ["Dashboards", "Overview"] }: Readonly<TopBarProps>) {
   const { styles } = useTopBarStyles();
 
   return (
@@ -35,13 +31,7 @@ export default function TopBar({ crumbs = ["Dashboards", "Overview"] }: TopBarPr
 
       {/* Actions */}
       <div className={styles.right}>
-        <div className={styles.searchBox}>
-          <SearchOutlined style={{ fontSize: 13 }} />
-          <span>Search</span>
-        </div>
-        <div className={styles.iconBtn}><SettingOutlined /></div>
-        <div className={styles.iconBtn}><ReloadOutlined /></div>
-        <div className={styles.iconBtn}><BellOutlined /></div>
+        <div className={styles.iconBtn}> <BellOutlined /></div>
       </div>
     </header>
   );

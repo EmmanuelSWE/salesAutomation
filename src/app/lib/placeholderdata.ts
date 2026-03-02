@@ -49,6 +49,17 @@ export interface DashboardActivities {
   centerLabel: string;
 }
 
+/* GET /api/dashboard/role-funnel */
+export interface FunnelRole {
+  role:    string;
+  revenue: number;
+  deals:   number;
+}
+
+export interface DashboardFunnel {
+  roles: FunnelRole[];
+}
+
 /* GET /api/dashboard/overview → revenue */
 export interface DashboardRevenue {
   labels:        string[];
@@ -63,79 +74,87 @@ export interface DashboardRevenue {
 export interface DashboardData {
   kpis:             DashboardKpis;
   pipeline:         DashboardPipeline;
+  funnel:           DashboardFunnel;
   salesPerformance: DashboardSalesPerformance;
   activities:       DashboardActivities;
   revenue:          DashboardRevenue;
 }
 
+import api from "./utils/axiosInstance";
+
 /* ═══════════════════════════════════════════════
-   DATA FETCHER
-   Replace each block with your real API call:
-     fetch("/api/dashboard/overview")
-     fetch("/api/dashboard/pipeline-metrics")
-     fetch("/api/dashboard/sales-performance")
-     fetch("/api/dashboard/activities-summary")
+   DATA FETCHER - uses axios instance (token from localStorage)
 ═══════════════════════════════════════════════ */
+
 export async function getDashboardData(): Promise<DashboardData> {
-  // Simulated delay — remove in production
-  await new Promise((r) => setTimeout(r, 300));
-
-  return {
-    /* ── GET /api/dashboard/overview ── */
+  const fallback: DashboardData = {
     kpis: {
-      totalOpportunities: 42,
-      wonCount:           8,
-      winRate:            19.05,
-      pipelineValue:      1250000,
-      activeContracts:    15,
-      expiringThisMonth:  2,
+      totalOpportunities: 48,
+      wonCount:           30,
+      winRate:            62.5,
+      pipelineValue:      1_285_000,
+      activeContracts:    23,
+      expiringThisMonth:  4,
     },
-
-    /* ── GET /api/dashboard/pipeline-metrics ── */
     pipeline: {
-      weightedTotal: 430000,
+      weightedTotal: 872_500,
       stages: [
-        { label: "Prospecting",   count: 12, value: 320000,  weightedValue: 48000  },
-        { label: "Qualification", count: 9,  value: 275000,  weightedValue: 82500  },
-        { label: "Proposal",      count: 7,  value: 410000,  weightedValue: 123000 },
-        { label: "Negotiation",   count: 5,  value: 290000,  weightedValue: 116000 },
-        { label: "Closed Won",    count: 8,  value: 380000,  weightedValue: 380000 },
-        { label: "Closed Lost",   count: 6,  value: 195000,  weightedValue: 0      },
+        { label: "Prospecting",  count: 12, value: 280_000, weightedValue:  56_000 },
+        { label: "Qualification",count:  9, value: 420_000, weightedValue: 126_000 },
+        { label: "Proposal",     count:  7, value: 310_000, weightedValue: 155_000 },
+        { label: "Negotiation",  count:  5, value: 195_000, weightedValue: 136_500 },
+        { label: "Closed Won",   count:  8, value: 480_000, weightedValue: 480_000 },
       ],
     },
-
-    /* ── GET /api/dashboard/sales-performance ── */
+    funnel: {
+      roles: [
+        { role: "Sales Reps",                    revenue: 505_000, deals: 38 },
+        { role: "Business Development Managers", revenue: 312_000, deals: 24 },
+        { role: "Sales Managers",                revenue: 178_000, deals: 14 },
+      ],
+    },
     salesPerformance: {
-      colors: ["#f5a623", "#03a9f4", "#4caf50", "#9e9e9e", "#e91e63"],
       reps: [
-        { name: "Alice M.",  dealsWon: 14, revenue: 420000 },
-        { name: "James T.",  dealsWon: 11, revenue: 310000 },
-        { name: "Sara K.",   dealsWon: 9,  revenue: 270000 },
-        { name: "David R.",  dealsWon: 7,  revenue: 185000 },
-        { name: "Nina P.",   dealsWon: 5,  revenue: 115000 },
+        { name: "Alex Rivera",  dealsWon: 11, revenue: 142_000 },
+        { name: "Jamie Chen",   dealsWon:  9, revenue: 118_000 },
+        { name: "Morgan Davis", dealsWon:  7, revenue:  97_000 },
+        { name: "Taylor Kim",   dealsWon:  6, revenue:  85_000 },
+        { name: "Sam Ortiz",    dealsWon:  5, revenue:  63_000 },
       ],
+      colors: ["#f5a623", "#03a9f4", "#4caf50", "#9e9e9e", "#e91e63"],
     },
-
-    /* ── GET /api/dashboard/activities-summary ── */
     activities: {
-      upcoming:       12,
-      overdue:        3,
-      completedToday: 5,
-      labels:  ["Upcoming", "Overdue", "Completed"],
-      data:    [12, 3, 5],
-      colors:  ["#2979ff", "#ef5350", "#4caf50"],
-      center:  "20",
+      upcoming:       14,
+      overdue:         5,
+      completedToday: 22,
+      labels: ["Upcoming", "Overdue", "Completed"],
+      data:   [14, 5, 22],
+      colors: ["#2979ff", "#ef5350", "#4caf50"],
+      center:      "41",
       centerLabel: "Total",
     },
-
-    /* ── GET /api/dashboard/overview → revenue ── */
     revenue: {
-      thisMonth:     180000,
-      thisQuarter:   520000,
-      thisYear:      1100000,
-      labels:        ["Jan", "Feb", "Mar", "Apr", "May", "Jun"],
-      thisMonthLine: [95000, 112000, 130000, 158000, 145000, 180000],
-      targetLine:    [100000, 110000, 120000, 140000, 155000, 170000],
+      thisMonth:   98_500,
+      thisQuarter: 274_000,
+      thisYear:    842_000,
+      labels: ["Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec","Jan","Feb"],
+      thisMonthLine: [42000, 55000, 61000, 48000, 73000, 80000, 67000, 91000, 85000, 102000, 88000, 98500],
+      targetLine:    [60000, 60000, 65000, 65000, 75000, 75000, 80000, 80000, 90000,  90000, 95000, 95000],
     },
   };
+
+  try {
+    const { data } = await api.get<Partial<DashboardData>>("/dashboard/overview");
+    return {
+      kpis:             { ...fallback.kpis,             ...(data.kpis             ?? {}) },
+      pipeline:         { ...fallback.pipeline,         ...(data.pipeline         ?? {}) },
+      funnel:           { ...fallback.funnel,           ...(data.funnel           ?? {}) },
+      salesPerformance: { ...fallback.salesPerformance, ...(data.salesPerformance ?? {}) },
+      activities:       { ...fallback.activities,       ...(data.activities       ?? {}) },
+      revenue:          { ...fallback.revenue,          ...(data.revenue          ?? {}) },
+    };
+  } catch (err) {
+    console.error("getDashboardData failed:", (err as { response?: { data?: unknown } }).response?.data ?? err);
+    return fallback;
+  }
 }

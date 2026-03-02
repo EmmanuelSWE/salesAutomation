@@ -1,23 +1,66 @@
-"use client";
-
-import { useActionState } from "react";
-import { createPricingRequestAction, type FormState } from "../../../lib/providers/actions";
+﻿"use client";
+import { useState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { createPricingRequest, extractApiMessage, type FormState } from "../../../lib/utils/apiMutations";
 import { SubmitButton } from "../form/submitButton";
 import { useFormStyles } from "../form/form.module";
-
-const initial: FormState = { status: "idle" };
+import { useUserState, useUserAction, useClientState, useClientAction } from "../../../lib/providers/provider";
 
 export default function CreatePricingRequest() {
   const { styles } = useFormStyles();
-  const [state, formAction] = useActionState(createPricingRequestAction, initial);
+  const formRef = useRef<HTMLFormElement>(null);
+  const router = useRouter();
+  const [state, setState] = useState<FormState>({ status: "idle" });
+  const [isPending, setIsPending] = useState(false);
+
+  const { users, isPending: usersPending } = useUserState();
+  const { getUsers } = useUserAction();
+  const { clients, isPending: clientsPending } = useClientState();
+  const { getClients } = useClientAction();
+
+  useEffect(() => {
+    getUsers({ isActive: true });
+    getClients({ pageSize: 200 });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const activeUsers = users ?? [];
+  const activeClients = clients ?? [];
+
+  async function handleSubmit() {
+    if (!formRef.current) return;
+    const fd = new FormData(formRef.current);
+    const clientId = fd.get("clientId") as string;
+    setIsPending(true);
+    try {
+      await createPricingRequest({
+        title:          fd.get("title")          as string,
+        description:    fd.get("description")    as string | undefined,
+        clientId:       (fd.get("clientId")      as string) || undefined,
+        opportunityId:  fd.get("opportunityId")  as string | undefined,
+        assignedToId:   fd.get("assignedToId")   as string | undefined,
+        priority:       fd.get("priority")       as string,
+        requiredByDate: fd.get("requiredByDate") as string,
+      });
+      setState({ status: "success", message: "Pricing request created." });
+      router.push(`/Client/${clientId}`);
+      router.refresh();
+    } catch (err) {
+      setState({ status: "error", message: extractApiMessage(err) });
+    } finally {
+      setIsPending(false);
+    }
+  }
 
   return (
     <div className={styles.page}>
-      <form action={formAction} className={styles.form}>
+      <form ref={formRef} onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className={styles.form}>
         <h1 className={styles.formTitle}>Create Pricing Request</h1>
 
         {state.status === "success" && (
           <div className={styles.successBanner}>{state.message}</div>
+        )}
+        {state.status === "error" && (
+          <div className={styles.errorBanner}>{state.message}</div>
         )}
 
         <section className={styles.section}>
@@ -40,35 +83,62 @@ export default function CreatePricingRequest() {
           <h2 className={styles.sectionTitle}>Links</h2>
 
           <div className={styles.field}>
-            <label className={styles.label} htmlFor="clientId">Client ID</label>
-            <input id="clientId" name="clientId" className={styles.input}
-              style={state.errors?.clientId ? { borderColor: "#f44336" } : {}} />
+            <label className={styles.label} htmlFor="clientId">Client</label>
+            <select
+              id="clientId"
+              name="clientId"
+              className={styles.select}
+              defaultValue=""
+              disabled={clientsPending}
+              style={state.errors?.clientId ? { borderColor: "#f44336" } : {}}
+            >
+              {clientsPending
+                ? <option value="">Loading clients...</option>
+                : <>
+                    <option value="">Select client...</option>
+                    {activeClients.map((c) => (
+                      <option key={c.id} value={c.id ?? ""}>{c.name}</option>
+                    ))}
+                  </>
+              }
+            </select>
             {state.errors?.clientId && <span className={styles.errorText}>{state.errors.clientId}</span>}
           </div>
 
           <div className={styles.field}>
-            <label className={styles.label} htmlFor="opportunityId">Opportunity ID</label>
-            <input id="opportunityId" name="opportunityId" className={styles.input} />
+            <label className={styles.label} htmlFor="opportunityId">Opportunity ID <span style={{ color: "#666", fontWeight: 400 }}>(optional)</span></label>
+            <input id="opportunityId" name="opportunityId" className={styles.input} placeholder="Paste opportunity UUID if linked..." />
           </div>
 
           <div className={styles.field}>
-            <label className={styles.label} htmlFor="requestedById">Requested By (User ID)</label>
-            <input id="requestedById" name="requestedById" className={styles.input} />
+            <label className={styles.label} htmlFor="assignedToId">Assign To <span style={{ color: "#666", fontWeight: 400 }}>(optional)</span></label>
+            <select id="assignedToId" name="assignedToId" className={styles.select} defaultValue="" disabled={usersPending}>
+              {usersPending
+                ? <option value="">Loading users...</option>
+                : <>
+                    <option value="">Unassigned</option>
+                    {activeUsers.map((u) => (
+                      <option key={u.id} value={u.id ?? ""}>
+                        {u.firstName} {u.lastName} ({u.role ?? "User"})
+                      </option>
+                    ))}
+                  </>
+              }
+            </select>
           </div>
         </section>
 
         <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>Scheduling & Priority</h2>
+          <h2 className={styles.sectionTitle}>Scheduling &amp; Priority</h2>
 
           <div className={styles.row2}>
             <div className={styles.field}>
               <label className={styles.label} htmlFor="priority">Priority</label>
-              <select id="priority" name="priority" className={styles.select} defaultValue="3">
-                <option value="1">1 — Low</option>
-                <option value="2">2</option>
-                <option value="3">3 — Normal</option>
-                <option value="4">4</option>
-                <option value="5">5 — High</option>
+              <select id="priority" name="priority" className={styles.select} defaultValue="Medium">
+                <option value="Low">Low</option>
+                <option value="Medium">Medium</option>
+                <option value="High">High</option>
+                <option value="Urgent">Urgent</option>
               </select>
             </div>
 
@@ -82,7 +152,7 @@ export default function CreatePricingRequest() {
         </section>
 
         <div className={styles.submitRow}>
-          <SubmitButton label="Create Pricing Request" pendingLabel="Creating…" />
+          <SubmitButton label="Create Pricing Request" pendingLabel="Creating..." isPending={isPending} />
         </div>
       </form>
     </div>

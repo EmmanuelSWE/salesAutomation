@@ -1,258 +1,436 @@
-"use server";
 
-import { revalidatePath } from "next/cache";
+'use client';
+import { createAction } from "redux-actions";
+import {
+  IClientStateContext,       IClient,       IClientPage,
+  IContactStateContext,      IContact,
+  IOpportunityStateContext,  IOpportunity, IOpportunityStageHistory,
+  IProposalStateContext,     IProposal,
+  IPricingRequestStateContext, IPricingRequest,
+  IContractStateContext,     IContract, IContractRenewal,
+  IActivityStateContext,     IActivity,
+  INoteStateContext,   IUserStateContext, IUser ,       INote,
+} from "./context";
 
-export type ProposalFormState = {
-  status: "idle" | "success" | "error";
-  message?: string;
-  errors?: Partial<Record<string, string>>;
-};
 
-export async function submitProposalAction(
-  _prevState: ProposalFormState,
-  formData: FormData
-): Promise<ProposalFormState> {
-  /* ── Extract fields ── */
-  const clientName       = formData.get("clientName") as string;
-  const opportunityId    = formData.get("opportunityId") as string;
-  const deadline         = formData.get("deadline") as string;
-  const requirements     = formData.get("requirements") as string;
-  const licenses         = formData.get("licenses") as string;
-  const contractDuration = formData.get("contractDuration") as string;
-  const services         = formData.get("services") as string;
-  const attachments      = formData.getAll("attachments") as File[];
 
-  // Scope items — submitted as scopeItem_0, scopeItem_1 ...
-  const scopeItems: string[] = [];
-  for (const [key, val] of formData.entries()) {
-    if (key.startsWith("scopeItem_") && typeof val === "string" && val.trim()) {
-      scopeItems.push(val.trim());
-    }
-  }
+/* ══════════════════════════════════════════════════════
+   USER
+══════════════════════════════════════════════════════ */
+export enum UserActionEnums {
+  loginPending  = "LOGIN_PENDING",
+  loginSuccess  = "LOGIN_SUCCESS",
+  loginError    = "LOGIN_ERROR",
 
-  /* ── Validation ── */
-  const errors: Partial<Record<string, string>> = {};
-  if (!clientName?.trim())    errors.clientName    = "Client name is required.";
-  if (!opportunityId?.trim()) errors.opportunityId = "Opportunity ID is required.";
-  if (!deadline)              errors.deadline      = "Deadline is required.";
-  if (!requirements?.trim())  errors.requirements  = "Requirements are required.";
+  registerPending = "REGISTER_PENDING",
+  registerSuccess = "REGISTER_SUCCESS",
+  registerError   = "REGISTER_ERROR",
 
-  if (Object.keys(errors).length > 0) {
-    return { status: "error", errors };
-  }
+  getUsersPending = "GET_USERS_PENDING",
+  getUsersSuccess = "GET_USERS_SUCCESS",
+  getUsersError   = "GET_USERS_ERROR",
 
-  /* ── Business logic (replace with DB/API call) ── */
-  console.log("Proposal submitted:", {
-    clientName, opportunityId, deadline,
-    requirements, scopeItems, licenses,
-    contractDuration, services,
-    attachmentCount: attachments.filter((f) => f.size > 0).length,
-  });
+  getOneUserPending = "GET_ONE_USER_PENDING",
+  getOneUserSuccess = "GET_ONE_USER_SUCCESS",
+  getOneUserError   = "GET_ONE_USER_ERROR",
 
-  // TODO: await db.proposals.create({ ... })
+  updateUserPending = "UPDATE_USER_PENDING",
+  updateUserSuccess = "UPDATE_USER_SUCCESS",
+  updateUserError   = "UPDATE_USER_ERROR",
 
-  revalidatePath("/submitProposal");
-  return { status: "success", message: "Proposal submitted successfully!" };
+  deleteUserPending = "DELETE_USER_PENDING",
+  deleteUserSuccess = "DELETE_USER_SUCCESS",
+  deleteUserError   = "DELETE_USER_ERROR",
 }
 
+export const loginPending  = createAction<IUserStateContext>(UserActionEnums.loginPending,  () => ({ isPending: true,  isSuccess: false, isError: false, isInitialized: false }));
+export const loginSuccess  = createAction<IUserStateContext, IUser>(UserActionEnums.loginSuccess, (user: IUser) => ({ isPending: false, isSuccess: true,  isError: false, isInitialized: true, user }));
+export const loginError    = createAction<IUserStateContext>(UserActionEnums.loginError,    () => ({ isPending: false, isSuccess: false, isError: true, isInitialized: true  }));
 
+export const registerPending = createAction<IUserStateContext>(UserActionEnums.registerPending, () => ({ isPending: true,  isSuccess: false, isError: false, isInitialized: false }));
+export const registerSuccess = createAction<IUserStateContext, IUser>(UserActionEnums.registerSuccess, (user: IUser) => ({ isPending: false, isSuccess: true,  isError: false, isInitialized: true, user }));
+export const registerError   = createAction<IUserStateContext>(UserActionEnums.registerError,   () => ({ isPending: false, isSuccess: false, isError: true, isInitialized: true  }));
 
+export const getUsersPending = createAction<IUserStateContext>(UserActionEnums.getUsersPending, () => ({ isPending: true,  isSuccess: false, isError: false, isInitialized: false }));
+export const getUsersSuccess = createAction<IUserStateContext, IUser[]>(UserActionEnums.getUsersSuccess, (users: IUser[]) => ({ isPending: false, isSuccess: true,  isError: false, isInitialized: true, users }));
+export const getUsersError   = createAction<IUserStateContext>(UserActionEnums.getUsersError,   () => ({ isPending: false, isSuccess: false, isError: true, isInitialized: true  }));
 
+export const getOneUserPending = createAction<IUserStateContext>(UserActionEnums.getOneUserPending, () => ({ isPending: true,  isSuccess: false, isError: false, isInitialized: false }));
+export const getOneUserSuccess = createAction<IUserStateContext, IUser>(UserActionEnums.getOneUserSuccess, (user: IUser) => ({ isPending: false, isSuccess: true,  isError: false, isInitialized: true, user }));
+export const getOneUserError   = createAction<IUserStateContext>(UserActionEnums.getOneUserError,   () => ({ isPending: false, isSuccess: false, isError: true, isInitialized: true  }));
 
+export const updateUserPending = createAction<IUserStateContext>(UserActionEnums.updateUserPending, () => ({ isPending: true,  isSuccess: false, isError: false, isInitialized: false }));
+export const updateUserSuccess = createAction<IUserStateContext>(UserActionEnums.updateUserSuccess, () => ({ isPending: false, isSuccess: true,  isError: false, isInitialized: true }));
+export const updateUserError   = createAction<IUserStateContext>(UserActionEnums.updateUserError,   () => ({ isPending: false, isSuccess: false, isError: true, isInitialized: true  }));
 
-export type FormState = {
-  status: "idle" | "success" | "error";
-  message?: string;
-  errors?: Partial<Record<string, string>>;
-};
+export const deleteUserPending = createAction<IUserStateContext>(UserActionEnums.deleteUserPending, () => ({ isPending: true,  isSuccess: false, isError: false, isInitialized: false }));
+export const deleteUserSuccess = createAction<IUserStateContext>(UserActionEnums.deleteUserSuccess, () => ({ isPending: false, isSuccess: true,  isError: false, isInitialized: true }));
+export const deleteUserError   = createAction<IUserStateContext>(UserActionEnums.deleteUserError,   () => ({ isPending: false, isSuccess: false, isError: true, isInitialized: true  }));
 
-/* ─── POST /api/contacts ─────────────────────────────── */
-export async function createContactAction(_prev: FormState, formData: FormData): Promise<FormState> {
-  const clientId         = formData.get("clientId")         as string;
-  const firstName        = formData.get("firstName")        as string;
-  const lastName         = formData.get("lastName")         as string;
-  const email            = formData.get("email")            as string;
-  const phoneNumber      = formData.get("phoneNumber")      as string;
-  const position         = formData.get("position")         as string;
-  const isPrimaryContact = formData.get("isPrimaryContact") === "true";
+/* ══════════════════════════════════════════════════════
+   CLIENT
+══════════════════════════════════════════════════════ */
+export enum ClientActionEnums {
+  getClientsPending   = "GET_CLIENTS_PENDING",
+  getClientsSuccess   = "GET_CLIENTS_SUCCESS",
+  getClientsError     = "GET_CLIENTS_ERROR",
 
-  const errors: Partial<Record<string, string>> = {};
-  if (!clientId?.trim())  errors.clientId  = "Client ID is required.";
-  if (!firstName?.trim()) errors.firstName = "First name is required.";
-  if (!lastName?.trim())  errors.lastName  = "Last name is required.";
-  if (!email?.trim())     errors.email     = "Email is required.";
-  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) errors.email = "Enter a valid email.";
-  if (Object.keys(errors).length) return { status: "error", errors };
+  getOneClientPending = "GET_ONE_CLIENT_PENDING",
+  getOneClientSuccess = "GET_ONE_CLIENT_SUCCESS",
+  getOneClientError   = "GET_ONE_CLIENT_ERROR",
 
-  // TODO: await fetch(`${process.env.API_BASE_URL}/api/contacts`, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ clientId, firstName, lastName, email, phoneNumber, position, isPrimaryContact }) });
-  console.log("createContact:", { clientId, firstName, lastName, email, phoneNumber, position, isPrimaryContact });
-  revalidatePath("/admin/contacts");
-  return { status: "success", message: `Contact ${firstName} ${lastName} created.` };
+  createClientPending = "CREATE_CLIENT_PENDING",
+  createClientSuccess = "CREATE_CLIENT_SUCCESS",
+  createClientError   = "CREATE_CLIENT_ERROR",
+
+  updateClientPending = "UPDATE_CLIENT_PENDING",
+  updateClientSuccess = "UPDATE_CLIENT_SUCCESS",
+  updateClientError   = "UPDATE_CLIENT_ERROR",
+
+  deleteClientPending = "DELETE_CLIENT_PENDING",
+  deleteClientSuccess = "DELETE_CLIENT_SUCCESS",
+  deleteClientError   = "DELETE_CLIENT_ERROR",
 }
 
-/* ─── POST /api/opportunities ────────────────────────── */
-export async function createOpportunityAction(_prev: FormState, formData: FormData): Promise<FormState> {
-  const title             = formData.get("title")             as string;
-  const clientId          = formData.get("clientId")          as string;
-  const contactId         = formData.get("contactId")         as string;
-  const estimatedValue    = formData.get("estimatedValue")    as string;
-  const currency          = formData.get("currency")          as string;
-  const stage             = formData.get("stage")             as string;
-  const source            = formData.get("source")            as string;
-  const probability       = formData.get("probability")       as string;
-  const expectedCloseDate = formData.get("expectedCloseDate") as string;
-  const description       = formData.get("description")       as string;
+export const getClientsPending   = createAction<IClientStateContext>(ClientActionEnums.getClientsPending,   () => ({ isPending: true,  isSuccess: false, isError: false }));
+export const getClientsSuccess   = createAction<IClientStateContext, IClientPage>(ClientActionEnums.getClientsSuccess, (page: IClientPage) => ({ isPending: false, isSuccess: true, isError: false, clients: page.items, clientsTotalCount: page.totalCount, clientsTotalPages: page.totalPages, clientsPageNumber: page.pageNumber, clientsHasNextPage: page.hasNextPage }));
+export const getClientsError     = createAction<IClientStateContext>(ClientActionEnums.getClientsError,     () => ({ isPending: false, isSuccess: false, isError: true  }));
 
-  const errors: Partial<Record<string, string>> = {};
-  if (!title?.trim())       errors.title            = "Title is required.";
-  if (!clientId?.trim())    errors.clientId         = "Client ID is required.";
-  if (!estimatedValue)      errors.estimatedValue   = "Estimated value is required.";
-  if (!stage)               errors.stage            = "Stage is required.";
-  if (!expectedCloseDate)   errors.expectedCloseDate = "Expected close date is required.";
-  if (Object.keys(errors).length) return { status: "error", errors };
+export const getOneClientPending = createAction<IClientStateContext>(ClientActionEnums.getOneClientPending, () => ({ isPending: true,  isSuccess: false, isError: false }));
+export const getOneClientSuccess = createAction<IClientStateContext, IClient>(ClientActionEnums.getOneClientSuccess, (client: IClient) => ({ isPending: false, isSuccess: true,  isError: false, client }));
+export const getOneClientError   = createAction<IClientStateContext>(ClientActionEnums.getOneClientError,   () => ({ isPending: false, isSuccess: false, isError: true  }));
 
-  // TODO: await fetch(`${process.env.API_BASE_URL}/api/opportunities`, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ title, clientId, contactId, estimatedValue: Number(estimatedValue), currency, stage: Number(stage), source: Number(source), probability: Number(probability), expectedCloseDate, description }) });
-  console.log("createOpportunity:", { title, clientId, contactId, estimatedValue: Number(estimatedValue), currency, stage: Number(stage), source: Number(source), probability: Number(probability), expectedCloseDate, description });
-  revalidatePath("/admin/opportunities");
-  return { status: "success", message: `Opportunity "${title}" created.` };
+export const createClientPending = createAction<IClientStateContext>(ClientActionEnums.createClientPending, () => ({ isPending: true,  isSuccess: false, isError: false }));
+export const createClientSuccess = createAction<IClientStateContext>(ClientActionEnums.createClientSuccess, () => ({ isPending: false, isSuccess: true,  isError: false }));
+export const createClientError   = createAction<IClientStateContext>(ClientActionEnums.createClientError,   () => ({ isPending: false, isSuccess: false, isError: true  }));
+
+export const updateClientPending = createAction<IClientStateContext>(ClientActionEnums.updateClientPending, () => ({ isPending: true,  isSuccess: false, isError: false }));
+export const updateClientSuccess = createAction<IClientStateContext>(ClientActionEnums.updateClientSuccess, () => ({ isPending: false, isSuccess: true,  isError: false }));
+export const updateClientError   = createAction<IClientStateContext>(ClientActionEnums.updateClientError,   () => ({ isPending: false, isSuccess: false, isError: true  }));
+
+export const deleteClientPending = createAction<IClientStateContext>(ClientActionEnums.deleteClientPending, () => ({ isPending: true,  isSuccess: false, isError: false }));
+export const deleteClientSuccess = createAction<IClientStateContext>(ClientActionEnums.deleteClientSuccess, () => ({ isPending: false, isSuccess: true,  isError: false }));
+export const deleteClientError   = createAction<IClientStateContext>(ClientActionEnums.deleteClientError,   () => ({ isPending: false, isSuccess: false, isError: true  }));
+
+/* ══════════════════════════════════════════════════════
+   CONTACT
+══════════════════════════════════════════════════════ */
+export enum ContactActionEnums {
+  getContactsPending   = "GET_CONTACTS_PENDING",
+  getContactsSuccess   = "GET_CONTACTS_SUCCESS",
+  getContactsError     = "GET_CONTACTS_ERROR",
+
+  getOneContactPending = "GET_ONE_CONTACT_PENDING",
+  getOneContactSuccess = "GET_ONE_CONTACT_SUCCESS",
+  getOneContactError   = "GET_ONE_CONTACT_ERROR",
+
+  createContactPending = "CREATE_CONTACT_PENDING",
+  createContactSuccess = "CREATE_CONTACT_SUCCESS",
+  createContactError   = "CREATE_CONTACT_ERROR",
+
+  updateContactPending = "UPDATE_CONTACT_PENDING",
+  updateContactSuccess = "UPDATE_CONTACT_SUCCESS",
+  updateContactError   = "UPDATE_CONTACT_ERROR",
+
+  deleteContactPending = "DELETE_CONTACT_PENDING",
+  deleteContactSuccess = "DELETE_CONTACT_SUCCESS",
+  deleteContactError   = "DELETE_CONTACT_ERROR",
 }
 
-/* ─── POST /api/pricingrequests ──────────────────────── */
-export async function createPricingRequestAction(_prev: FormState, formData: FormData): Promise<FormState> {
-  const title          = formData.get("title")          as string;
-  const description    = formData.get("description")    as string;
-  const clientId       = formData.get("clientId")       as string;
-  const opportunityId  = formData.get("opportunityId")  as string;
-  const requestedById  = formData.get("requestedById")  as string;
-  const priority       = formData.get("priority")       as string;
-  const requiredByDate = formData.get("requiredByDate") as string;
+export const getContactsPending   = createAction<IContactStateContext>(ContactActionEnums.getContactsPending,   () => ({ isPending: true,  isSuccess: false, isError: false }));
+export const getContactsSuccess   = createAction<IContactStateContext, IContact[]>(ContactActionEnums.getContactsSuccess, (contacts: IContact[]) => ({ isPending: false, isSuccess: true,  isError: false, contacts }));
+export const getContactsError     = createAction<IContactStateContext>(ContactActionEnums.getContactsError,     () => ({ isPending: false, isSuccess: false, isError: true  }));
 
-  const errors: Partial<Record<string, string>> = {};
-  if (!title?.trim())    errors.title         = "Title is required.";
-  if (!clientId?.trim()) errors.clientId      = "Client ID is required.";
-  if (!requiredByDate)   errors.requiredByDate = "Required by date is required.";
-  if (Object.keys(errors).length) return { status: "error", errors };
+export const getOneContactPending = createAction<IContactStateContext>(ContactActionEnums.getOneContactPending, () => ({ isPending: true,  isSuccess: false, isError: false }));
+export const getOneContactSuccess = createAction<IContactStateContext, IContact>(ContactActionEnums.getOneContactSuccess, (contact: IContact) => ({ isPending: false, isSuccess: true,  isError: false, contact }));
+export const getOneContactError   = createAction<IContactStateContext>(ContactActionEnums.getOneContactError,   () => ({ isPending: false, isSuccess: false, isError: true  }));
 
-  // TODO: await fetch(`${process.env.API_BASE_URL}/api/pricingrequests`, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ title, description, clientId, opportunityId, requestedById, priority: Number(priority), requiredByDate }) });
-  console.log("createPricingRequest:", { title, description, clientId, opportunityId, requestedById, priority: Number(priority), requiredByDate });
-  revalidatePath("/admin/pricingrequests");
-  return { status: "success", message: `Pricing request "${title}" created.` };
+export const createContactPending = createAction<IContactStateContext>(ContactActionEnums.createContactPending, () => ({ isPending: true,  isSuccess: false, isError: false }));
+export const createContactSuccess = createAction<IContactStateContext>(ContactActionEnums.createContactSuccess, () => ({ isPending: false, isSuccess: true,  isError: false }));
+export const createContactError   = createAction<IContactStateContext>(ContactActionEnums.createContactError,   () => ({ isPending: false, isSuccess: false, isError: true  }));
+
+export const updateContactPending = createAction<IContactStateContext>(ContactActionEnums.updateContactPending, () => ({ isPending: true,  isSuccess: false, isError: false }));
+export const updateContactSuccess = createAction<IContactStateContext>(ContactActionEnums.updateContactSuccess, () => ({ isPending: false, isSuccess: true,  isError: false }));
+export const updateContactError   = createAction<IContactStateContext>(ContactActionEnums.updateContactError,   () => ({ isPending: false, isSuccess: false, isError: true  }));
+
+export const deleteContactPending = createAction<IContactStateContext>(ContactActionEnums.deleteContactPending, () => ({ isPending: true,  isSuccess: false, isError: false }));
+export const deleteContactSuccess = createAction<IContactStateContext>(ContactActionEnums.deleteContactSuccess, () => ({ isPending: false, isSuccess: true,  isError: false }));
+export const deleteContactError   = createAction<IContactStateContext>(ContactActionEnums.deleteContactError,   () => ({ isPending: false, isSuccess: false, isError: true  }));
+
+/* ══════════════════════════════════════════════════════
+   OPPORTUNITY
+══════════════════════════════════════════════════════ */
+export enum OpportunityActionEnums {
+  getOpportunitiesPending   = "GET_OPPORTUNITIES_PENDING",
+  getOpportunitiesSuccess   = "GET_OPPORTUNITIES_SUCCESS",
+  getOpportunitiesError     = "GET_OPPORTUNITIES_ERROR",
+
+  getOneOpportunityPending  = "GET_ONE_OPPORTUNITY_PENDING",
+  getOneOpportunitySuccess  = "GET_ONE_OPPORTUNITY_SUCCESS",
+  getOneOpportunityError    = "GET_ONE_OPPORTUNITY_ERROR",
+
+  getStageHistoryPending    = "GET_STAGE_HISTORY_PENDING",
+  getStageHistorySuccess    = "GET_STAGE_HISTORY_SUCCESS",
+  getStageHistoryError      = "GET_STAGE_HISTORY_ERROR",
+
+  createOpportunityPending  = "CREATE_OPPORTUNITY_PENDING",
+  createOpportunitySuccess  = "CREATE_OPPORTUNITY_SUCCESS",
+  createOpportunityError    = "CREATE_OPPORTUNITY_ERROR",
+
+  updateOpportunityPending  = "UPDATE_OPPORTUNITY_PENDING",
+  updateOpportunitySuccess  = "UPDATE_OPPORTUNITY_SUCCESS",
+  updateOpportunityError    = "UPDATE_OPPORTUNITY_ERROR",
+
+  deleteOpportunityPending  = "DELETE_OPPORTUNITY_PENDING",
+  deleteOpportunitySuccess  = "DELETE_OPPORTUNITY_SUCCESS",
+  deleteOpportunityError    = "DELETE_OPPORTUNITY_ERROR",
 }
 
-/* ─── POST /api/contracts ────────────────────────────── */
-export async function createContractAction(_prev: FormState, formData: FormData): Promise<FormState> {
-  const clientId            = formData.get("clientId")            as string;
-  const opportunityId       = formData.get("opportunityId")       as string;
-  const proposalId          = formData.get("proposalId")          as string;
-  const title               = formData.get("title")               as string;
-  const contractValue       = formData.get("contractValue")       as string;
-  const currency            = formData.get("currency")            as string;
-  const startDate           = formData.get("startDate")           as string;
-  const endDate             = formData.get("endDate")             as string;
-  const ownerId             = formData.get("ownerId")             as string;
-  const renewalNoticePeriod = formData.get("renewalNoticePeriod") as string;
-  const autoRenew           = formData.get("autoRenew") === "true";
-  const terms               = formData.get("terms")               as string;
+export const getOpportunitiesPending  = createAction<IOpportunityStateContext>(OpportunityActionEnums.getOpportunitiesPending,  () => ({ isPending: true,  isSuccess: false, isError: false }));
+export const getOpportunitiesSuccess  = createAction<IOpportunityStateContext, IOpportunity[]>(OpportunityActionEnums.getOpportunitiesSuccess, (opportunities: IOpportunity[]) => ({ isPending: false, isSuccess: true,  isError: false, opportunities }));
+export const getOpportunitiesError    = createAction<IOpportunityStateContext>(OpportunityActionEnums.getOpportunitiesError,    () => ({ isPending: false, isSuccess: false, isError: true  }));
 
-  const errors: Partial<Record<string, string>> = {};
-  if (!title?.trim())    errors.title         = "Title is required.";
-  if (!clientId?.trim()) errors.clientId      = "Client ID is required.";
-  if (!contractValue)    errors.contractValue = "Contract value is required.";
-  if (!startDate)        errors.startDate     = "Start date is required.";
-  if (!endDate)          errors.endDate       = "End date is required.";
-  if (Object.keys(errors).length) return { status: "error", errors };
+export const getOneOpportunityPending = createAction<IOpportunityStateContext>(OpportunityActionEnums.getOneOpportunityPending, () => ({ isPending: true,  isSuccess: false, isError: false }));
+export const getOneOpportunitySuccess = createAction<IOpportunityStateContext, IOpportunity>(OpportunityActionEnums.getOneOpportunitySuccess, (opportunity: IOpportunity) => ({ isPending: false, isSuccess: true,  isError: false, opportunity }));
+export const getOneOpportunityError   = createAction<IOpportunityStateContext>(OpportunityActionEnums.getOneOpportunityError,   () => ({ isPending: false, isSuccess: false, isError: true  }));
 
-  // TODO: await fetch(`${process.env.API_BASE_URL}/api/contracts`, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ clientId, opportunityId, proposalId, title, contractValue: Number(contractValue), currency, startDate, endDate, ownerId, renewalNoticePeriod: Number(renewalNoticePeriod), autoRenew, terms }) });
-  console.log("createContract:", { clientId, opportunityId, proposalId, title, contractValue: Number(contractValue), currency, startDate, endDate, ownerId, renewalNoticePeriod: Number(renewalNoticePeriod), autoRenew, terms });
-  revalidatePath("/admin/contracts");
-  return { status: "success", message: `Contract "${title}" created.` };
+export const getStageHistoryPending   = createAction<IOpportunityStateContext>(OpportunityActionEnums.getStageHistoryPending,   () => ({ isPending: true,  isSuccess: false, isError: false }));
+export const getStageHistorySuccess   = createAction<IOpportunityStateContext, IOpportunityStageHistory[]>(OpportunityActionEnums.getStageHistorySuccess, (stageHistory: IOpportunityStageHistory[]) => ({ isPending: false, isSuccess: true,  isError: false, stageHistory }));
+export const getStageHistoryError     = createAction<IOpportunityStateContext>(OpportunityActionEnums.getStageHistoryError,     () => ({ isPending: false, isSuccess: false, isError: true  }));
+
+export const createOpportunityPending = createAction<IOpportunityStateContext>(OpportunityActionEnums.createOpportunityPending, () => ({ isPending: true,  isSuccess: false, isError: false }));
+export const createOpportunitySuccess = createAction<IOpportunityStateContext>(OpportunityActionEnums.createOpportunitySuccess, () => ({ isPending: false, isSuccess: true,  isError: false }));
+export const createOpportunityError   = createAction<IOpportunityStateContext>(OpportunityActionEnums.createOpportunityError,   () => ({ isPending: false, isSuccess: false, isError: true  }));
+
+export const updateOpportunityPending = createAction<IOpportunityStateContext>(OpportunityActionEnums.updateOpportunityPending, () => ({ isPending: true,  isSuccess: false, isError: false }));
+export const updateOpportunitySuccess = createAction<IOpportunityStateContext>(OpportunityActionEnums.updateOpportunitySuccess, () => ({ isPending: false, isSuccess: true,  isError: false }));
+export const updateOpportunityError   = createAction<IOpportunityStateContext>(OpportunityActionEnums.updateOpportunityError,   () => ({ isPending: false, isSuccess: false, isError: true  }));
+
+export const deleteOpportunityPending = createAction<IOpportunityStateContext>(OpportunityActionEnums.deleteOpportunityPending, () => ({ isPending: true,  isSuccess: false, isError: false }));
+export const deleteOpportunitySuccess = createAction<IOpportunityStateContext>(OpportunityActionEnums.deleteOpportunitySuccess, () => ({ isPending: false, isSuccess: true,  isError: false }));
+export const deleteOpportunityError   = createAction<IOpportunityStateContext>(OpportunityActionEnums.deleteOpportunityError,   () => ({ isPending: false, isSuccess: false, isError: true  }));
+
+/* ══════════════════════════════════════════════════════
+   PROPOSAL
+══════════════════════════════════════════════════════ */
+export enum ProposalActionEnums {
+  getProposalsPending   = "GET_PROPOSALS_PENDING",
+  getProposalsSuccess   = "GET_PROPOSALS_SUCCESS",
+  getProposalsError     = "GET_PROPOSALS_ERROR",
+
+  getOneProposalPending = "GET_ONE_PROPOSAL_PENDING",
+  getOneProposalSuccess = "GET_ONE_PROPOSAL_SUCCESS",
+  getOneProposalError   = "GET_ONE_PROPOSAL_ERROR",
+
+  createProposalPending = "CREATE_PROPOSAL_PENDING",
+  createProposalSuccess = "CREATE_PROPOSAL_SUCCESS",
+  createProposalError   = "CREATE_PROPOSAL_ERROR",
+
+  updateProposalPending = "UPDATE_PROPOSAL_PENDING",
+  updateProposalSuccess = "UPDATE_PROPOSAL_SUCCESS",
+  updateProposalError   = "UPDATE_PROPOSAL_ERROR",
+
+  deleteProposalPending = "DELETE_PROPOSAL_PENDING",
+  deleteProposalSuccess = "DELETE_PROPOSAL_SUCCESS",
+  deleteProposalError   = "DELETE_PROPOSAL_ERROR",
 }
 
-/* ─── POST /api/contracts/{contractId}/renewals ──────── */
-export async function createRenewalAction(_prev: FormState, formData: FormData): Promise<FormState> {
-  const contractId        = formData.get("contractId")        as string;
-  const proposedStartDate = formData.get("proposedStartDate") as string;
-  const proposedEndDate   = formData.get("proposedEndDate")   as string;
-  const proposedValue     = formData.get("proposedValue")     as string;
-  const notes             = formData.get("notes")             as string;
+export const getProposalsPending   = createAction<IProposalStateContext>(ProposalActionEnums.getProposalsPending,   () => ({ isPending: true,  isSuccess: false, isError: false }));
+export const getProposalsSuccess   = createAction<IProposalStateContext, IProposal[]>(ProposalActionEnums.getProposalsSuccess, (proposals: IProposal[]) => ({ isPending: false, isSuccess: true,  isError: false, proposals }));
+export const getProposalsError     = createAction<IProposalStateContext>(ProposalActionEnums.getProposalsError,     () => ({ isPending: false, isSuccess: false, isError: true  }));
 
-  const errors: Partial<Record<string, string>> = {};
-  if (!contractId?.trim())  errors.contractId        = "Contract ID is required.";
-  if (!proposedStartDate)   errors.proposedStartDate = "Proposed start date is required.";
-  if (!proposedEndDate)     errors.proposedEndDate   = "Proposed end date is required.";
-  if (!proposedValue)       errors.proposedValue     = "Proposed value is required.";
-  if (Object.keys(errors).length) return { status: "error", errors };
+export const getOneProposalPending = createAction<IProposalStateContext>(ProposalActionEnums.getOneProposalPending, () => ({ isPending: true,  isSuccess: false, isError: false }));
+export const getOneProposalSuccess = createAction<IProposalStateContext, IProposal>(ProposalActionEnums.getOneProposalSuccess, (proposal: IProposal) => ({ isPending: false, isSuccess: true,  isError: false, proposal }));
+export const getOneProposalError   = createAction<IProposalStateContext>(ProposalActionEnums.getOneProposalError,   () => ({ isPending: false, isSuccess: false, isError: true  }));
 
-  // TODO: await fetch(`${process.env.API_BASE_URL}/api/contracts/${contractId}/renewals`, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ proposedStartDate, proposedEndDate, proposedValue: Number(proposedValue), notes }) });
-  console.log("createRenewal:", { contractId, proposedStartDate, proposedEndDate, proposedValue: Number(proposedValue), notes });
-  revalidatePath("/admin/contracts");
-  return { status: "success", message: "Renewal created successfully." };
+export const createProposalPending = createAction<IProposalStateContext>(ProposalActionEnums.createProposalPending, () => ({ isPending: true,  isSuccess: false, isError: false }));
+export const createProposalSuccess = createAction<IProposalStateContext>(ProposalActionEnums.createProposalSuccess, () => ({ isPending: false, isSuccess: true,  isError: false }));
+export const createProposalError   = createAction<IProposalStateContext>(ProposalActionEnums.createProposalError,   () => ({ isPending: false, isSuccess: false, isError: true  }));
+
+export const updateProposalPending = createAction<IProposalStateContext>(ProposalActionEnums.updateProposalPending, () => ({ isPending: true,  isSuccess: false, isError: false }));
+export const updateProposalSuccess = createAction<IProposalStateContext>(ProposalActionEnums.updateProposalSuccess, () => ({ isPending: false, isSuccess: true,  isError: false }));
+export const updateProposalError   = createAction<IProposalStateContext>(ProposalActionEnums.updateProposalError,   () => ({ isPending: false, isSuccess: false, isError: true  }));
+
+export const deleteProposalPending = createAction<IProposalStateContext>(ProposalActionEnums.deleteProposalPending, () => ({ isPending: true,  isSuccess: false, isError: false }));
+export const deleteProposalSuccess = createAction<IProposalStateContext>(ProposalActionEnums.deleteProposalSuccess, () => ({ isPending: false, isSuccess: true,  isError: false }));
+export const deleteProposalError   = createAction<IProposalStateContext>(ProposalActionEnums.deleteProposalError,   () => ({ isPending: false, isSuccess: false, isError: true  }));
+
+/* ══════════════════════════════════════════════════════
+   PRICING REQUEST
+══════════════════════════════════════════════════════ */
+export enum PricingRequestActionEnums {
+  getPricingRequestsPending   = "GET_PRICING_REQUESTS_PENDING",
+  getPricingRequestsSuccess   = "GET_PRICING_REQUESTS_SUCCESS",
+  getPricingRequestsError     = "GET_PRICING_REQUESTS_ERROR",
+
+  getOnePricingRequestPending = "GET_ONE_PRICING_REQUEST_PENDING",
+  getOnePricingRequestSuccess = "GET_ONE_PRICING_REQUEST_SUCCESS",
+  getOnePricingRequestError   = "GET_ONE_PRICING_REQUEST_ERROR",
+
+  createPricingRequestPending = "CREATE_PRICING_REQUEST_PENDING",
+  createPricingRequestSuccess = "CREATE_PRICING_REQUEST_SUCCESS",
+  createPricingRequestError   = "CREATE_PRICING_REQUEST_ERROR",
+
+  updatePricingRequestPending = "UPDATE_PRICING_REQUEST_PENDING",
+  updatePricingRequestSuccess = "UPDATE_PRICING_REQUEST_SUCCESS",
+  updatePricingRequestError   = "UPDATE_PRICING_REQUEST_ERROR",
 }
 
-/* ─── POST /api/activities ───────────────────────────── */
-export async function createActivityAction(_prev: FormState, formData: FormData): Promise<FormState> {
-  const type          = formData.get("type")          as string;
-  const subject       = formData.get("subject")       as string;
-  const description   = formData.get("description")   as string;
-  const priority      = formData.get("priority")      as string;
-  const dueDate       = formData.get("dueDate")       as string;
-  const assignedToId  = formData.get("assignedToId")  as string;
-  const relatedToType = formData.get("relatedToType") as string;
-  const relatedToId   = formData.get("relatedToId")   as string;
-  const duration      = formData.get("duration")      as string;
-  const location      = formData.get("location")      as string;
+export const getPricingRequestsPending   = createAction<IPricingRequestStateContext>(PricingRequestActionEnums.getPricingRequestsPending,   () => ({ isPending: true,  isSuccess: false, isError: false }));
+export const getPricingRequestsSuccess   = createAction<IPricingRequestStateContext, IPricingRequest[]>(PricingRequestActionEnums.getPricingRequestsSuccess, (pricingRequests: IPricingRequest[]) => ({ isPending: false, isSuccess: true,  isError: false, pricingRequests }));
+export const getPricingRequestsError     = createAction<IPricingRequestStateContext>(PricingRequestActionEnums.getPricingRequestsError,     () => ({ isPending: false, isSuccess: false, isError: true  }));
 
-  const errors: Partial<Record<string, string>> = {};
-  if (!type)            errors.type    = "Activity type is required.";
-  if (!subject?.trim()) errors.subject = "Subject is required.";
-  if (!dueDate)         errors.dueDate = "Due date is required.";
-  if (Object.keys(errors).length) return { status: "error", errors };
+export const getOnePricingRequestPending = createAction<IPricingRequestStateContext>(PricingRequestActionEnums.getOnePricingRequestPending, () => ({ isPending: true,  isSuccess: false, isError: false }));
+export const getOnePricingRequestSuccess = createAction<IPricingRequestStateContext, IPricingRequest>(PricingRequestActionEnums.getOnePricingRequestSuccess, (pricingRequest: IPricingRequest) => ({ isPending: false, isSuccess: true,  isError: false, pricingRequest }));
+export const getOnePricingRequestError   = createAction<IPricingRequestStateContext>(PricingRequestActionEnums.getOnePricingRequestError,   () => ({ isPending: false, isSuccess: false, isError: true  }));
 
-  // TODO: await fetch(`${process.env.API_BASE_URL}/api/activities`, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ type: Number(type), subject, description, priority: Number(priority), dueDate, assignedToId, relatedToType: Number(relatedToType), relatedToId, duration: Number(duration), location }) });
-  console.log("createActivity:", { type: Number(type), subject, description, priority: Number(priority), dueDate, assignedToId, relatedToType: Number(relatedToType), relatedToId, duration: Number(duration), location });
-  revalidatePath("/admin/activities");
-  return { status: "success", message: `Activity "${subject}" created.` };
+export const createPricingRequestPending = createAction<IPricingRequestStateContext>(PricingRequestActionEnums.createPricingRequestPending, () => ({ isPending: true,  isSuccess: false, isError: false }));
+export const createPricingRequestSuccess = createAction<IPricingRequestStateContext>(PricingRequestActionEnums.createPricingRequestSuccess, () => ({ isPending: false, isSuccess: true,  isError: false }));
+export const createPricingRequestError   = createAction<IPricingRequestStateContext>(PricingRequestActionEnums.createPricingRequestError,   () => ({ isPending: false, isSuccess: false, isError: true  }));
+
+export const updatePricingRequestPending = createAction<IPricingRequestStateContext>(PricingRequestActionEnums.updatePricingRequestPending, () => ({ isPending: true,  isSuccess: false, isError: false }));
+export const updatePricingRequestSuccess = createAction<IPricingRequestStateContext>(PricingRequestActionEnums.updatePricingRequestSuccess, () => ({ isPending: false, isSuccess: true,  isError: false }));
+export const updatePricingRequestError   = createAction<IPricingRequestStateContext>(PricingRequestActionEnums.updatePricingRequestError,   () => ({ isPending: false, isSuccess: false, isError: true  }));
+
+/* ══════════════════════════════════════════════════════
+   CONTRACT
+══════════════════════════════════════════════════════ */
+export enum ContractActionEnums {
+  getContractsPending   = "GET_CONTRACTS_PENDING",
+  getContractsSuccess   = "GET_CONTRACTS_SUCCESS",
+  getContractsError     = "GET_CONTRACTS_ERROR",
+
+  getOneContractPending = "GET_ONE_CONTRACT_PENDING",
+  getOneContractSuccess = "GET_ONE_CONTRACT_SUCCESS",
+  getOneContractError   = "GET_ONE_CONTRACT_ERROR",
+
+  createContractPending = "CREATE_CONTRACT_PENDING",
+  createContractSuccess = "CREATE_CONTRACT_SUCCESS",
+  createContractError   = "CREATE_CONTRACT_ERROR",
+
+  updateContractPending = "UPDATE_CONTRACT_PENDING",
+  updateContractSuccess = "UPDATE_CONTRACT_SUCCESS",
+  updateContractError   = "UPDATE_CONTRACT_ERROR",
+
+  deleteContractPending = "DELETE_CONTRACT_PENDING",
+  deleteContractSuccess = "DELETE_CONTRACT_SUCCESS",
+  deleteContractError   = "DELETE_CONTRACT_ERROR",
+
+  createRenewalPending  = "CREATE_RENEWAL_PENDING",
+  createRenewalSuccess  = "CREATE_RENEWAL_SUCCESS",
+  createRenewalError    = "CREATE_RENEWAL_ERROR",
 }
 
-/* ─── POST /api/notes ────────────────────────────────── */
-export async function createNoteAction(_prev: FormState, formData: FormData): Promise<FormState> {
-  const content       = formData.get("content")       as string;
-  const relatedToType = formData.get("relatedToType") as string;
-  const relatedToId   = formData.get("relatedToId")   as string;
-  const isPrivate     = formData.get("isPrivate") === "true";
+export const getContractsPending   = createAction<IContractStateContext>(ContractActionEnums.getContractsPending,   () => ({ isPending: true,  isSuccess: false, isError: false }));
+export const getContractsSuccess   = createAction<IContractStateContext, IContract[]>(ContractActionEnums.getContractsSuccess, (contracts: IContract[]) => ({ isPending: false, isSuccess: true,  isError: false, contracts }));
+export const getContractsError     = createAction<IContractStateContext>(ContractActionEnums.getContractsError,     () => ({ isPending: false, isSuccess: false, isError: true  }));
 
-  const errors: Partial<Record<string, string>> = {};
-  if (!content?.trim())     errors.content      = "Note content is required.";
-  if (!relatedToType)       errors.relatedToType = "Related entity type is required.";
-  if (!relatedToId?.trim()) errors.relatedToId  = "Related entity ID is required.";
-  if (Object.keys(errors).length) return { status: "error", errors };
+export const getOneContractPending = createAction<IContractStateContext>(ContractActionEnums.getOneContractPending, () => ({ isPending: true,  isSuccess: false, isError: false }));
+export const getOneContractSuccess = createAction<IContractStateContext, IContract>(ContractActionEnums.getOneContractSuccess, (contract: IContract) => ({ isPending: false, isSuccess: true,  isError: false, contract }));
+export const getOneContractError   = createAction<IContractStateContext>(ContractActionEnums.getOneContractError,   () => ({ isPending: false, isSuccess: false, isError: true  }));
 
-  // TODO: await fetch(`${process.env.API_BASE_URL}/api/notes`, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ content, relatedToType: Number(relatedToType), relatedToId, isPrivate }) });
-  console.log("createNote:", { content, relatedToType: Number(relatedToType), relatedToId, isPrivate });
-  revalidatePath("/admin/notes");
-  return { status: "success", message: "Note added successfully." };
+export const createContractPending = createAction<IContractStateContext>(ContractActionEnums.createContractPending, () => ({ isPending: true,  isSuccess: false, isError: false }));
+export const createContractSuccess = createAction<IContractStateContext>(ContractActionEnums.createContractSuccess, () => ({ isPending: false, isSuccess: true,  isError: false }));
+export const createContractError   = createAction<IContractStateContext>(ContractActionEnums.createContractError,   () => ({ isPending: false, isSuccess: false, isError: true  }));
+
+export const updateContractPending = createAction<IContractStateContext>(ContractActionEnums.updateContractPending, () => ({ isPending: true,  isSuccess: false, isError: false }));
+export const updateContractSuccess = createAction<IContractStateContext>(ContractActionEnums.updateContractSuccess, () => ({ isPending: false, isSuccess: true,  isError: false }));
+export const updateContractError   = createAction<IContractStateContext>(ContractActionEnums.updateContractError,   () => ({ isPending: false, isSuccess: false, isError: true  }));
+
+export const deleteContractPending = createAction<IContractStateContext>(ContractActionEnums.deleteContractPending, () => ({ isPending: true,  isSuccess: false, isError: false }));
+export const deleteContractSuccess = createAction<IContractStateContext>(ContractActionEnums.deleteContractSuccess, () => ({ isPending: false, isSuccess: true,  isError: false }));
+export const deleteContractError   = createAction<IContractStateContext>(ContractActionEnums.deleteContractError,   () => ({ isPending: false, isSuccess: false, isError: true  }));
+
+export const createRenewalPending  = createAction<IContractStateContext>(ContractActionEnums.createRenewalPending,  () => ({ isPending: true,  isSuccess: false, isError: false }));
+export const createRenewalSuccess  = createAction<IContractStateContext, IContractRenewal>(ContractActionEnums.createRenewalSuccess, (renewal: IContractRenewal) => ({ isPending: false, isSuccess: true,  isError: false, renewal }));
+export const createRenewalError    = createAction<IContractStateContext>(ContractActionEnums.createRenewalError,    () => ({ isPending: false, isSuccess: false, isError: true  }));
+
+/* ══════════════════════════════════════════════════════
+   ACTIVITY
+══════════════════════════════════════════════════════ */
+export enum ActivityActionEnums {
+  getActivitiesPending   = "GET_ACTIVITIES_PENDING",
+  getActivitiesSuccess   = "GET_ACTIVITIES_SUCCESS",
+  getActivitiesError     = "GET_ACTIVITIES_ERROR",
+
+  getOneActivityPending  = "GET_ONE_ACTIVITY_PENDING",
+  getOneActivitySuccess  = "GET_ONE_ACTIVITY_SUCCESS",
+  getOneActivityError    = "GET_ONE_ACTIVITY_ERROR",
+
+  createActivityPending  = "CREATE_ACTIVITY_PENDING",
+  createActivitySuccess  = "CREATE_ACTIVITY_SUCCESS",
+  createActivityError    = "CREATE_ACTIVITY_ERROR",
+
+  updateActivityPending  = "UPDATE_ACTIVITY_PENDING",
+  updateActivitySuccess  = "UPDATE_ACTIVITY_SUCCESS",
+  updateActivityError    = "UPDATE_ACTIVITY_ERROR",
+
+  deleteActivityPending  = "DELETE_ACTIVITY_PENDING",
+  deleteActivitySuccess  = "DELETE_ACTIVITY_SUCCESS",
+  deleteActivityError    = "DELETE_ACTIVITY_ERROR",
 }
 
-/* ─── POST /api/clients ──────────────────────────────── */
-export async function createClientAction(_prev: FormState, formData: FormData): Promise<FormState> {
-  const name           = formData.get("name")           as string;
-  const industry       = formData.get("industry")       as string;
-  const clientType     = formData.get("clientType")     as string;
-  const website        = formData.get("website")        as string;
-  const billingAddress = formData.get("billingAddress") as string;
-  const taxNumber      = formData.get("taxNumber")      as string;
-  const companySize    = formData.get("companySize")    as string;
+export const getActivitiesPending   = createAction<IActivityStateContext>(ActivityActionEnums.getActivitiesPending,   () => ({ isPending: true,  isSuccess: false, isError: false }));
+export const getActivitiesSuccess   = createAction<IActivityStateContext, IActivity[]>(ActivityActionEnums.getActivitiesSuccess, (activities: IActivity[]) => ({ isPending: false, isSuccess: true,  isError: false, activities }));
+export const getActivitiesError     = createAction<IActivityStateContext>(ActivityActionEnums.getActivitiesError,     () => ({ isPending: false, isSuccess: false, isError: true  }));
 
-  const errors: Partial<Record<string, string>> = {};
-  if (!name?.trim())           errors.name           = "Company name is required.";
-  if (!industry?.trim())       errors.industry       = "Industry is required.";
-  if (!clientType)             errors.clientType     = "Client type is required.";
-  if (!billingAddress?.trim()) errors.billingAddress = "Billing address is required.";
-  if (website && !/^https?:\/\/.+/.test(website)) errors.website = "Must start with http:// or https://";
-  if (Object.keys(errors).length) return { status: "error", errors };
+export const getOneActivityPending  = createAction<IActivityStateContext>(ActivityActionEnums.getOneActivityPending,  () => ({ isPending: true,  isSuccess: false, isError: false }));
+export const getOneActivitySuccess  = createAction<IActivityStateContext, IActivity>(ActivityActionEnums.getOneActivitySuccess, (activity: IActivity) => ({ isPending: false, isSuccess: true,  isError: false, activity }));
+export const getOneActivityError    = createAction<IActivityStateContext>(ActivityActionEnums.getOneActivityError,    () => ({ isPending: false, isSuccess: false, isError: true  }));
 
-  // TODO: await fetch(`${process.env.API_BASE_URL}/api/clients`, { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ name, industry, clientType: Number(clientType), website, billingAddress, taxNumber, companySize }) });
-  console.log("createClient:", { name, industry, clientType: Number(clientType), website, billingAddress, taxNumber, companySize });
-  revalidatePath("/admin/clients");
-  return { status: "success", message: `Client "${name}" created.` };
+export const createActivityPending  = createAction<IActivityStateContext>(ActivityActionEnums.createActivityPending,  () => ({ isPending: true,  isSuccess: false, isError: false }));
+export const createActivitySuccess  = createAction<IActivityStateContext>(ActivityActionEnums.createActivitySuccess,  () => ({ isPending: false, isSuccess: true,  isError: false }));
+export const createActivityError    = createAction<IActivityStateContext>(ActivityActionEnums.createActivityError,    () => ({ isPending: false, isSuccess: false, isError: true  }));
+
+export const updateActivityPending  = createAction<IActivityStateContext>(ActivityActionEnums.updateActivityPending,  () => ({ isPending: true,  isSuccess: false, isError: false }));
+export const updateActivitySuccess  = createAction<IActivityStateContext>(ActivityActionEnums.updateActivitySuccess,  () => ({ isPending: false, isSuccess: true,  isError: false }));
+export const updateActivityError    = createAction<IActivityStateContext>(ActivityActionEnums.updateActivityError,    () => ({ isPending: false, isSuccess: false, isError: true  }));
+
+export const deleteActivityPending  = createAction<IActivityStateContext>(ActivityActionEnums.deleteActivityPending,  () => ({ isPending: true,  isSuccess: false, isError: false }));
+export const deleteActivitySuccess  = createAction<IActivityStateContext>(ActivityActionEnums.deleteActivitySuccess,  () => ({ isPending: false, isSuccess: true,  isError: false }));
+export const deleteActivityError    = createAction<IActivityStateContext>(ActivityActionEnums.deleteActivityError,    () => ({ isPending: false, isSuccess: false, isError: true  }));
+
+/* ══════════════════════════════════════════════════════
+   NOTE
+══════════════════════════════════════════════════════ */
+export enum NoteActionEnums {
+  getNotesPending   = "GET_NOTES_PENDING",
+  getNotesSuccess   = "GET_NOTES_SUCCESS",
+  getNotesError     = "GET_NOTES_ERROR",
+
+  getOneNotePending = "GET_ONE_NOTE_PENDING",
+  getOneNoteSuccess = "GET_ONE_NOTE_SUCCESS",
+  getOneNoteError   = "GET_ONE_NOTE_ERROR",
+
+  createNotePending = "CREATE_NOTE_PENDING",
+  createNoteSuccess = "CREATE_NOTE_SUCCESS",
+  createNoteError   = "CREATE_NOTE_ERROR",
+
+  updateNotePending = "UPDATE_NOTE_PENDING",
+  updateNoteSuccess = "UPDATE_NOTE_SUCCESS",
+  updateNoteError   = "UPDATE_NOTE_ERROR",
+
+  deleteNotePending = "DELETE_NOTE_PENDING",
+  deleteNoteSuccess = "DELETE_NOTE_SUCCESS",
+  deleteNoteError   = "DELETE_NOTE_ERROR",
 }
+
+export const getNotesPending   = createAction<INoteStateContext>(NoteActionEnums.getNotesPending,   () => ({ isPending: true,  isSuccess: false, isError: false }));
+export const getNotesSuccess   = createAction<INoteStateContext, INote[]>(NoteActionEnums.getNotesSuccess, (notes: INote[]) => ({ isPending: false, isSuccess: true,  isError: false, notes }));
+export const getNotesError     = createAction<INoteStateContext>(NoteActionEnums.getNotesError,     () => ({ isPending: false, isSuccess: false, isError: true  }));
+
+export const getOneNotePending = createAction<INoteStateContext>(NoteActionEnums.getOneNotePending, () => ({ isPending: true,  isSuccess: false, isError: false }));
+export const getOneNoteSuccess = createAction<INoteStateContext, INote>(NoteActionEnums.getOneNoteSuccess, (note: INote) => ({ isPending: false, isSuccess: true,  isError: false, note }));
+export const getOneNoteError   = createAction<INoteStateContext>(NoteActionEnums.getOneNoteError,   () => ({ isPending: false, isSuccess: false, isError: true  }));
+
+export const createNotePending = createAction<INoteStateContext>(NoteActionEnums.createNotePending, () => ({ isPending: true,  isSuccess: false, isError: false }));
+export const createNoteSuccess = createAction<INoteStateContext>(NoteActionEnums.createNoteSuccess, () => ({ isPending: false, isSuccess: true,  isError: false }));
+export const createNoteError   = createAction<INoteStateContext>(NoteActionEnums.createNoteError,   () => ({ isPending: false, isSuccess: false, isError: true  }));
+
+export const updateNotePending = createAction<INoteStateContext>(NoteActionEnums.updateNotePending, () => ({ isPending: true,  isSuccess: false, isError: false }));
+export const updateNoteSuccess = createAction<INoteStateContext>(NoteActionEnums.updateNoteSuccess, () => ({ isPending: false, isSuccess: true,  isError: false }));
+export const updateNoteError   = createAction<INoteStateContext>(NoteActionEnums.updateNoteError,   () => ({ isPending: false, isSuccess: false, isError: true  }));
+
+export const deleteNotePending = createAction<INoteStateContext>(NoteActionEnums.deleteNotePending, () => ({ isPending: true,  isSuccess: false, isError: false }));
+export const deleteNoteSuccess = createAction<INoteStateContext>(NoteActionEnums.deleteNoteSuccess, () => ({ isPending: false, isSuccess: true,  isError: false }));
+export const deleteNoteError   = createAction<INoteStateContext>(NoteActionEnums.deleteNoteError,   () => ({ isPending: false, isSuccess: false, isError: true  }));
