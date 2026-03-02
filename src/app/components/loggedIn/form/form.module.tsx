@@ -45,6 +45,10 @@ export const useFormStyles = createStyles(({ css }) => ({
     background:#1a3a1a;border:1px solid #4caf50;border-radius:10px;
     padding:10px 14px;color:#4caf50;font-size:13px;
   `,
+  errorBanner: css`
+    background:#3a1a1a;border:1px solid #f44336;border-radius:10px;
+    padding:10px 14px;color:#f44336;font-size:13px;
+  `,
   submitRow: css`display:flex;justify-content:flex-end;`,
   submitBtn: css`
     background:#f5a623;border:none;border-radius:10px;padding:10px 28px;

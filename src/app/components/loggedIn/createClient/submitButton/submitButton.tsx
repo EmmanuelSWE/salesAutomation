@@ -1,19 +1,19 @@
-"use client";
+﻿"use client";
 
-import { useFormStatus } from "react-dom";
 import { useCreateClientStyles } from "../createClient.module";
 
-export function CreateClientSubmitButton() {
-  const { pending } = useFormStatus();
-  const { styles }  = useCreateClientStyles();
+interface Props { isPending?: boolean; }
+
+export function CreateClientSubmitButton({ isPending = false }: Props) {
+  const { styles } = useCreateClientStyles();
 
   return (
     <button
       type="submit"
-      disabled={pending}
+      disabled={isPending}
       className={styles.submitBtn}
     >
-      {pending ? "Creating…" : "Create Client"}
+      {isPending ? "Creating..." : "Create Client"}
     </button>
   );
 }

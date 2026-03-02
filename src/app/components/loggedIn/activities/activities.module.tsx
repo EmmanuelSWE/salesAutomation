@@ -19,7 +19,32 @@ export const useActivitiesStyles = createStyles(({ css }) => ({
     font-size: 22px;
     font-weight: 700;
     color: #fff;
-    margin: 0 0 20px 0;
+    margin: 0 0 16px 0;
+  `,
+
+  tabsBar: css`
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  `,
+
+  tab: css`
+    padding: 6px 18px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid #333;
+    background: #2a2a2a;
+    color: #888;
+    transition: all 0.15s;
+    &:hover { background: #333; color: #ccc; }
+  `,
+
+  tabActive: css`
+    background: rgba(245,166,35,0.15);
+    border-color: rgba(245,166,35,0.4);
+    color: #f5a623;
   `,
 
   toolbar: css`

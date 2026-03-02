@@ -1,37 +1,58 @@
-"use client";
-import { useActionState, useEffect, useState } from "react";
-import { useParams } from "next/navigation";
-import { createContactAction, type FormState } from "../../../lib/actions";
+﻿"use client";
+import { useState, useRef } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { createContact, extractApiMessage, type FormState } from "../../../lib/utils/apiMutations";
 import { SubmitButton } from "../form/submitButton";
 import { useCreateClientStyles } from "../createClient/createClient.module";
-
-const initial: FormState = { status: "idle" };
 
 export default function CreateContact() {
   const { styles } = useCreateClientStyles();
   const params = useParams();
   const clientId = (params?.id as string) ?? "";
-  const [token, setToken] = useState("");
-  const [state, formAction] = useActionState(createContactAction, initial);
+  const formRef = useRef<HTMLFormElement>(null);
+  const router = useRouter();
+  const [state, setState] = useState<FormState>({ status: "idle" });
+  const [isPending, setIsPending] = useState(false);
 
-  useEffect(() => {
-    setToken(localStorage.getItem("auth_token") ?? "");
-  }, []);
+  async function handleSubmit() {
+    if (!formRef.current) return;
+    const fd = new FormData(formRef.current);
+    setIsPending(true);
+    try {
+      await createContact({
+        clientId,
+        firstName:        fd.get("firstName")        as string,
+        lastName:         fd.get("lastName")         as string,
+        email:            fd.get("email")            as string,
+        phoneNumber:      fd.get("phoneNumber")      as string,
+        position:         fd.get("position")         as string,
+        isPrimaryContact: fd.get("isPrimaryContact") === "true",
+      });
+      setState({ status: "success", message: "Contact created." });
+      router.push(`/Client/${clientId}/clientOverView`);
+      router.refresh();
+    } catch (err) {
+      setState({ status: "error", message: extractApiMessage(err) });
+    } finally {
+      setIsPending(false);
+    }
+  }
+
   return (
     <div className={styles.page}>
-      <form action={formAction} className={styles.form}>
-        <input type="hidden" name="_token" value={token} />
+      <form ref={formRef} onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className={styles.form}>
         <h1 className={styles.formTitle}>Create Contact</h1>
         {state.status === "success" && <div className={styles.successBanner}>{state.message}</div>}
+        {state.status === "error" && <div className={styles.errorBanner}>{state.message}</div>}
 
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Linked Client</h2>
           <div className={styles.field}>
-            <label className={styles.label} htmlFor="clientId">Client ID</label>
-            <input id="clientId" name="clientId" className={styles.input} placeholder="Client UUID"
-              defaultValue={clientId}
-              style={state.errors?.clientId ? { borderColor: "#f44336" } : {}} />
-            {state.errors?.clientId && <span className={styles.errorText}>{state.errors.clientId}</span>}
+            <span className={styles.label}>Client</span>
+            <div className={styles.input} style={{ background: "#f5f5f5", color: "#555", cursor: "not-allowed", display: "flex", alignItems: "center", gap: 6 }}>
+              <span style={{ fontSize: 12 }}>&#128274;</span>
+              <span style={{ fontFamily: "monospace", fontSize: 12 }}>{clientId}</span>
+            </div>
           </div>
         </section>
 
@@ -74,7 +95,7 @@ export default function CreateContact() {
         </section>
 
         <div className={styles.submitRow}>
-          <SubmitButton label="Create Contact" pendingLabel="Creating…" />
+          <SubmitButton label="Create Contact" pendingLabel="Creating..." isPending={isPending} />
         </div>
       </form>
     </div>

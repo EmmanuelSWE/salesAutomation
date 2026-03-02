@@ -4,6 +4,11 @@ import { ReactNode, useContext, useReducer, useEffect, useMemo, useState } from 
 
 /* ── axios instance ── */
 import api from "../utils/axiosInstance";
+import { handleProviderError } from "../api/strictApi";
+import {
+  zStageBody,
+  zCreateActivity, zCompleteActivity,
+} from "../api/contract";
 
 /* ── contexts ── */
 import {
@@ -46,22 +51,23 @@ import {
 
   getPricingRequestsPending, getPricingRequestsSuccess, getPricingRequestsError,
   getOnePricingRequestPending, getOnePricingRequestSuccess, getOnePricingRequestError,
+  createPricingRequestPending, createPricingRequestSuccess, createPricingRequestError,
 
   getContractsPending, getContractsSuccess, getContractsError,
   getOneContractPending, getOneContractSuccess, getOneContractError,
 
   getActivitiesPending, getActivitiesSuccess, getActivitiesError,
   getOneActivityPending, getOneActivitySuccess, getOneActivityError,
+  createActivityPending, createActivitySuccess, createActivityError,
   updateActivityPending, updateActivitySuccess, updateActivityError,
+  deleteActivityPending, deleteActivitySuccess, deleteActivityError,
 
   getNotesPending, getNotesSuccess, getNotesError,
   getOneNotePending, getOneNoteSuccess, getOneNoteError,
 } from "./actions";
 
-/** Handles both plain-array and paginated `{ items: [] }` API responses. */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const normalize = (data: unknown): any[] =>
-  Array.isArray(data) ? data : ((data as { items?: unknown[] })?.items ?? []);
+import { ACTIVITY_TYPE_NUM, PRIORITY_NUM, RELATED_TO_TYPE_NUM, OPPORTUNITY_STAGE_NUM } from "../utils/apiEnums";
+
 
 /* ══════════════════════════════════════════════════════
    USER PROVIDER
@@ -83,7 +89,6 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
       dispatch(loginPending());
       api.get(`/users/${userId}`)
         .then(res => {
-          console.log("[UserProvider] /users/:id success:", res.data);
           dispatch(loginSuccess({ ...res.data, token }));
           setAuthToken(token);
           setIsInitialized(true);
@@ -102,9 +107,12 @@ export const UserProvider = ({ children }: { children: ReactNode }) => {
 
   const getUsers = async (params?: { role?: string; isActive?: boolean; [key: string]: unknown }) => {
     dispatch(getUsersPending());
-    await api.get("/users", { params })
-      .then(({ data }) => dispatch(getUsersSuccess(Array.isArray(data) ? data : (data.items ?? []))))
-      .catch(err => { console.error("getUsers", err.response?.data); dispatch(getUsersError()); });
+    try {
+      const data = await api.get("/users", { params }).then(r => r.data);
+      dispatch(getUsersSuccess(Array.isArray(data) ? data : (data.items ?? [])));
+    } catch (err) {
+      handleProviderError("getUsers", err, getUsersError);
+    }
   };
 
   const getOneUser = async (id: string) => {
@@ -154,9 +162,12 @@ export const ClientProvider = ({ children }: { children: ReactNode }) => {
 
   const getClients = async (params?: { pageNumber?: number; pageSize?: number; [key: string]: unknown }) => {
     dispatch(getClientsPending());
-    await api.get("/clients", { params })
-      .then(({ data }) => dispatch(getClientsSuccess(data)))
-      .catch(err => { console.error("getClients", err.response?.data); dispatch(getClientsError()); });
+    try {
+      const data = await api.get("/clients", { params }).then(r => r.data);
+      dispatch(getClientsSuccess(data));
+    } catch (err) {
+      handleProviderError("getClients", err, getClientsError);
+    }
   };
 
   const getOneClient = async (id: string) => {
@@ -166,8 +177,19 @@ export const ClientProvider = ({ children }: { children: ReactNode }) => {
       .catch(err => { console.error("getOneClient", err.response?.data); dispatch(getOneClientError()); });
   };
 
+  const createClient = async (payload: object): Promise<string | undefined> => {
+    try {
+      const res = await api.post<{ id: string }>("/clients", payload);
+      await getClients();
+      return res.data?.id;
+    } catch (err) {
+      console.error("createClient", (err as { response?: { data?: unknown } }).response?.data);
+      return undefined;
+    }
+  };
+
   const clientActions = useMemo(
-    () => ({ getClients, getOneClient }),
+    () => ({ getClients, getOneClient, createClient }),
     [token] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
@@ -191,17 +213,25 @@ export const ContactProvider = ({ children }: { children: ReactNode }) => {
   const { token } = useContext(UserStateContext);
 
   const getContacts = async (params?: object) => {
+    // Paged: GET /contacts → { items, pageNumber, pageSize, totalCount }
     dispatch(getContactsPending());
-    await api.get("/contacts", { params })
-      .then(({ data }) => dispatch(getContactsSuccess(normalize(data))))
-      .catch(err => { console.error("getContacts", err.response?.data); dispatch(getContactsError()); });
+    try {
+      const data = await api.get("/contacts", { params }).then(r => r.data);
+      dispatch(getContactsSuccess(data.items ?? []));
+    } catch (err) {
+      handleProviderError("getContacts", err, getContactsError);
+    }
   };
 
   const getContactsByClient = async (clientId: string) => {
+    // Direct array: GET /contacts/by-client/{id} → Contact[]
     dispatch(getContactsPending());
-    await api.get(`/contacts/by-client/${clientId}`)
-      .then(({ data }) => dispatch(getContactsSuccess(normalize(data))))
-      .catch(err => { console.error("getContactsByClient", err.response?.data); dispatch(getContactsError()); });
+    try {
+      const data = await api.get(`/contacts/by-client/${clientId}`).then(r => r.data);
+      dispatch(getContactsSuccess(data));
+    } catch (err) {
+      handleProviderError("getContactsByClient", err, getContactsError);
+    }
   };
 
   const getOneContact = async (id: string) => {
@@ -236,48 +266,99 @@ export const OpportunityProvider = ({ children }: { children: ReactNode }) => {
   const { token } = useContext(UserStateContext);
 
   const getOpportunities = async (params?: object) => {
+    // Paged: GET /opportunities → { items, pageNumber, pageSize, totalCount }
     dispatch(getOpportunitiesPending());
-    await api.get("/opportunities", { params })
-      .then(({ data }) => dispatch(getOpportunitiesSuccess(normalize(data))))
-      .catch(err => { console.error("getOpportunities", err.response?.data); dispatch(getOpportunitiesError()); });
+    try {
+      const data = await api.get("/opportunities", { params }).then(r => r.data);
+      dispatch(getOpportunitiesSuccess(data.items ?? []));
+    } catch (err) {
+      handleProviderError("getOpportunities", err, getOpportunitiesError);
+    }
   };
 
   const getMyOpportunities = async (params?: object) => {
+    // Paged: GET /opportunities/my-opportunities → { items, ... }
     dispatch(getOpportunitiesPending());
-    await api.get("/opportunities/my-opportunities", { params })
-      .then(({ data }) => dispatch(getOpportunitiesSuccess(normalize(data))))
-      .catch(err => { console.error("getMyOpportunities", err.response?.data); dispatch(getOpportunitiesError()); });
+    try {
+      const data = await api.get("/opportunities/my-opportunities", { params }).then(r => r.data);
+      dispatch(getOpportunitiesSuccess(data.items ?? []));
+    } catch (err) {
+      handleProviderError("getMyOpportunities", err, getOpportunitiesError);
+    }
   };
 
   const getPipeline = async (ownerId?: string) => {
+    // Object: GET /opportunities/pipeline → { stages, weightedPipelineValue, conversionRate }
     dispatch(getOpportunitiesPending());
-    await api.get("/opportunities/pipeline", { params: ownerId ? { ownerId } : undefined })
-      .then(({ data }) => dispatch(getOpportunitiesSuccess(normalize(data))))
-      .catch(err => { console.error("getPipeline", err.response?.data); dispatch(getOpportunitiesError()); });
+    try {
+      const data = await api.get("/opportunities/pipeline", { params: ownerId ? { ownerId } : undefined }).then(r => r.data);
+      dispatch(getOpportunitiesSuccess(data.stages ?? []));
+    } catch (err) {
+      handleProviderError("getPipeline", err, getOpportunitiesError);
+    }
   };
 
   const getOneOpportunity = async (id: string) => {
     dispatch(getOneOpportunityPending());
-    await api.get(`/opportunities/${id}`)
-      .then(res => dispatch(getOneOpportunitySuccess(res.data)))
-      .catch(err => { console.error("getOneOpportunity", err.response?.data); dispatch(getOneOpportunityError()); });
+    try {
+      const data = await api.get(`/opportunities/${id}`).then(r => r.data);
+      dispatch(getOneOpportunitySuccess(data));
+    } catch (err) {
+      handleProviderError("getOneOpportunity", err, getOneOpportunityError);
+    }
   };
 
   const getStageHistory = async (id: string) => {
+    // Direct array: GET /opportunities/{id}/stage-history → StageHistory[]
     dispatch(getStageHistoryPending());
-    await api.get(`/opportunities/${id}/stage-history`)
-      .then(({ data }) => dispatch(getStageHistorySuccess(normalize(data))))
-      .catch(err => { console.error("getStageHistory", err.response?.data); dispatch(getStageHistoryError()); });
+    try {
+      const data = await api.get(`/opportunities/${id}/stage-history`).then(r => r.data);
+      dispatch(getStageHistorySuccess(data));
+    } catch (err) {
+      handleProviderError("getStageHistory", err, getStageHistoryError);
+    }
   };
 
-  const advanceStage = async (id: string, stage: number, reason?: string) => {
-    await api.put(`/opportunities/${id}/stage`, { stage, reason })
+  const advanceStage = async (id: string, stage: number, reason?: string, lossReason?: string) => {
+    // Body contract: { stage, notes: string|null, lossReason: required when stage===6 }
+    const body = { stage, notes: reason ?? null, lossReason: stage === 6 ? (lossReason ?? null) : null };
+    const parsed = zStageBody.safeParse(body);
+    if (!parsed.success) {
+      const msg = parsed.error.issues.map(i => i.message).join("; ");
+      console.error("advanceStage validation:", msg);
+      return;
+    }
+    await api.put(`/opportunities/${id}/stage`, parsed.data)
       .then(() => getOneOpportunity(id))
-      .catch(err => console.error("advanceStage", err.response?.data));
+      .catch(err => { handleProviderError("advanceStage", err); });
+  };
+
+  const deleteOpportunity = async (id: string) => {
+    await api.delete(`/opportunities/${id}`)
+      .catch(err => { handleProviderError("deleteOpportunity", err); });
+  };
+
+  const assignOpportunity = async (id: string, userId: string) => {
+    await api.post(`/opportunities/${id}/assign`, { userId })
+      .catch(err => console.error("assignOpportunity", err.response?.data));
+  };
+
+  const createOpportunity = async (payload: object): Promise<string | undefined> => {
+    try {
+      const raw = payload as Record<string, unknown>;
+      const body = { ...raw };
+      if (typeof body.stage === "string") body.stage = OPPORTUNITY_STAGE_NUM[body.stage] ?? body.stage;
+      const res = await api.post<{ id: string }>("/opportunities", body);
+      await getOpportunities();
+      return res.data?.id;
+    } catch (err) {
+      console.error("createOpportunity", (err as { response?: { data?: unknown } }).response?.data);
+      return undefined;
+    }
   };
 
   const opportunityActions = useMemo(
-    () => ({ getOpportunities, getMyOpportunities, getPipeline, getOneOpportunity, getStageHistory, advanceStage }),
+    () => ({ getOpportunities, getMyOpportunities, getPipeline, getOneOpportunity, getStageHistory, advanceStage, deleteOpportunity, assignOpportunity, createOpportunity }),
     [token] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
@@ -301,33 +382,72 @@ export const ProposalProvider = ({ children }: { children: ReactNode }) => {
   const { token } = useContext(UserStateContext);
 
   const getProposals = async (params?: object) => {
+    // Paged: GET /proposals → { items, pageNumber, pageSize, totalCount }
     dispatch(getProposalsPending());
-    await api.get("/proposals", { params })
-      .then(({ data }) => dispatch(getProposalsSuccess(normalize(data))))
-      .catch(err => { console.error("getProposals", err.response?.data); dispatch(getProposalsError()); });
+    try {
+      const data = await api.get("/proposals", { params }).then(r => r.data);
+      dispatch(getProposalsSuccess(data.items ?? []));
+    } catch (err) {
+      handleProviderError("getProposals", err, getProposalsError);
+    }
   };
 
   const getOneProposal = async (id: string) => {
     dispatch(getOneProposalPending());
-    await api.get(`/proposals/${id}`)
-      .then(res => dispatch(getOneProposalSuccess(res.data)))
-      .catch(err => { console.error("getOneProposal", err.response?.data); dispatch(getOneProposalError()); });
+    try {
+      const data = await api.get(`/proposals/${id}`).then(r => r.data);
+      dispatch(getOneProposalSuccess(data));
+    } catch (err) {
+      handleProviderError("getOneProposal", err, getOneProposalError);
+    }
   };
 
   const submitProposal = async (id: string) => {
-    await api.put(`/proposals/${id}/submit`, {})
+    // Contract: PUT /proposals/{id}/submit — no body
+    await api.put(`/proposals/${id}/submit`)
       .then(() => getOneProposal(id))
-      .catch(err => console.error("submitProposal", err.response?.data));
+      .catch(err => { handleProviderError("submitProposal", err); });
   };
 
-  const approveProposal = async (id: string, comment?: string) => {
-    await api.put(`/proposals/${id}/approve`, comment ? { comment } : {})
+  const approveProposal = async (id: string) => {
+    // Contract: PUT /proposals/{id}/approve — no body
+    await api.put(`/proposals/${id}/approve`)
       .then(() => getOneProposal(id))
-      .catch(err => console.error("approveProposal", err.response?.data));
+      .catch(err => { handleProviderError("approveProposal", err); });
+  };
+
+  const rejectProposal = async (id: string, reason?: string) => {
+    // Contract: PUT /proposals/{id}/reject — no body
+    // `reason` kept in signature for UI compatibility; not sent to API per contract
+    void reason;
+    await api.put(`/proposals/${id}/reject`)
+      .then(() => getOneProposal(id))
+      .catch(err => { handleProviderError("rejectProposal", err); });
+  };
+
+  const deleteProposal = async (id: string, clientId?: string) => {
+    await api.delete(`/proposals/${id}`)
+      .then(() => { if (clientId) getProposals({ clientId }); })
+      .catch(err => { handleProviderError("deleteProposal", err); });
+  };
+
+  /** Convenience — picks the right endpoint then re-fetches the client's list */
+  const updateStatus = async (id: string, status: import("../utils/apiEnums").ProposalStatus, clientId?: string, reason?: string) => {
+    let endpoint: string | null = null;
+    if (status === "Submitted") endpoint = "submit";
+    else if (status === "Approved") endpoint = "approve";
+    else if (status === "Rejected") endpoint = "reject";
+    if (!endpoint) return;
+    // Contract: submit/approve/reject take no body; `reason` kept for UI compatibility
+    void reason;
+    const refresh = () => clientId ? getProposals({ clientId }) : getOneProposal(id);
+    await api.put(`/proposals/${id}/${endpoint}`)
+      .then(refresh)
+      .catch(err => { handleProviderError(`updateStatus → ${endpoint}`, err); });
   };
 
   const proposalActions = useMemo(
-    () => ({ getProposals, getOneProposal, submitProposal, approveProposal }),
+    () => ({ getProposals, getOneProposal, submitProposal, approveProposal, rejectProposal, updateStatus, deleteProposal }),
     [token] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
@@ -351,24 +471,36 @@ export const PricingRequestProvider = ({ children }: { children: ReactNode }) =>
   const { token } = useContext(UserStateContext);
 
   const getPricingRequests = async (params?: object) => {
+    // Paged: GET /pricingrequests → { items, pageNumber, pageSize, totalCount }
     dispatch(getPricingRequestsPending());
-    await api.get("/pricingrequests", { params })
-      .then(({ data }) => dispatch(getPricingRequestsSuccess(normalize(data))))
-      .catch(err => { console.error("getPricingRequests", err.response?.data); dispatch(getPricingRequestsError()); });
+    try {
+      const data = await api.get("/pricingrequests", { params }).then(r => r.data);
+      dispatch(getPricingRequestsSuccess(data.items ?? []));
+    } catch (err) {
+      handleProviderError("getPricingRequests", err, getPricingRequestsError);
+    }
   };
 
   const getPendingRequests = async () => {
+    // Paged: GET /pricingrequests/pending → { items, ... }
     dispatch(getPricingRequestsPending());
-    await api.get("/pricingrequests/pending")
-      .then(({ data }) => dispatch(getPricingRequestsSuccess(normalize(data))))
-      .catch(err => { console.error("getPendingRequests", err.response?.data); dispatch(getPricingRequestsError()); });
+    try {
+      const data = await api.get("/pricingrequests/pending").then(r => r.data);
+      dispatch(getPricingRequestsSuccess(data.items ?? []));
+    } catch (err) {
+      handleProviderError("getPendingRequests", err, getPricingRequestsError);
+    }
   };
 
   const getMyRequests = async () => {
+    // Paged: GET /pricingrequests/my-requests → { items, ... }
     dispatch(getPricingRequestsPending());
-    await api.get("/pricingrequests/my-requests")
-      .then(({ data }) => dispatch(getPricingRequestsSuccess(normalize(data))))
-      .catch(err => { console.error("getMyRequests", err.response?.data); dispatch(getPricingRequestsError()); });
+    try {
+      const data = await api.get("/pricingrequests/my-requests").then(r => r.data);
+      dispatch(getPricingRequestsSuccess(data.items ?? []));
+    } catch (err) {
+      handleProviderError("getMyRequests", err, getPricingRequestsError);
+    }
   };
 
   const getOnePricingRequest = async (id: string) => {
@@ -378,14 +510,50 @@ export const PricingRequestProvider = ({ children }: { children: ReactNode }) =>
       .catch(err => { console.error("getOnePricingRequest", err.response?.data); dispatch(getOnePricingRequestError()); });
   };
 
-  const assignRequest = async (id: string, assignedToId: string) => {
-    await api.post(`/pricingrequests/${id}/assign`, { assignedToId })
-      .then(() => getOnePricingRequest(id))
-      .catch(err => console.error("assignRequest", err.response?.data));
+  const createPricingRequest = async (payload: object): Promise<string | undefined> => {
+    dispatch(createPricingRequestPending());
+    try {
+      const raw  = payload as Record<string, unknown>;
+      const body: Record<string, unknown> = { ...raw };
+      if (typeof body.priority === "string") body.priority = PRIORITY_NUM[body.priority] ?? body.priority;
+      const res = await api.post("/pricingrequests", body);
+      dispatch(createPricingRequestSuccess());
+      // Refresh the list so any mounted pricing-request UI picks up the new entry
+      await api.get("/pricingrequests").then(r => r.data)
+        .then(data => dispatch(getPricingRequestsSuccess(data.items ?? [])))
+        .catch(() => { /* non-fatal */ });
+      return res.data?.id as string | undefined;
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: unknown } };
+      console.error("createPricingRequest", e.response?.data);
+      dispatch(createPricingRequestError());
+      return undefined;
+    }
+  };
+
+  const assignRequest = async (id: string, userId: string) => {
+    if (!id) return;
+    await api.post(`/pricingrequests/${id}/assign`, { userId })
+      .then(() => getPricingRequests())
+      .catch(err => { console.error("assignRequest", err.response?.data); throw err; });
+  };
+
+  const completeRequest = async (id: string) => {
+    if (!id) return;
+    // Contract: PUT /pricingrequests/{id}/complete — no body (§6.9)
+    await api.put(`/pricingrequests/${id}/complete`)
+      .then(() => getPricingRequests())
+      .catch(err => { handleProviderError("completeRequest", err); throw err; });
+  };
+
+  const updatePricingRequest = async (id: string, payload: object) => {
+    await api.put(`/pricingrequests/${id}`, payload)
+      .then(() => getPricingRequests())
+      .catch(err => { handleProviderError("updatePricingRequest", err); });
   };
 
   const pricingActions = useMemo(
-    () => ({ getPricingRequests, getPendingRequests, getMyRequests, getOnePricingRequest, assignRequest }),
+    () => ({ getPricingRequests, getPendingRequests, getMyRequests, getOnePricingRequest, createPricingRequest, assignRequest, completeRequest, updatePricingRequest }),
     [token] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
@@ -409,46 +577,98 @@ export const ContractProvider = ({ children }: { children: ReactNode }) => {
   const { token } = useContext(UserStateContext);
 
   const getContracts = async (params?: object) => {
+    // Paged: GET /contracts → { items, pageNumber, pageSize, totalCount }
     dispatch(getContractsPending());
-    await api.get("/contracts", { params })
-      .then(({ data }) => dispatch(getContractsSuccess(normalize(data))))
-      .catch(err => { console.error("getContracts", err.response?.data); dispatch(getContractsError()); });
+    try {
+      const data = await api.get("/contracts", { params }).then(r => r.data);
+      dispatch(getContractsSuccess(data.items ?? []));
+    } catch (err) {
+      handleProviderError("getContracts", err, getContractsError);
+    }
   };
 
   const getOneContract = async (id: string) => {
     dispatch(getOneContractPending());
-    await api.get(`/contracts/${id}`)
-      .then(res => dispatch(getOneContractSuccess(res.data)))
-      .catch(err => { console.error("getOneContract", err.response?.data); dispatch(getOneContractError()); });
+    try {
+      const data = await api.get(`/contracts/${id}`).then(r => r.data);
+      dispatch(getOneContractSuccess(data));
+    } catch (err) {
+      handleProviderError("getOneContract", err, getOneContractError);
+    }
   };
 
   const getExpiringContracts = async (daysUntilExpiry?: number) => {
+    // Direct array: GET /contracts/expiring → Contract[]
     dispatch(getContractsPending());
-    await api.get("/contracts/expiring", { params: { daysUntilExpiry } })
-      .then(({ data }) => dispatch(getContractsSuccess(normalize(data))))
-      .catch(err => { console.error("getExpiringContracts", err.response?.data); dispatch(getContractsError()); });
+    try {
+      const data = await api.get("/contracts/expiring", { params: daysUntilExpiry !== undefined ? { daysUntilExpiry } : undefined }).then(r => r.data);
+      dispatch(getContractsSuccess(data));
+    } catch (err) {
+      handleProviderError("getExpiringContracts", err, getContractsError);
+    }
   };
 
   const getContractsByClient = async (clientId: string) => {
+    // Direct array: GET /contracts/client/{id} → Contract[]
     dispatch(getContractsPending());
-    await api.get(`/contracts/client/${clientId}`)
-      .then(({ data }) => dispatch(getContractsSuccess(normalize(data))))
-      .catch(err => { console.error("getContractsByClient", err.response?.data); dispatch(getContractsError()); });
+    try {
+      const data = await api.get(`/contracts/client/${clientId}`).then(r => r.data);
+      dispatch(getContractsSuccess(data));
+    } catch (err) {
+      handleProviderError("getContractsByClient", err, getContractsError);
+    }
   };
 
   const activateContract = async (id: string) => {
-    await api.put(`/contracts/${id}/activate`, {})
+    // Contract: PUT /contracts/{id}/activate — no body (§7.5)
+    await api.put(`/contracts/${id}/activate`)
       .then(() => getOneContract(id))
-      .catch(err => console.error("activateContract", err.response?.data));
+      .catch(err => { handleProviderError("activateContract", err); });
   };
 
-  const completeRenewal = async (renewalId: string) => {
-    await api.put(`/contracts/renewals/${renewalId}/complete`, {})
-      .catch(err => console.error("completeRenewal", err.response?.data));
+  const cancelContract = async (id: string) => {
+    // Contract: PUT /contracts/{id}/cancel — no body (§7.6)
+    await api.put(`/contracts/${id}/cancel`)
+      .then(() => getOneContract(id))
+      .catch(err => { handleProviderError("cancelContract", err); });
+  };
+
+  const deleteContract = async (id: string) => {
+    await api.delete(`/contracts/${id}`)
+      .catch(err => { handleProviderError("deleteContract", err); });
+  };
+
+  const updateContract = async (id: string, payload: object) => {
+    await api.put(`/contracts/${id}`, payload)
+      .then(() => getOneContract(id))
+      .catch(err => { handleProviderError("updateContract", err); });
+  };
+
+  const createRenewal = async (contractId: string, payload: { renewalOpportunityId?: string; notes?: string }) => {
+    await api.post(`/contracts/${contractId}/renewals`, payload)
+      .catch(err => { handleProviderError("createRenewal", err); });
+  };
+
+  const completeRenewal = async (renewalId: string, clientId?: string) => {
+    // Contract: PUT /contracts/renewals/{id}/complete — no body (§7.10)
+    await api.put(`/contracts/renewals/${renewalId}/complete`)
+      .then(() => { if (clientId) getContractsByClient(clientId); })
+      .catch(err => { handleProviderError("completeRenewal", err); });
+  };
+
+  const createContract = async (payload: object): Promise<string | undefined> => {
+    try {
+      const res = await api.post<{ id: string }>("/contracts", payload);
+      await getContracts();
+      return res.data?.id;
+    } catch (err) {
+      console.error("createContract", (err as { response?: { data?: unknown } }).response?.data);
+      return undefined;
+    }
   };
 
   const contractActions = useMemo(
-    () => ({ getContracts, getOneContract, getExpiringContracts, getContractsByClient, activateContract, completeRenewal }),
+    () => ({ getContracts, getOneContract, getExpiringContracts, getContractsByClient, updateContract, activateContract, cancelContract, deleteContract, createRenewal, completeRenewal, createContract }),
     [token] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
@@ -465,6 +685,21 @@ export const useContractState  = () => useContext(ContractStateContext);
 export const useContractAction = () => useContext(ContractActionsContext);
 
 /* ══════════════════════════════════════════════════════
+   ACTIVITY HELPER
+   Converts string enum labels to the integers the API
+   requires on every write operation (POST / PUT).
+══════════════════════════════════════════════════════ */
+function toActivityNums(p: Record<string, unknown>): Record<string, unknown> {
+  const out = { ...p };
+  if (typeof out.type          === "string") out.type          = ACTIVITY_TYPE_NUM[out.type]          ?? out.type;
+  if (typeof out.priority      === "string") out.priority      = PRIORITY_NUM[out.priority]            ?? out.priority;
+  if (typeof out.relatedToType === "string") out.relatedToType = RELATED_TO_TYPE_NUM[out.relatedToType] ?? out.relatedToType;
+  if (typeof out.dueDate       === "string" && !out.dueDate.includes("T"))
+    out.dueDate = `${out.dueDate}T00:00:00`;
+  return out;
+}
+
+/* ══════════════════════════════════════════════════════
    ACTIVITY PROVIDER
 ══════════════════════════════════════════════════════ */
 export const ActivityProvider = ({ children }: { children: ReactNode }) => {
@@ -472,49 +707,129 @@ export const ActivityProvider = ({ children }: { children: ReactNode }) => {
   const { token } = useContext(UserStateContext);
 
   const getActivities = async (params?: object) => {
+    // Paged: GET /activities → { items, pageNumber, pageSize, totalCount }
     dispatch(getActivitiesPending());
-    await api.get("/activities", { params })
-      .then(({ data }) => dispatch(getActivitiesSuccess(normalize(data))))
-      .catch(err => { console.error("getActivities", err.response?.data); dispatch(getActivitiesError()); });
+    try {
+      const data = await api.get("/activities", { params }).then(r => r.data);
+      dispatch(getActivitiesSuccess(data.items ?? []));
+    } catch (err) {
+      handleProviderError("getActivities", err, getActivitiesError);
+    }
   };
 
   const getMyActivities = async (params?: object) => {
+    // Paged: GET /activities/my-activities → { items, ... }
     dispatch(getActivitiesPending());
-    await api.get("/activities/my-activities", { params })
-      .then(({ data }) => dispatch(getActivitiesSuccess(normalize(data))))
-      .catch(err => { console.error("getMyActivities", err.response?.data); dispatch(getActivitiesError()); });
+    try {
+      const data = await api.get("/activities/my-activities", { params }).then(r => r.data);
+      dispatch(getActivitiesSuccess(data.items ?? []));
+    } catch (err) {
+      handleProviderError("getMyActivities", err, getActivitiesError);
+    }
   };
 
   const getUpcoming = async (daysAhead?: number) => {
+    // Paged: GET /activities/upcoming → { items, ... }
     dispatch(getActivitiesPending());
-    await api.get("/activities/upcoming", { params: { daysAhead } })
-      .then(({ data }) => dispatch(getActivitiesSuccess(normalize(data))))
-      .catch(err => { console.error("getUpcoming", err.response?.data); dispatch(getActivitiesError()); });
+    try {
+      const data = await api.get("/activities/upcoming", { params: daysAhead !== undefined ? { daysAhead } : undefined }).then(r => r.data);
+      dispatch(getActivitiesSuccess(data.items ?? []));
+    } catch (err) {
+      handleProviderError("getUpcoming", err, getActivitiesError);
+    }
   };
 
   const getOverdue = async () => {
+    // Direct array: GET /activities/overdue → Activity[]
     dispatch(getActivitiesPending());
-    await api.get("/activities/overdue")
-      .then(({ data }) => dispatch(getActivitiesSuccess(normalize(data))))
-      .catch(err => { console.error("getOverdue", err.response?.data); dispatch(getActivitiesError()); });
+    try {
+      const data = await api.get("/activities/overdue").then(r => r.data);
+      dispatch(getActivitiesSuccess(data));
+    } catch (err) {
+      handleProviderError("getOverdue", err, getActivitiesError);
+    }
   };
 
   const getOneActivity = async (id: string) => {
     dispatch(getOneActivityPending());
-    await api.get(`/activities/${id}`)
-      .then(res => dispatch(getOneActivitySuccess(res.data)))
-      .catch(err => { console.error("getOneActivity", err.response?.data); dispatch(getOneActivityError()); });
+    try {
+      const data = await api.get(`/activities/${id}`).then(r => r.data);
+      dispatch(getOneActivitySuccess(data));
+    } catch (err) {
+      handleProviderError("getOneActivity", err, getOneActivityError);
+    }
+  };
+
+  const createActivity = async (payload: object) => {
+    dispatch(createActivityPending());
+    const body = toActivityNums(payload as Record<string, unknown>);
+    const parsed = zCreateActivity.safeParse(body);
+    if (!parsed.success) {
+      handleProviderError("createActivity", new (class extends Error { constructor() { super(); } })(), createActivityError);
+      console.error("createActivity validation:", parsed.error.issues);
+      dispatch(createActivityError());
+      return;
+    }
+    try {
+      await api.post("/activities", parsed.data);
+      dispatch(createActivitySuccess());
+    } catch (err) {
+      handleProviderError("createActivity", err, createActivityError);
+    }
   };
 
   const updateActivity = async (id: string, payload: Partial<import('./context').IActivity>) => {
     dispatch(updateActivityPending());
-    await api.put(`/activities/${id}`, payload)
-      .then(res => { dispatch(updateActivitySuccess()); dispatch(getOneActivitySuccess(res.data)); })
-      .catch(err => { console.error("updateActivity", err.response?.data); dispatch(updateActivityError()); });
+    try {
+      const res = await api.put(`/activities/${id}`, toActivityNums(payload as Record<string, unknown>));
+      dispatch(updateActivitySuccess());
+      dispatch(getOneActivitySuccess(res.data));
+    } catch (err) {
+      handleProviderError("updateActivity", err, updateActivityError);
+      throw err;
+    }
+  };
+
+  const completeActivity = async (id: string, outcome: string) => {
+    const parsed = zCompleteActivity.safeParse({ outcome });
+    if (!parsed.success) {
+      console.error("completeActivity validation:", parsed.error.issues);
+      return;
+    }
+    dispatch(updateActivityPending());
+    try {
+      const res = await api.put(`/activities/${id}/complete`, parsed.data);
+      dispatch(updateActivitySuccess());
+      dispatch(getOneActivitySuccess(res.data));
+    } catch (err) {
+      handleProviderError("completeActivity", err, updateActivityError);
+    }
+  };
+
+  const cancelActivity = async (id: string) => {
+    // Contract: PUT /activities/{id}/cancel — no body (§8.9)
+    dispatch(updateActivityPending());
+    try {
+      const res = await api.put(`/activities/${id}/cancel`);
+      dispatch(updateActivitySuccess());
+      dispatch(getOneActivitySuccess(res.data));
+    } catch (err) {
+      handleProviderError("cancelActivity", err, updateActivityError);
+    }
+  };
+
+  const deleteActivity = async (id: string) => {
+    dispatch(deleteActivityPending());
+    try {
+      await api.delete(`/activities/${id}`);
+      dispatch(deleteActivitySuccess());
+    } catch (err) {
+      handleProviderError("deleteActivity", err, deleteActivityError);
+    }
   };
 
   const activityActions = useMemo(
-    () => ({ getActivities, getMyActivities, getUpcoming, getOverdue, getOneActivity, updateActivity }),
+    () => ({ getActivities, getMyActivities, getUpcoming, getOverdue, getOneActivity, createActivity, updateActivity, completeActivity, cancelActivity, deleteActivity }),
     [token] // eslint-disable-line react-hooks/exhaustive-deps
   );
 
@@ -538,10 +853,14 @@ export const NoteProvider = ({ children }: { children: ReactNode }) => {
   const { token } = useContext(UserStateContext);
 
   const getNotes = async (params?: object) => {
+    // Paged: GET /notes → { items, pageNumber, pageSize, totalCount }
     dispatch(getNotesPending());
-    await api.get("/notes", { params })
-      .then(({ data }) => dispatch(getNotesSuccess(normalize(data))))
-      .catch(err => { console.error("getNotes", err.response?.data); dispatch(getNotesError()); });
+    try {
+      const data = await api.get("/notes", { params }).then(r => r.data);
+      dispatch(getNotesSuccess(data.items ?? []));
+    } catch (err) {
+      handleProviderError("getNotes", err, getNotesError);
+    }
   };
 
   const getOneNote = async (id: string) => {

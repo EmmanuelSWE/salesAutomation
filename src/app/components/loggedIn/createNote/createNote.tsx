@@ -1,42 +1,71 @@
-"use client";
-import { useActionState, useEffect, useState } from "react";
-import { createNoteAction, type FormState } from "../../../lib/actions";
+﻿"use client";
+import { useState, useRef } from "react";
+import { createNote, extractApiMessage, type FormState } from "../../../lib/utils/apiMutations";
 import { SubmitButton } from "../form/submitButton";
 import { useFormStyles } from "../form/form.module";
 
-const initial: FormState = { status: "idle" };
-
 export default function CreateNote() {
   const { styles } = useFormStyles();
-  const [token, setToken] = useState("");
-  const [state, formAction] = useActionState(createNoteAction, initial);
+  const formRef = useRef<HTMLFormElement>(null);
+  const [state, setState] = useState<FormState>({ status: "idle" });
+  const [isPending, setIsPending] = useState(false);
 
-  useEffect(() => { setToken(localStorage.getItem("auth_token") ?? ""); }, []);
+  async function handleSubmit() {
+    if (!formRef.current) return;
+    const fd = new FormData(formRef.current);
+    setIsPending(true);
+    try {
+      await createNote({
+        content:       fd.get("content")       as string,
+        relatedToType: fd.get("relatedToType") as string,
+        relatedToId:   fd.get("relatedToId")   as string,
+        isPrivate:     fd.get("isPrivate") === "true",
+      });
+      setState({ status: "success", message: "Note created." });
+    } catch (err) {
+      setState({ status: "error", message: extractApiMessage(err) });
+    } finally {
+      setIsPending(false);
+    }
+  }
 
   return (
     <div className={styles.page}>
-      <form action={formAction} className={styles.form}>
-        <input type="hidden" name="_token" value={token} />
+      <form ref={formRef} onSubmit={(e) => { e.preventDefault(); handleSubmit(); }} className={styles.form}>
         <h1 className={styles.formTitle}>Create Note</h1>
         {state.status === "success" && <div className={styles.successBanner}>{state.message}</div>}
+        {state.status === "error" && <div className={styles.errorBanner}>{state.message}</div>}
 
         <section className={styles.section}>
           <div className={styles.field}>
+            <label className={styles.label} htmlFor="relatedToType">Related To (type)</label>
+            <select id="relatedToType" name="relatedToType" className={styles.select} defaultValue=""
+              style={state.errors?.relatedToType ? { borderColor: "#f44336" } : {}}>
+              <option value="" disabled>Select type…</option>
+              <option value="Client">Client</option>
+              <option value="Opportunity">Opportunity</option>
+              <option value="Proposal">Proposal</option>
+              <option value="Contract">Contract</option>
+              <option value="Activity">Activity</option>
+            </select>
+            {state.errors?.relatedToType && <span className={styles.errorText}>{state.errors.relatedToType}</span>}
+          </div>
+          <div className={styles.field}>
             <label className={styles.label} htmlFor="relatedToId">Related To (ID)</label>
-            <input id="relatedToId" name="relatedToId" className={styles.input} />
+            <input id="relatedToId" name="relatedToId" className={styles.input} placeholder="Paste the ID of the linked record" />
           </div>
           <div className={styles.field}>
             <label className={styles.label} htmlFor="content">Content</label>
             <textarea id="content" name="content" className={styles.textarea} />
           </div>
-          <div className={styles.field}>
-            <label className={styles.label} htmlFor="authorId">Author ID</label>
-            <input id="authorId" name="authorId" className={styles.input} />
-          </div>
+          <label className={styles.toggle ?? ""} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 14 }}>
+            <input type="checkbox" name="isPrivate" value="true" />
+            {" "}Private note
+          </label>
         </section>
 
         <div className={styles.submitRow}>
-          <SubmitButton label="Create Note" pendingLabel="Creating…" />
+          <SubmitButton label="Create Note" pendingLabel="Creating..." isPending={isPending} />
         </div>
       </form>
     </div>

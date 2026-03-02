@@ -11,8 +11,8 @@ export const useClientOpportunitiesStyles = createStyles(({ css }) => ({
     white-space: nowrap;
   `,
 
-  prospecting:  css`background: rgba(92,107,192,0.15);  color: #7c85ff;`,
-  qualification:css`background: rgba(33,150,243,0.15);  color: #29b6f6;`,
+  lead:         css`background: rgba(92,107,192,0.15);  color: #7c85ff;`,
+  qualified:    css`background: rgba(33,150,243,0.15);  color: #29b6f6;`,
   proposal:     css`background: rgba(245,166,35,0.15);  color: #f5a623;`,
   negotiation:  css`background: rgba(33,150,243,0.15);  color: #29b6f6;`,
   closedWon:    css`background: rgba(76,175,80,0.15);   color: #4caf50;`,

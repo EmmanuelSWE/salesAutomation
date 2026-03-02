@@ -1,20 +1,20 @@
-"use client";
+﻿"use client";
 
-import { useFormStatus } from "react-dom";
-import  {useSubmitProposalStyles}  from "../submitProposal/submitProposal.module";
+import { useSubmitProposalStyles } from "../submitProposal/submitProposal.module";
 
-export function SubmitButton() {
-  const { pending } = useFormStatus();
-  const { styles }  = useSubmitProposalStyles();
+interface Props { isPending?: boolean; }
+
+export function SubmitButton({ isPending = false }: Props) {
+  const { styles } = useSubmitProposalStyles();
 
   return (
     <button
       type="submit"
-      disabled={pending}
+      disabled={isPending}
       className={styles.submitBtn}
-      style={pending ? { opacity: 0.6, cursor: "not-allowed" } : {}}
+      style={isPending ? { opacity: 0.6, cursor: "not-allowed" } : {}}
     >
-      {pending ? "Submitting…" : "Submit"}
+      {isPending ? "Submitting..." : "Submit"}
     </button>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, Fragment } from "react";
+import Link from "next/link";
 import {
   SearchOutlined,
   SwapOutlined,
@@ -11,6 +12,7 @@ import {
   RightOutlined as ChevronRight,
   EditOutlined,
   CloseOutlined,
+  UserAddOutlined,
 } from "@ant-design/icons";
 import { useStaffStyles } from "./staff.module";
 import { useUserState, useUserAction, useActivityState, useActivityAction } from "../../../lib/providers/provider";
@@ -281,6 +283,14 @@ export default function StaffList() {
         </div>
         <button className={styles.iconBtn} title="Sort"><SwapOutlined rotate={90} /></button>
         <button className={styles.iconBtn} title="Filter"><FilterOutlined /></button>
+        <Link
+          href="/staff/invite"
+          className={styles.addBtn}
+          title="Invite Staff Member"
+          style={{ display: "flex", alignItems: "center", justifyContent: "center", textDecoration: "none" }}
+        >
+          <UserAddOutlined style={{ fontSize: 16 }} />
+        </Link>
       </div>
 
       {/* ── Table ── */}

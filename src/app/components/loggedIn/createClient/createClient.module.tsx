@@ -110,6 +110,14 @@ export const useCreateClientStyles = createStyles(({ css }) => ({
     color: #4caf50;
     font-size: 13px;
   `,
+  errorBanner: css`
+    background: #3a1a1a;
+    border: 1px solid #f44336;
+    border-radius: 10px;
+    padding: 10px 14px;
+    color: #f44336;
+    font-size: 13px;
+  `,
 
   submitRow: css`
     display: flex;

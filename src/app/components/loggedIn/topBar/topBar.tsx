@@ -2,6 +2,7 @@
 
 import { BellOutlined } from "@ant-design/icons";
 import { useTopBarStyles } from "./topBar.module";
+import NotificationBell from "../../NotificationBell";
 
 interface TopBarProps {
   /** Breadcrumb trail, e.g. ["Dashboards", "Overview"] */
@@ -30,7 +31,7 @@ export default function TopBar({ crumbs = ["Dashboards", "Overview"] }: Readonly
 
       {/* Actions */}
       <div className={styles.right}>
-        <div className={styles.iconBtn}><BellOutlined /></div>
+        <div className={styles.iconBtn}> <BellOutlined /></div>
       </div>
     </header>
   );

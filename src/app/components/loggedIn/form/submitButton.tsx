@@ -1,15 +1,13 @@
-"use client";
-import { useFormStatus } from "react-dom";
+﻿"use client";
 import { useFormStyles } from "./form.module";
 
-interface Props { label?: string; pendingLabel?: string; }
+interface Props { label?: string; pendingLabel?: string; isPending?: boolean; }
 
-export function SubmitButton({ label = "Submit", pendingLabel = "Submitting…" }: Readonly<Props>) {
-  const { pending } = useFormStatus();
-  const { styles }  = useFormStyles();
+export function SubmitButton({ label = "Submit", pendingLabel = "Submitting...", isPending = false }: Readonly<Props>) {
+  const { styles } = useFormStyles();
   return (
-    <button type="submit" disabled={pending} className={styles.submitBtn}>
-      {pending ? pendingLabel : label}
+    <button type="submit" disabled={isPending} className={styles.submitBtn}>
+      {isPending ? pendingLabel : label}
     </button>
   );
 }

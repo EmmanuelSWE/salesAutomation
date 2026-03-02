@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { createStyles } from "antd-style";
 
@@ -30,12 +30,13 @@ const useAuthButtonStyles = createStyles(({ css }) => ({
 
 interface AuthButtonProps {
   label: string;
+  isPending?: boolean;
 }
 
-export const AuthButton = ({ label }: Readonly<AuthButtonProps>) => {
+export const AuthButton = ({ label, isPending = false }: Readonly<AuthButtonProps>) => {
   const { styles } = useAuthButtonStyles();
   return (
-    <button type="submit" className={styles.button}>
+    <button type="submit" disabled={isPending} className={styles.button}>
       {label}
     </button>
   );
